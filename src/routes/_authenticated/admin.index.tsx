@@ -11,6 +11,7 @@ import {
   adminMoveOrCopyProduct,
   adminUpdateStock,
 } from "@/lib/admin.functions";
+import { invalidateProductsCache } from "@/lib/products";
 import {
   Dialog,
   DialogContent,
@@ -286,7 +287,7 @@ try {
            flavor: draft.flavor,
            puffs: draft.puffs,
            volume: draft.volume,
-           emoji: draft.emoji.trim() || "🔥",
+           emoji: draft.emoji.trim() || "рџ”Ґ",
            color: draft.color,
            image_url: draft.image_url,
            description: draft.description,
@@ -296,26 +297,28 @@ try {
            stock_quantity: Number(draft.stock_quantity) || 0,
          },
        });
-      toast.success(isEdit ? "Сохранено" : "Товар добавлен");
+      toast.success(isEdit ? "РЎРѕС…СЂР°РЅРµРЅРѕ" : "РўРѕРІР°СЂ РґРѕР±Р°РІР»РµРЅ");
+      invalidateProductsCache();
       await reload(true);
     } catch (e: any) {
-      toast.error(e?.message ?? "Не удалось сохранить");
+      toast.error(e?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ");
       await reload();
     }
   }
 
-  async function del(row: ProductRow) {
-    if (!confirm(`Удалить «${row.name}»?`)) return;
+async function del(row: ProductRow) {
+    if (!confirm(`РЈРґР°Р»РёС‚СЊ В«${row.name}В»?`)) return;
 
     // Optimistically remove from local state instantly
     setRows((prev) => prev.filter((r) => r.id !== row.id));
 
     try {
       await remove({ data: { id: row.id } });
-      toast.success("Удалено");
+      toast.success("РЈРґР°Р»РµРЅРѕ");
+      invalidateProductsCache();
       await reload(true);
     } catch (e: any) {
-      toast.error(e?.message ?? "Не удалось удалить");
+      toast.error(e?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ");
       await reload();
     }
   }
@@ -328,8 +331,9 @@ try {
 
     try {
       await toggle({ data: { id: row.id, is_active: nextActive } });
+      invalidateProductsCache();
     } catch (e: any) {
-      toast.error(e?.message ?? "Ошибка");
+      toast.error(e?.message ?? "РћС€РёР±РєР°");
       // Rollback on error
       setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, is_active: row.is_active } : r)));
     }
@@ -347,7 +351,7 @@ try {
     if (!moveCopyTarget) return;
     const row = moveCopyTarget;
     const normalizedSubcategory = (targetSubcategory ?? "").trim() || null;
-    try {
+try {
       await adminMoveOrCopyProduct({
         data: {
           id: row.id,
@@ -357,19 +361,20 @@ try {
         },
       });
       const categoryLabel = getCategoryLabel(targetCategory);
-      const subLabel = normalizedSubcategory ? ` · ${normalizedSubcategory}` : "";
+      const subLabel = normalizedSubcategory ? ` В· ${normalizedSubcategory}` : "";
       toast.success(
         moveCopyMode === "move"
-          ? `Перемещено в «${categoryLabel}${subLabel}»`
-          : `Скопировано в «${categoryLabel}${subLabel}»`,
+          ? `РџРµСЂРµРјРµС‰РµРЅРѕ РІ В«${categoryLabel}${subLabel}В»`
+          : `РЎРєРѕРїРёСЂРѕРІР°РЅРѕ РІ В«${categoryLabel}${subLabel}В»`,
       );
+      invalidateProductsCache();
       setMoveCopyTarget(null);
       setMoveCopyCategory("");
       setMoveCopySubcategory("");
       setMoveCopyCustomSubcategory(false);
       await reload(true);
     } catch (e: any) {
-      toast.error(e?.message ?? "Не удалось выполнить");
+      toast.error(e?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РїРѕР»РЅРёС‚СЊ");
     }
   }
 
@@ -377,9 +382,10 @@ try {
     try {
       await updateStock({ data: { id: row.id, stock_quantity: newQty } });
       setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, stock_quantity: newQty } : r)));
-      toast.success("Количество обновлено");
+      invalidateProductsCache();
+      toast.success("РљРѕР»РёС‡РµСЃС‚РІРѕ РѕР±РЅРѕРІР»РµРЅРѕ");
     } catch (e: any) {
-      toast.error(e?.message ?? "Не удалось обновить количество");
+      toast.error(e?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РєРѕР»РёС‡РµСЃС‚РІРѕ");
     }
   }
 
