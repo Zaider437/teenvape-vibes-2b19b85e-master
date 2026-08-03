@@ -9,6 +9,11 @@ cwd = "."
 
 [vars]
 EMAIL_API_URL = ""
+TELEGRAM_LOGIN_BOT_TOKEN = ""
+TELEGRAM_API_KEY = ""
+TELEGRAM_CHAT_ID = ""
+ADMIN_PASSWORD_SEED = ""
+PUBLIC_IMAGE_CDN_BASE = ""
 
 [dev]
 port = 8087

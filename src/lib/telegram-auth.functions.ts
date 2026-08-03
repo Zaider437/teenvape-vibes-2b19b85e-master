@@ -6,35 +6,40 @@ function getEnv(key: string): string | undefined {
     return (
       (globalThis as any).TELEGRAM_LOGIN_BOT_TOKEN ||
       (globalThis as any).env?.TELEGRAM_LOGIN_BOT_TOKEN ||
-      (globalThis as any).__env__?.TELEGRAM_LOGIN_BOT_TOKEN
+      (globalThis as any).__env__?.TELEGRAM_LOGIN_BOT_TOKEN ||
+      (typeof process !== "undefined" ? (process.env as any)?.TELEGRAM_LOGIN_BOT_TOKEN : undefined)
     );
   }
   if (key === "TELEGRAM_API_KEY") {
     return (
       (globalThis as any).TELEGRAM_API_KEY ||
       (globalThis as any).env?.TELEGRAM_API_KEY ||
-      (globalThis as any).__env__?.TELEGRAM_API_KEY
+      (globalThis as any).__env__?.TELEGRAM_API_KEY ||
+      (typeof process !== "undefined" ? (process.env as any)?.TELEGRAM_API_KEY : undefined)
     );
   }
   if (key === "ADMIN_PASSWORD_SEED") {
     return (
       (globalThis as any).ADMIN_PASSWORD_SEED ||
       (globalThis as any).env?.ADMIN_PASSWORD_SEED ||
-      (globalThis as any).__env__?.ADMIN_PASSWORD_SEED
+      (globalThis as any).__env__?.ADMIN_PASSWORD_SEED ||
+      (typeof process !== "undefined" ? (process.env as any)?.ADMIN_PASSWORD_SEED : undefined)
     );
   }
   if (key === "TELEGRAM_LOGIN_BOT_USERNAME") {
     return (
       (globalThis as any).TELEGRAM_LOGIN_BOT_USERNAME ||
       (globalThis as any).env?.TELEGRAM_LOGIN_BOT_USERNAME ||
-      (globalThis as any).__env__?.TELEGRAM_LOGIN_BOT_USERNAME
+      (globalThis as any).__env__?.TELEGRAM_LOGIN_BOT_USERNAME ||
+      (typeof process !== "undefined" ? (process.env as any)?.TELEGRAM_LOGIN_BOT_USERNAME : undefined)
     );
   }
   if (key === "TELEGRAM_USER_EMAIL_DOMAIN") {
     return (
       (globalThis as any).TELEGRAM_USER_EMAIL_DOMAIN ||
       (globalThis as any).env?.TELEGRAM_USER_EMAIL_DOMAIN ||
-      (globalThis as any).__env__?.TELEGRAM_USER_EMAIL_DOMAIN
+      (globalThis as any).__env__?.TELEGRAM_USER_EMAIL_DOMAIN ||
+      (typeof process !== "undefined" ? (process.env as any)?.TELEGRAM_USER_EMAIL_DOMAIN : undefined)
     );
   }
   return undefined;
