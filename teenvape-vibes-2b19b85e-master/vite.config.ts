@@ -9,7 +9,7 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
-    router: { routeFileIgnorePattern: "\\.test$" },
+    router: { routeFileIgnorePattern: "\\.test\\.tsx?$" },
   },
   vite: {
     server: {

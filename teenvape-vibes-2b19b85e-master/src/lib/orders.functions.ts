@@ -83,7 +83,7 @@ interface ServerContext {
 }
 
 export const createOrder = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => orderSchema.parse(input))
+  .validator((input: unknown) => orderSchema.parse(input))
   .handler(async ({ data, context }) => {
     const ctx = context as ServerContext;
     console.log("[createOrder] context keys:", Object.keys(ctx || {}));
@@ -177,13 +177,22 @@ export const createOrder = createServerFn({ method: "POST" })
     try {
       const emailApiUrl = env.EMAIL_API_URL || getEnv("EMAIL_API_URL");
       if (emailApiUrl) {
+        const html = `<h1>New Order LoveVape #${orderData.id.slice(0, 8)}</h1>
+<p>Customer: ${data.customer_name}</p>
+<p>Phone: ${data.customer_phone}</p>
+<p>Address: ${data.customer_address}</p>
+${data.customer_note ? `<p>Note: ${data.customer_note}</p>` : ""}
+<p>Items:</p>
+<ul>${trustedItems.map(i => `<li>${i.name} ${i.brand ? `(${i.brand})` : ""}${i.flavor ? `, ${i.flavor}` : ""} × ${i.qty} — ${(i.price * i.qty).toFixed(2)} BYN</li>`).join("")}</ul>
+<p><strong>Total: ${trustedTotal.toFixed(2)} BYN</strong></p>
+<p>Cancel: <a href="${cancelUrl || "#"}">${cancelUrl || "#"}</a></p>`;
         const emailRes = await fetch(emailApiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             to: notifyEmail,
             subject: `🔥 Новый заказ LoveVape #${orderData.id.slice(0, 8)}`,
-            html: html,
+            html,
           }),
           signal: AbortSignal.timeout(6000),
         });
@@ -387,7 +396,7 @@ export function escapeHtml(s: string) {
 const tokenSchema = z.object({ token: z.string().min(1) });
 
 export const getOrderByToken = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => tokenSchema.parse(input))
+  .validator((input: unknown) => tokenSchema.parse(input))
   .handler(async ({ data }) => {
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -442,7 +451,7 @@ export const getOrderByToken = createServerFn({ method: "GET" })
   });
 
 export const cancelOrder = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => tokenSchema.parse(input))
+  .validator((input: unknown) => tokenSchema.parse(input))
   .handler(async ({ data }) => {
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

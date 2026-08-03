@@ -1,11 +1,14 @@
 name = "zaider437-teenvape-vibes-2b19b85e"
-compatibility_date = "2025-07-31"
+compatibility_date = "2026-08-03"
 compatibility_flags = ["nodejs_compat"]
 main = ".output/server/index.mjs"
 
 [build]
 command = "PRISMA_SKIP_POSTINSTALL=true npm run build"
 cwd = "."
+
+[vars]
+EMAIL_API_URL = ""
 
 [dev]
 port = 8087
