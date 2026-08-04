@@ -132,6 +132,13 @@ export const createOrder = createServerFn({ method: "POST" })
       trustedItems.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2),
     );
 
+    for (const item of trustedItems) {
+      const dbProduct = byId.get(item.id);
+      if (dbProduct && dbProduct.stock_quantity !== undefined && item.qty > dbProduct.stock_quantity) {
+        return { error: `Недостаточно товара "${item.name}" на складе. Доступно: ${dbProduct.stock_quantity}, запрошено: ${item.qty}.` };
+      }
+    }
+
     const orderId = crypto.randomUUID();
 
     const orderData = {

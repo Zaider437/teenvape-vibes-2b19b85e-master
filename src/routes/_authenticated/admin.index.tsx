@@ -297,28 +297,28 @@ try {
            stock_quantity: Number(draft.stock_quantity) || 0,
          },
        });
-      toast.success(isEdit ? "РЎРѕС…СЂР°РЅРµРЅРѕ" : "РўРѕРІР°СЂ РґРѕР±Р°РІР»РµРЅ");
+      toast.success(isEdit ? "Сохранено" : "Товар добавлен");
       invalidateProductsCache();
       await reload(true);
     } catch (e: any) {
-      toast.error(e?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ");
+      toast.error(e?.message ?? "Не удалось сохранить");
       await reload();
     }
   }
 
 async function del(row: ProductRow) {
-    if (!confirm(`РЈРґР°Р»РёС‚СЊ В«${row.name}В»?`)) return;
+    if (!confirm(`Удалить «${row.name}»?`)) return;
 
     // Optimistically remove from local state instantly
     setRows((prev) => prev.filter((r) => r.id !== row.id));
 
     try {
       await remove({ data: { id: row.id } });
-      toast.success("РЈРґР°Р»РµРЅРѕ");
+      toast.success("Удалено");
       invalidateProductsCache();
       await reload(true);
     } catch (e: any) {
-      toast.error(e?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ");
+      toast.error(e?.message ?? "Не удалось удалить");
       await reload();
     }
   }
@@ -364,8 +364,8 @@ try {
       const subLabel = normalizedSubcategory ? ` В· ${normalizedSubcategory}` : "";
       toast.success(
         moveCopyMode === "move"
-          ? `РџРµСЂРµРјРµС‰РµРЅРѕ РІ В«${categoryLabel}${subLabel}В»`
-          : `РЎРєРѕРїРёСЂРѕРІР°РЅРѕ РІ В«${categoryLabel}${subLabel}В»`,
+          ? `Перемещён в «${categoryLabel}${subLabel}»`
+          : `Скопировано в «${categoryLabel}${subLabel}»`,
       );
       invalidateProductsCache();
       setMoveCopyTarget(null);
@@ -374,7 +374,7 @@ try {
       setMoveCopyCustomSubcategory(false);
       await reload(true);
     } catch (e: any) {
-      toast.error(e?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РїРѕР»РЅРёС‚СЊ");
+      toast.error(e?.message ?? "Не удалось выполнить");
     }
   }
 
@@ -383,9 +383,9 @@ try {
       await updateStock({ data: { id: row.id, stock_quantity: newQty } });
       setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, stock_quantity: newQty } : r)));
       invalidateProductsCache();
-      toast.success("РљРѕР»РёС‡РµСЃС‚РІРѕ РѕР±РЅРѕРІР»РµРЅРѕ");
+      toast.success("Количество обновлено");
     } catch (e: any) {
-      toast.error(e?.message ?? "РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РєРѕР»РёС‡РµСЃС‚РІРѕ");
+      toast.error(e?.message ?? "Не удалось обновить количество");
     }
   }
 

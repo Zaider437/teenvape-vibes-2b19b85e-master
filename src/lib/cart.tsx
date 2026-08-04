@@ -38,17 +38,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       add: (p) =>
         setItems((prev) => {
+          const maxQty = p.stock_quantity ?? Infinity;
           const ex = prev.find((i) => i.product.id === p.id);
-          if (ex) return prev.map((i) => (i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i));
+          if (ex) {
+            if (ex.qty >= maxQty) return prev;
+            return prev.map((i) => (i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i));
+          }
           return [...prev, { product: p, qty: 1 }];
         }),
       remove: (id) => setItems((prev) => prev.filter((i) => i.product.id !== id)),
       setQty: (id, qty) =>
-        setItems((prev) =>
-          qty <= 0
-            ? prev.filter((i) => i.product.id !== id)
-            : prev.map((i) => (i.product.id === id ? { ...i, qty } : i)),
-        ),
+        setItems((prev) => {
+          const item = prev.find((i) => i.product.id === id);
+          const maxQty = item?.product.stock_quantity ?? Infinity;
+          const capped = Math.min(qty, maxQty);
+          if (capped <= 0) return prev.filter((i) => i.product.id !== id);
+          return prev.map((i) => (i.product.id === id ? { ...i, qty: capped } : i));
+        }),
       clear: () => setItems([]),
       count: items.reduce((s, i) => s + i.qty, 0),
       total: items.reduce((s, i) => s + i.qty * i.product.price, 0),

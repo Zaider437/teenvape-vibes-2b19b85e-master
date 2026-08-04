@@ -134,23 +134,17 @@ function WhitelistAdmin() {
                   </div>
                 )}
               </div>
-              {row.telegram_id && (
-                <button
-                  onClick={() => del(row)}
-                  className="w-9 h-9 rounded-lg grid place-items-center bg-destructive/20 text-destructive"
-                  aria-label="Удалить"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
+              <button
+                onClick={() => del(row)}
+                className="w-9 h-9 rounded-lg grid place-items-center bg-destructive/20 text-destructive"
+                aria-label="Удалить"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           ))}
         </div>
       )}
-      <p className="text-[10px] text-muted-foreground">
-        Кнопки удаления убраны, так как эти функции отвечают за настройку анимации и редактирование
-        корзины.
-      </p>
     </div>
   );
 }
