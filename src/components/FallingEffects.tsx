@@ -88,7 +88,7 @@ function drawLeafShape(
   ctx.rotate(rotationZ);
   ctx.scale(1, Math.cos(rotationX) * 0.85 + 0.15);
 
-  const segments = 20;
+  const segments = 24;
   ctx.beginPath();
   ctx.moveTo(s * 0.05, s * 0.42);
 
@@ -131,60 +131,93 @@ function drawLeafShape(
   }
 
   ctx.closePath();
+  ctx.clip();
 
-  const gradient = ctx.createLinearGradient(-s * 0.3, 0, s * 0.3, 0);
-  gradient.addColorStop(0, adjustBrightness(color, -20));
-  gradient.addColorStop(0.25, color);
-  gradient.addColorStop(0.5, adjustBrightness(color, 8));
-  gradient.addColorStop(0.75, color);
-  gradient.addColorStop(1, adjustBrightness(color, -20));
-  ctx.fillStyle = gradient;
-  ctx.fill();
+  const cx = s * 0.05;
+  const cy = 0;
+  const radius = s * 0.45;
 
-  ctx.beginPath();
-  ctx.moveTo(s * 0.02, s * 0.38);
-  ctx.quadraticCurveTo(s * 0.05, 0, s * 0.15, -s * 0.38);
-  const midribGrad = ctx.createLinearGradient(0, s * 0.38, 0, -s * 0.38);
-  midribGrad.addColorStop(0, `rgba(0,0,0,${0.3 * opacity})`);
-  midribGrad.addColorStop(0.5, `rgba(0,0,0,${0.18 * opacity})`);
-  midribGrad.addColorStop(1, `rgba(0,0,0,${0.06 * opacity})`);
-  ctx.strokeStyle = midribGrad;
-  ctx.lineWidth = Math.max(1, s * 0.025);
-  ctx.lineCap = "round";
-  ctx.stroke();
+  const baseGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+  baseGrad.addColorStop(0, adjustBrightness(color, 20));
+  baseGrad.addColorStop(0.3, color);
+  baseGrad.addColorStop(0.6, adjustBrightness(color, -5));
+  baseGrad.addColorStop(0.85, adjustBrightness(color, -15));
+  baseGrad.addColorStop(1, adjustBrightness(color, -30));
+  ctx.fillStyle = baseGrad;
+  ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
 
-  const veinCount = 5;
-  for (let i = 0; i < veinCount; i++) {
-    const t = 0.12 + i * 0.19;
-    const vx = s * 0.02 + t * s * 0.2;
-    const vy = s * 0.38 - t * s * 0.76;
-    const branchLen = s * 0.1 * (1 - i * 0.1);
+  const varGrad = ctx.createRadialGradient(
+    cx + Math.sin(seed) * s * 0.1,
+    cy + Math.cos(seed) * s * 0.1,
+    0,
+    cx,
+    cy,
+    radius
+  );
+  varGrad.addColorStop(0, 'rgba(255,255,255,0)');
+  varGrad.addColorStop(0.3, 'rgba(255,255,255,0.06)');
+  varGrad.addColorStop(0.6, 'rgba(0,0,0,0.04)');
+  varGrad.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = varGrad;
+  ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
 
-    ctx.beginPath();
-    ctx.moveTo(vx, vy);
-    ctx.quadraticCurveTo(
-      vx + branchLen * 0.25,
-      vy - branchLen * 0.15,
-      vx + branchLen * 0.7,
-      vy - branchLen * 0.55
-    );
-    ctx.strokeStyle = `rgba(0,0,0,${0.1 * opacity})`;
-    ctx.lineWidth = Math.max(0.5, s * 0.005 * (1 - i * 0.12));
-    ctx.lineCap = "round";
-    ctx.stroke();
+  const edgeGrad = ctx.createRadialGradient(cx, cy, s * 0.08, cx, cy, radius);
+  edgeGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  edgeGrad.addColorStop(0.6, 'rgba(0,0,0,0)');
+  edgeGrad.addColorStop(0.85, 'rgba(0,0,0,0.15)');
+  edgeGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
+  ctx.fillStyle = edgeGrad;
+  ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
 
-    ctx.beginPath();
-    ctx.moveTo(vx, vy);
-    ctx.quadraticCurveTo(
-      vx - branchLen * 0.25,
-      vy - branchLen * 0.15,
-      vx - branchLen * 0.7,
-      vy - branchLen * 0.55
-    );
-    ctx.stroke();
-  }
+  drawVeinBranch(ctx, cx, cy + s * 0.35, 0, -s * 0.7, s * 0.03, seed, opacity, 0, s);
+
+  const highlightGrad = ctx.createRadialGradient(-s * 0.05, -s * 0.1, 0, cx, cy, s * 0.35);
+  highlightGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
+  highlightGrad.addColorStop(0.5, 'rgba(255,255,255,0.03)');
+  highlightGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = highlightGrad;
+  ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
 
   ctx.restore();
+}
+
+function drawVeinBranch(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  angle: number,
+  length: number,
+  width: number,
+  seed: number,
+  opacity: number,
+  depth: number,
+  leafSize: number
+) {
+  if (length < leafSize * 0.02 || depth > 3) return;
+
+  const endX = x + Math.cos(angle) * length;
+  const endY = y + Math.sin(angle) * length;
+
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  const ctrlX = x + Math.cos(angle) * length * 0.5 + Math.sin(angle + 0.5) * length * 0.1;
+  const ctrlY = y + Math.sin(angle) * length * 0.5 + Math.cos(angle + 0.5) * length * 0.1;
+  ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+  ctx.strokeStyle = `rgba(0,0,0,${(0.2 - depth * 0.05) * opacity})`;
+  ctx.lineWidth = Math.max(0.3, width);
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  const branchCount = depth === 0 ? 5 : (depth === 1 ? 3 : 2);
+  for (let i = 0; i < branchCount; i++) {
+    const t = (i + 1) / (branchCount + 1);
+    const bx = x + Math.cos(angle) * length * t;
+    const by = y + Math.sin(angle) * length * t;
+    const branchAngle = angle + (i % 2 === 0 ? 0.4 : -0.4) + (fbmNoise(bx * 0.1 + seed, by * 0.1 + seed, seed + depth * 50 + i, 2) - 0.5) * 0.3;
+    const branchLen = length * (0.3 + fbmNoise(bx * 0.2 + seed + 1, by * 0.2 + seed + 1, seed + depth * 50 + i + 100, 2) * 0.3);
+    const branchWidth = width * (0.6 - depth * 0.15);
+    drawVeinBranch(ctx, bx, by, branchAngle, branchLen, branchWidth, seed, opacity, depth + 1, leafSize);
+  }
 }
 
 function adjustBrightness(hex: string, amount: number): string {
