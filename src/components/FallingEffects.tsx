@@ -8,8 +8,6 @@ interface Particle {
   size: number;
   speedY: number;
   speedX: number;
-  angle: number;
-  spin: number;
   color: string;
   type: "snow" | "leaf";
   swayPhase: number;
@@ -17,97 +15,153 @@ interface Particle {
   windInfluence: number;
   wobble: number;
   wobbleSpeed: number;
+  tumblePhase: number;
+  tumbleSpeed: number;
+  spinSpeed: number;
+  tiltPhase: number;
+  tiltSpeed: number;
+  flutterPhase: number;
+  flutterSpeed: number;
+  flutterAmp: number;
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
+  opacity: number;
+  fadeIn: boolean;
+  fadeOut: boolean;
+  seed: number;
 }
 
 interface FallingEffectsProps {
   onSnowChange?: (active: boolean) => void;
 }
 
+function simpleNoise(x: number, y: number, seed: number): number {
+  const n = Math.sin(x * 12.9898 + y * 78.233 + seed * 43.12) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+function smoothNoise(x: number, y: number, seed: number): number {
+  const ix = Math.floor(x);
+  const iy = Math.floor(y);
+  const fx = x - ix;
+  const fy = y - iy;
+  const a = simpleNoise(ix, iy, seed);
+  const b = simpleNoise(ix + 1, iy, seed);
+  const c = simpleNoise(ix, iy + 1, seed);
+  const d = simpleNoise(ix + 1, iy + 1, seed);
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+  return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+}
+
+function fbmNoise(x: number, y: number, seed: number, octaves: number): number {
+  let value = 0;
+  let amplitude = 1;
+  let frequency = 1;
+  let maxVal = 0;
+  for (let i = 0; i < octaves; i++) {
+    value += smoothNoise(x * frequency, y * frequency, seed + i * 31.7) * amplitude;
+    maxVal += amplitude;
+    amplitude *= 0.5;
+    frequency *= 2.1;
+  }
+  return value / maxVal;
+}
+
 function drawLeafShape(
   ctx: CanvasRenderingContext2D,
   size: number,
-  color: string
+  color: string,
+  rotationX: number,
+  rotationY: number,
+  rotationZ: number,
+  opacity: number
 ) {
   const s = size;
+  const seed = size * 100 + color.charCodeAt(1);
+
+  ctx.save();
+  ctx.globalAlpha = opacity;
+
+  ctx.translate(0, 0);
+  ctx.rotate(rotationZ);
+  ctx.scale(1, Math.cos(rotationX) * 0.85 + 0.15);
 
   ctx.beginPath();
-  ctx.moveTo(-s * 0.4, 0);
+  ctx.moveTo(-s * 0.35, 0);
 
-  ctx.bezierCurveTo(
-    -s * 0.25, -s * 0.38,
-    s * 0.15, -s * 0.35,
-    s * 0.45, -s * 0.05
-  );
+  const edgePoints = 8;
+  for (let i = 1; i <= edgePoints; i++) {
+    const t = i / edgePoints;
+    const nx = -s * 0.35 + t * s * 0.7;
+    const ny = -s * 0.3 + Math.sin(t * Math.PI) * s * 0.35;
+    const noise = fbmNoise(nx * 0.05 + seed, ny * 0.05 + seed, seed, 3);
+    const displacement = (noise - 0.5) * s * 0.08;
+    const wobbleY = Math.sin(t * Math.PI * 2.3 + seed) * s * 0.03;
+    ctx.lineTo(nx + displacement, ny + wobbleY);
+  }
 
-  ctx.bezierCurveTo(
-    s * 0.55, s * 0.05,
-    s * 0.45, s * 0.2,
-    s * 0.35, s * 0.35
-  );
-
-  ctx.bezierCurveTo(
-    s * 0.2, s * 0.55,
-    s * 0.05, s * 0.7,
-    0, s * 0.8
-  );
-
-  ctx.bezierCurveTo(
-    -s * 0.05, s * 0.7,
-    -s * 0.2, s * 0.55,
-    -s * 0.35, s * 0.35
-  );
-
-  ctx.bezierCurveTo(
-    -s * 0.45, s * 0.2,
-    -s * 0.55, s * 0.05,
-    -s * 0.4, 0
-  );
+  for (let i = edgePoints; i >= 1; i--) {
+    const t = i / edgePoints;
+    const nx = -s * 0.35 + t * s * 0.7;
+    const ny = s * 0.3 - Math.sin(t * Math.PI) * s * 0.35;
+    const noise = fbmNoise(nx * 0.05 + seed + 50, ny * 0.05 + seed + 50, seed + 50, 3);
+    const displacement = (noise - 0.5) * s * 0.08;
+    const wobbleY = Math.sin(t * Math.PI * 2.3 + seed + 1.5) * s * 0.03;
+    ctx.lineTo(nx + displacement, ny + wobbleY);
+  }
 
   ctx.closePath();
 
   const gradient = ctx.createLinearGradient(-s * 0.4, 0, s * 0.45, 0);
   gradient.addColorStop(0, color);
-  gradient.addColorStop(0.5, color);
-  gradient.addColorStop(1, adjustBrightness(color, -15));
+  gradient.addColorStop(0.4, color);
+  gradient.addColorStop(0.7, adjustBrightness(color, -10));
+  gradient.addColorStop(1, adjustBrightness(color, -20));
   ctx.fillStyle = gradient;
   ctx.fill();
 
   ctx.beginPath();
-  ctx.moveTo(-s * 0.35, 0);
-  ctx.lineTo(s * 0.3, s * 0.02);
-  ctx.strokeStyle = "rgba(0,0,0,0.1)";
+  ctx.moveTo(-s * 0.3, 0);
+  ctx.lineTo(s * 0.25, s * 0.01);
+  ctx.strokeStyle = `rgba(0,0,0,${0.12 * opacity})`;
   ctx.lineWidth = Math.max(1, s * 0.025);
   ctx.lineCap = "round";
   ctx.stroke();
 
-  for (let i = 0; i < 3; i++) {
-    const t = 0.2 + i * 0.25;
-    const vx = -s * 0.35 + t * s * 0.65;
-    const vy = Math.sin(t * Math.PI) * s * 0.15;
-    const branchLen = s * 0.12 * (1 - i * 0.2);
+  const veinCount = 4;
+  for (let i = 0; i < veinCount; i++) {
+    const t = 0.15 + i * 0.22;
+    const vx = -s * 0.3 + t * s * 0.6;
+    const vy = Math.sin(t * Math.PI) * s * 0.12;
+    const branchLen = s * 0.1 * (1 - i * 0.15);
+    const side = i % 2 === 0 ? -1 : 1;
 
     ctx.beginPath();
     ctx.moveTo(vx, vy);
     ctx.quadraticCurveTo(
-      vx - branchLen * 0.5,
-      vy - branchLen * 0.4,
-      vx - branchLen * 0.8,
-      vy - branchLen * 0.7
+      vx - branchLen * 0.4 * side,
+      vy - branchLen * 0.35,
+      vx - branchLen * 0.7 * side,
+      vy - branchLen * 0.65
     );
-    ctx.strokeStyle = "rgba(0,0,0,0.06)";
-    ctx.lineWidth = Math.max(0.5, s * 0.01);
+    ctx.strokeStyle = `rgba(0,0,0,${0.07 * opacity})`;
+    ctx.lineWidth = Math.max(0.5, s * 0.008);
     ctx.stroke();
 
     ctx.beginPath();
     ctx.moveTo(vx, vy);
     ctx.quadraticCurveTo(
-      vx + branchLen * 0.5,
-      vy - branchLen * 0.4,
-      vx + branchLen * 0.8,
-      vy - branchLen * 0.7
+      vx + branchLen * 0.4 * side,
+      vy - branchLen * 0.35,
+      vx + branchLen * 0.7 * side,
+      vy - branchLen * 0.65
     );
     ctx.stroke();
   }
+
+  ctx.restore();
 }
 
 function adjustBrightness(hex: string, amount: number): string {
@@ -177,7 +231,20 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
     resizeCanvas();
 
     const maxParticles = 60;
-    const leafColors = ["#e28743", "#eab676", "#abdbe3", "#ee6c4d", "#f9c74f", "#90be6d"];
+    const leafColors = [
+      "#c0392b",
+      "#d4641a",
+      "#e67e22",
+      "#eab676",
+      "#f9c74f",
+      "#90be6d",
+      "#abdbe3",
+      "#ee6c4d",
+      "#a855f7",
+      "#f97316",
+      "#84cc16",
+      "#d97706",
+    ];
 
     const createParticle = (initY = false): Particle => {
       const type =
@@ -191,26 +258,40 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
 
       const x = Math.random() * window.innerWidth;
       const y = initY ? Math.random() * window.innerHeight : -10;
-      const size = type === "snow" ? Math.random() * 3 + 1 : Math.random() * 8 + 6;
-      const speedY = type === "snow" ? Math.random() * 1 + 0.5 : Math.random() * 1.2 + 0.8;
+      const size = type === "snow" ? Math.random() * 3 + 1 : Math.random() * 10 + 5;
+      const baseSpeedY = type === "snow" ? Math.random() * 1 + 0.5 : Math.random() * 0.8 + 0.4;
       const speedX = Math.random() * 1 - 0.5;
+      const seed = Math.random() * 1000;
 
       if (type === "leaf") {
         return {
           x,
           y,
           size,
-          speedY,
+          speedY: baseSpeedY,
           speedX,
-          angle: Math.random() * Math.PI * 2,
-          spin: (Math.random() - 0.5) * 0.015,
           color: leafColors[Math.floor(Math.random() * leafColors.length)],
           type,
           swayPhase: Math.random() * Math.PI * 2,
-          swaySpeed: 0.0008 + Math.random() * 0.0015,
+          swaySpeed: 0.0006 + Math.random() * 0.0012,
           windInfluence: 0.3 + Math.random() * 0.7,
           wobble: Math.random() * Math.PI * 2,
-          wobbleSpeed: 0.002 + Math.random() * 0.003,
+          wobbleSpeed: 0.001 + Math.random() * 0.0025,
+          tumblePhase: Math.random() * Math.PI * 2,
+          tumbleSpeed: 0.003 + Math.random() * 0.008,
+          spinSpeed: (Math.random() - 0.5) * 0.02,
+          tiltPhase: Math.random() * Math.PI * 2,
+          tiltSpeed: 0.001 + Math.random() * 0.003,
+          flutterPhase: Math.random() * Math.PI * 2,
+          flutterSpeed: 0.005 + Math.random() * 0.01,
+          flutterAmp: 0.3 + Math.random() * 0.7,
+          rotationX: 0,
+          rotationY: 0,
+          rotationZ: 0,
+          opacity: 0,
+          fadeIn: true,
+          fadeOut: false,
+          seed,
         };
       }
 
@@ -218,10 +299,8 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
         x,
         y,
         size,
-        speedY,
+        speedY: baseSpeedY,
         speedX,
-        angle: 0,
-        spin: 0,
         color: "",
         type,
         swayPhase: 0,
@@ -229,6 +308,21 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
         windInfluence: 0,
         wobble: 0,
         wobbleSpeed: 0,
+        tumblePhase: 0,
+        tumbleSpeed: 0,
+        spinSpeed: 0,
+        tiltPhase: 0,
+        tiltSpeed: 0,
+        flutterPhase: 0,
+        flutterSpeed: 0,
+        flutterAmp: 0,
+        rotationX: 0,
+        rotationY: 0,
+        rotationZ: 0,
+        opacity: 0.8,
+        fadeIn: false,
+        fadeOut: false,
+        seed: 0,
       };
     };
 
@@ -239,40 +333,85 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
     const animate = (timestamp: number) => {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-      const wind =
-        Math.sin(timestamp * 0.0003) * 0.4 +
-        Math.sin(timestamp * 0.0007 + 1.5) * 0.2 +
-        Math.sin(timestamp * 0.0015 + 3.0) * 0.1;
+      const t = timestamp * 0.001;
+
+      const windGust =
+        Math.sin(t * 0.3) * 0.3 +
+        Math.sin(t * 0.7 + 1.5) * 0.2 +
+        Math.sin(t * 1.5 + 3.0) * 0.15 +
+        Math.sin(t * 3.1 + 0.7) * 0.05;
+
+      const windNoise =
+        fbmNoise(t * 0.1, timestamp * 0.0001, 42, 3) * 0.6 - 0.3;
+
+      const wind = windGust + windNoise;
 
       particles.forEach((p, idx) => {
-        p.y += p.speedY;
-
         if (p.type === "leaf") {
+          p.y += p.speedY;
+
+          const gravity = 0.0003;
+          p.speedY += gravity;
+
+          const flutter = Math.sin(t * p.flutterSpeed + p.flutterPhase) * p.flutterAmp * 0.3;
+          p.speedY += flutter * 0.01;
+
+          p.speedY = Math.max(0.2, Math.min(p.speedY, 2.5));
+
           const sway =
-            Math.sin(timestamp * p.swaySpeed + p.swayPhase) * 0.6 * p.windInfluence;
-          const windDrift = wind * p.windInfluence * 0.5;
-          p.x += p.speedX + sway + windDrift;
+            Math.sin(timestamp * p.swaySpeed + p.swayPhase) * 0.8 * p.windInfluence;
+          const windDrift = wind * p.windInfluence * 0.6;
+          const noiseDrift =
+            fbmNoise(p.x * 0.003 + t, p.y * 0.003 + t, p.seed, 2) * 0.4 - 0.2;
+          p.x += p.speedX + sway + windDrift + noiseDrift;
 
           p.wobble += p.wobbleSpeed;
-          p.angle += p.spin + Math.sin(p.wobble) * 0.015 * p.windInfluence;
+          p.tumblePhase += p.tumbleSpeed;
+          p.tiltPhase += p.tiltSpeed;
+
+          p.rotationX = Math.sin(p.tumblePhase) * Math.PI * 0.8;
+          p.rotationY = p.spinSpeed * timestamp * 0.05 + Math.sin(p.wobble) * 0.3;
+          p.rotationZ = Math.sin(p.tiltPhase) * 0.5;
+
+          p.opacity = Math.min(1, p.opacity + 0.02);
         } else {
+          p.y += p.speedY;
           p.x += p.speedX + Math.sin(p.y / 30) * 0.2;
+        }
+
+        const screenHeight = window.innerHeight;
+        const fadeZone = 80;
+
+        if (p.type === "leaf") {
+          if (p.y < fadeZone && p.fadeIn) {
+            p.opacity = Math.max(0, p.y / fadeZone);
+          }
+          if (p.y > screenHeight - fadeZone) {
+            p.opacity = Math.max(0, (screenHeight - p.y) / fadeZone);
+          }
         }
 
         if (p.type === "snow") {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + Math.sin(timestamp * 0.002 + p.x) * 0.1})`;
           ctx.fill();
-        } else if (p.type === "leaf" && p.color && p.angle !== undefined) {
+        } else if (p.type === "leaf" && p.color) {
+          const perspectiveScale = 0.6 + 0.4 * (1 - p.y / screenHeight);
+          const drawSize = p.size * perspectiveScale;
+
           ctx.save();
           ctx.translate(p.x, p.y);
-          ctx.rotate(p.angle);
-          drawLeafShape(ctx, p.size, p.color);
+          ctx.rotate(p.rotationY);
+          ctx.scale(
+            Math.cos(p.rotationX) * (p.rotationZ > 0 ? 1 : 0.7),
+            Math.cos(p.rotationX) * (p.rotationZ < 0 ? 1 : 0.7)
+          );
+          drawLeafShape(ctx, drawSize, p.color, p.rotationX, p.rotationY, p.rotationZ, p.opacity);
           ctx.restore();
         }
 
-        if (p.y > window.innerHeight + 10 || p.x < -10 || p.x > window.innerWidth + 10) {
+        if (p.y > screenHeight + 20 || p.x < -30 || p.x > window.innerWidth + 30) {
           particles[idx] = createParticle(false);
         }
       });
