@@ -42,8 +42,14 @@ function createSupabaseAdminFetch(supabaseKey: string, publishableKey: string): 
       new Headers(init.headers).forEach((value, key) => headers.set(key, value));
     }
 
+    // New Supabase API keys are opaque strings, not bearer JWTs.
+    if (isNewSupabaseApiKey(supabaseKey)) {
+      headers.delete("Authorization");
+    } else {
+      headers.set("Authorization", `Bearer ${supabaseKey}`);
+    }
+
     headers.set("apikey", publishableKey);
-    headers.set("Authorization", `Bearer ${supabaseKey}`);
     return fetch(input, { ...init, headers });
   };
 }
