@@ -2,6 +2,42 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getAnimationSettings } from "@/lib/admin.functions";
 
+let leafTextureImage: HTMLImageElement | null = null;
+let leafTextureLoading = false;
+let leafTextureLoaded = false;
+
+function loadLeafTexture(): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    if (leafTextureImage) {
+      resolve(leafTextureImage);
+      return;
+    }
+    if (leafTextureLoading) {
+      const check = setInterval(() => {
+        if (leafTextureImage) {
+          clearInterval(check);
+          resolve(leafTextureImage);
+        }
+      }, 50);
+      return;
+    }
+    leafTextureLoading = true;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      leafTextureImage = img;
+      leafTextureLoaded = true;
+      leafTextureLoading = false;
+      resolve(img);
+    };
+    img.onerror = () => {
+      leafTextureLoading = false;
+      resolve(null);
+    };
+    img.src = "/assets/images/Osenniy-list-klena.png";
+  });
+}
+
 interface Particle {
   x: number;
   y: number;
@@ -76,7 +112,8 @@ function drawLeafShape(
   rotationX: number,
   rotationY: number,
   rotationZ: number,
-  opacity: number
+  opacity: number,
+  texture: HTMLImageElement | null
 ) {
   const s = size;
   const seed = size * 100 + color.charCodeAt(1);
@@ -133,91 +170,43 @@ function drawLeafShape(
   ctx.closePath();
   ctx.clip();
 
-  const cx = s * 0.05;
-  const cy = 0;
-  const radius = s * 0.45;
+  if (texture) {
+    const texW = texture.width;
+    const texH = texture.height;
+    const aspect = texW / texH;
+    let drawW = s * 0.7;
+    let drawH = drawW / aspect;
+    if (drawH > s * 0.9) {
+      drawH = s * 0.9;
+      drawW = drawH * aspect;
+    }
+    const offsetX = (s * 0.7 - drawW) / 2;
+    const offsetY = (s * 0.9 - drawH) / 2;
+    ctx.drawImage(texture, -s * 0.35 + offsetX, -s * 0.45 + offsetY, drawW, drawH);
+  } else {
+    const cx = s * 0.05;
+    const cy = 0;
+    const radius = s * 0.45;
 
-  const baseGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-  baseGrad.addColorStop(0, adjustBrightness(color, 20));
-  baseGrad.addColorStop(0.3, color);
-  baseGrad.addColorStop(0.6, adjustBrightness(color, -5));
-  baseGrad.addColorStop(0.85, adjustBrightness(color, -15));
-  baseGrad.addColorStop(1, adjustBrightness(color, -30));
-  ctx.fillStyle = baseGrad;
-  ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
+    const baseGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    baseGrad.addColorStop(0, adjustBrightness(color, 20));
+    baseGrad.addColorStop(0.3, color);
+    baseGrad.addColorStop(0.6, adjustBrightness(color, -5));
+    baseGrad.addColorStop(0.85, adjustBrightness(color, -15));
+    baseGrad.addColorStop(1, adjustBrightness(color, -30));
+    ctx.fillStyle = baseGrad;
+    ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
 
-  const varGrad = ctx.createRadialGradient(
-    cx + Math.sin(seed) * s * 0.1,
-    cy + Math.cos(seed) * s * 0.1,
-    0,
-    cx,
-    cy,
-    radius
-  );
-  varGrad.addColorStop(0, 'rgba(255,255,255,0)');
-  varGrad.addColorStop(0.3, 'rgba(255,255,255,0.06)');
-  varGrad.addColorStop(0.6, 'rgba(0,0,0,0.04)');
-  varGrad.addColorStop(1, 'rgba(0,0,0,0.12)');
-  ctx.fillStyle = varGrad;
-  ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
-
-  const edgeGrad = ctx.createRadialGradient(cx, cy, s * 0.08, cx, cy, radius);
-  edgeGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  edgeGrad.addColorStop(0.6, 'rgba(0,0,0,0)');
-  edgeGrad.addColorStop(0.85, 'rgba(0,0,0,0.15)');
-  edgeGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
-  ctx.fillStyle = edgeGrad;
-  ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
-
-  drawVeinBranch(ctx, cx, cy + s * 0.35, 0, -s * 0.7, s * 0.03, seed, opacity, 0, s);
-
-  const highlightGrad = ctx.createRadialGradient(-s * 0.05, -s * 0.1, 0, cx, cy, s * 0.35);
-  highlightGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
-  highlightGrad.addColorStop(0.5, 'rgba(255,255,255,0.03)');
-  highlightGrad.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = highlightGrad;
-  ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
+    const edgeGrad = ctx.createRadialGradient(cx, cy, s * 0.08, cx, cy, radius);
+    edgeGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    edgeGrad.addColorStop(0.6, 'rgba(0,0,0,0)');
+    edgeGrad.addColorStop(0.85, 'rgba(0,0,0,0.15)');
+    edgeGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = edgeGrad;
+    ctx.fillRect(-s * 0.5, -s * 0.5, s, s);
+  }
 
   ctx.restore();
-}
-
-function drawVeinBranch(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  angle: number,
-  length: number,
-  width: number,
-  seed: number,
-  opacity: number,
-  depth: number,
-  leafSize: number
-) {
-  if (length < leafSize * 0.02 || depth > 3) return;
-
-  const endX = x + Math.cos(angle) * length;
-  const endY = y + Math.sin(angle) * length;
-
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  const ctrlX = x + Math.cos(angle) * length * 0.5 + Math.sin(angle + 0.5) * length * 0.1;
-  const ctrlY = y + Math.sin(angle) * length * 0.5 + Math.cos(angle + 0.5) * length * 0.1;
-  ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
-  ctx.strokeStyle = `rgba(0,0,0,${(0.2 - depth * 0.05) * opacity})`;
-  ctx.lineWidth = Math.max(0.3, width);
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
-  const branchCount = depth === 0 ? 5 : (depth === 1 ? 3 : 2);
-  for (let i = 0; i < branchCount; i++) {
-    const t = (i + 1) / (branchCount + 1);
-    const bx = x + Math.cos(angle) * length * t;
-    const by = y + Math.sin(angle) * length * t;
-    const branchAngle = angle + (i % 2 === 0 ? 0.4 : -0.4) + (fbmNoise(bx * 0.1 + seed, by * 0.1 + seed, seed + depth * 50 + i, 2) - 0.5) * 0.3;
-    const branchLen = length * (0.3 + fbmNoise(bx * 0.2 + seed + 1, by * 0.2 + seed + 1, seed + depth * 50 + i + 100, 2) * 0.3);
-    const branchWidth = width * (0.6 - depth * 0.15);
-    drawVeinBranch(ctx, bx, by, branchAngle, branchLen, branchWidth, seed, opacity, depth + 1, leafSize);
-  }
 }
 
 function adjustBrightness(hex: string, amount: number): string {
@@ -235,6 +224,13 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
     snow: false,
     leaves: false,
   });
+  const [leafTexture, setLeafTexture] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    loadLeafTexture().then((img) => {
+      if (img) setLeafTexture(img);
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -463,7 +459,7 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
             Math.cos(p.rotationX) * (p.rotationZ > 0 ? 1 : 0.7),
             Math.cos(p.rotationX) * (p.rotationZ < 0 ? 1 : 0.7)
           );
-          drawLeafShape(ctx, drawSize, p.color, p.rotationX, p.rotationY, p.rotationZ, p.opacity);
+          drawLeafShape(ctx, drawSize, p.color, p.rotationX, p.rotationY, p.rotationZ, p.opacity, leafTexture);
           ctx.restore();
         }
 
