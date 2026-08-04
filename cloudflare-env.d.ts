@@ -2,6 +2,7 @@ interface Env {
   SUPABASE_PROJECT_ID: string;
   SUPABASE_PUBLISHABLE_KEY: string;
   SUPABASE_URL: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
   SUPABASE_SECRET_KEY: string;
   SUPABASE_JWKS_URL: string;
   VITE_SUPABASE_PROJECT_ID: string;
