@@ -5,6 +5,10 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
+function isNewSupabaseApiKey(value: string): boolean {
+  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
+}
+
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
   return (input, init) => {
     const headers = new Headers(
@@ -15,7 +19,31 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
       new Headers(init.headers).forEach((value, key) => headers.set(key, value));
     }
 
+    // New Supabase API keys are opaque strings, not bearer JWTs.
+    if (
+      isNewSupabaseApiKey(supabaseKey) &&
+      headers.get("Authorization") === `Bearer ${supabaseKey}`
+    ) {
+      headers.delete("Authorization");
+    }
+
     headers.set("apikey", supabaseKey);
+    return fetch(input, { ...init, headers });
+  };
+}
+
+function createSupabaseAdminFetch(supabaseKey: string, publishableKey: string): typeof fetch {
+  return (input, init) => {
+    const headers = new Headers(
+      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
+    );
+
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+    }
+
+    headers.set("apikey", publishableKey);
+    headers.set("Authorization", `Bearer ${supabaseKey}`);
     return fetch(input, { ...init, headers });
   };
 }
@@ -33,6 +61,11 @@ function createSupabaseAdminClient() {
     (globalThis as any).env?.SUPABASE_SECRET_KEY ||
     (globalThis as any).__env__?.SUPABASE_SERVICE_ROLE_KEY ||
     (globalThis as any).__env__?.SUPABASE_SECRET_KEY;
+  const SUPABASE_PUBLISHABLE_KEY =
+    (globalThis as any).SUPABASE_PUBLISHABLE_KEY ||
+    (globalThis as any).env?.SUPABASE_PUBLISHABLE_KEY ||
+    (globalThis as any).__env__?.SUPABASE_PUBLISHABLE_KEY ||
+    "sb_publishable_DLmGdw_zbkrtIE-pNvtovA_jkqoDzZP";
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     const missing = [
@@ -46,7 +79,7 @@ function createSupabaseAdminClient() {
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     global: {
-      fetch: createSupabaseFetch(SUPABASE_SERVICE_ROLE_KEY),
+      fetch: createSupabaseAdminFetch(SUPABASE_SERVICE_ROLE_KEY, SUPABASE_PUBLISHABLE_KEY),
     },
     auth: {
       storage: undefined,
