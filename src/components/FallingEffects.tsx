@@ -88,75 +88,98 @@ function drawLeafShape(
   ctx.rotate(rotationZ);
   ctx.scale(1, Math.cos(rotationX) * 0.85 + 0.15);
 
+  const segments = 20;
   ctx.beginPath();
-  ctx.moveTo(-s * 0.35, 0);
+  ctx.moveTo(s * 0.05, s * 0.42);
 
-  const edgePoints = 8;
-  for (let i = 1; i <= edgePoints; i++) {
-    const t = i / edgePoints;
-    const nx = -s * 0.35 + t * s * 0.7;
-    const ny = -s * 0.3 + Math.sin(t * Math.PI) * s * 0.35;
-    const noise = fbmNoise(nx * 0.05 + seed, ny * 0.05 + seed, seed, 3);
-    const displacement = (noise - 0.5) * s * 0.08;
-    const wobbleY = Math.sin(t * Math.PI * 2.3 + seed) * s * 0.03;
-    ctx.lineTo(nx + displacement, ny + wobbleY);
+  for (let i = 1; i <= segments; i++) {
+    const t = i / segments;
+    const maxWidth = s * 0.32;
+    const minWidth = s * 0.01;
+    const widthAtT = maxWidth * (1 - t) + minWidth * t;
+
+    const nx = -s * 0.08 + t * s * 0.25;
+    const ny = s * 0.42 - t * s * 0.84;
+
+    const w1 = fbmNoise(nx * 0.1 + seed, ny * 0.1 + seed, seed, 2);
+    const w2 = fbmNoise(nx * 0.15 + seed + 100, ny * 0.15 + seed + 100, seed + 100, 2);
+    const edgeWobble = (w1 - 0.5) * s * 0.05 + (w2 - 0.5) * s * 0.03;
+
+    const asym = Math.sin(t * 5.3 + seed * 0.07) * s * 0.015;
+
+    ctx.lineTo(nx + widthAtT + edgeWobble + asym, ny);
   }
 
-  for (let i = edgePoints; i >= 1; i--) {
-    const t = i / edgePoints;
-    const nx = -s * 0.35 + t * s * 0.7;
-    const ny = s * 0.3 - Math.sin(t * Math.PI) * s * 0.35;
-    const noise = fbmNoise(nx * 0.05 + seed + 50, ny * 0.05 + seed + 50, seed + 50, 3);
-    const displacement = (noise - 0.5) * s * 0.08;
-    const wobbleY = Math.sin(t * Math.PI * 2.3 + seed + 1.5) * s * 0.03;
-    ctx.lineTo(nx + displacement, ny + wobbleY);
+  ctx.lineTo(s * 0.17, -s * 0.42);
+
+  for (let i = segments; i >= 1; i--) {
+    const t = i / segments;
+    const maxWidth = s * 0.32;
+    const minWidth = s * 0.01;
+    const widthAtT = maxWidth * (1 - t) + minWidth * t;
+
+    const nx = -s * 0.08 + t * s * 0.25;
+    const ny = s * 0.42 - t * s * 0.84;
+
+    const w1 = fbmNoise(nx * 0.1 + seed + 200, ny * 0.1 + seed + 200, seed + 200, 2);
+    const w2 = fbmNoise(nx * 0.15 + seed + 300, ny * 0.15 + seed + 300, seed + 300, 2);
+    const edgeWobble = (w1 - 0.5) * s * 0.05 + (w2 - 0.5) * s * 0.03;
+
+    const asym = Math.sin(t * 4.7 + seed * 0.09 + 2.0) * s * 0.015;
+
+    ctx.lineTo(nx - widthAtT + edgeWobble + asym, ny);
   }
 
   ctx.closePath();
 
-  const gradient = ctx.createLinearGradient(-s * 0.4, 0, s * 0.45, 0);
-  gradient.addColorStop(0, color);
-  gradient.addColorStop(0.4, color);
-  gradient.addColorStop(0.7, adjustBrightness(color, -10));
+  const gradient = ctx.createLinearGradient(-s * 0.3, 0, s * 0.3, 0);
+  gradient.addColorStop(0, adjustBrightness(color, -20));
+  gradient.addColorStop(0.25, color);
+  gradient.addColorStop(0.5, adjustBrightness(color, 8));
+  gradient.addColorStop(0.75, color);
   gradient.addColorStop(1, adjustBrightness(color, -20));
   ctx.fillStyle = gradient;
   ctx.fill();
 
   ctx.beginPath();
-  ctx.moveTo(-s * 0.3, 0);
-  ctx.lineTo(s * 0.25, s * 0.01);
-  ctx.strokeStyle = `rgba(0,0,0,${0.12 * opacity})`;
+  ctx.moveTo(s * 0.02, s * 0.38);
+  ctx.quadraticCurveTo(s * 0.05, 0, s * 0.15, -s * 0.38);
+  const midribGrad = ctx.createLinearGradient(0, s * 0.38, 0, -s * 0.38);
+  midribGrad.addColorStop(0, `rgba(0,0,0,${0.3 * opacity})`);
+  midribGrad.addColorStop(0.5, `rgba(0,0,0,${0.18 * opacity})`);
+  midribGrad.addColorStop(1, `rgba(0,0,0,${0.06 * opacity})`);
+  ctx.strokeStyle = midribGrad;
   ctx.lineWidth = Math.max(1, s * 0.025);
   ctx.lineCap = "round";
   ctx.stroke();
 
-  const veinCount = 4;
+  const veinCount = 5;
   for (let i = 0; i < veinCount; i++) {
-    const t = 0.15 + i * 0.22;
-    const vx = -s * 0.3 + t * s * 0.6;
-    const vy = Math.sin(t * Math.PI) * s * 0.12;
-    const branchLen = s * 0.1 * (1 - i * 0.15);
-    const side = i % 2 === 0 ? -1 : 1;
+    const t = 0.12 + i * 0.19;
+    const vx = s * 0.02 + t * s * 0.2;
+    const vy = s * 0.38 - t * s * 0.76;
+    const branchLen = s * 0.1 * (1 - i * 0.1);
 
     ctx.beginPath();
     ctx.moveTo(vx, vy);
     ctx.quadraticCurveTo(
-      vx - branchLen * 0.4 * side,
-      vy - branchLen * 0.35,
-      vx - branchLen * 0.7 * side,
-      vy - branchLen * 0.65
+      vx + branchLen * 0.25,
+      vy - branchLen * 0.15,
+      vx + branchLen * 0.7,
+      vy - branchLen * 0.55
     );
-    ctx.strokeStyle = `rgba(0,0,0,${0.07 * opacity})`;
-    ctx.lineWidth = Math.max(0.5, s * 0.008);
+    ctx.strokeStyle = `rgba(0,0,0,${0.1 * opacity})`;
+    ctx.lineWidth = Math.max(0.5, s * 0.005 * (1 - i * 0.12));
+    ctx.lineCap = "round";
     ctx.stroke();
 
     ctx.beginPath();
     ctx.moveTo(vx, vy);
     ctx.quadraticCurveTo(
-      vx + branchLen * 0.4 * side,
-      vy - branchLen * 0.35,
-      vx + branchLen * 0.7 * side,
-      vy - branchLen * 0.65
+      vx - branchLen * 0.25,
+      vy - branchLen * 0.15,
+      vx - branchLen * 0.7,
+      vy - branchLen * 0.55
     );
     ctx.stroke();
   }
@@ -258,7 +281,7 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
 
       const x = Math.random() * window.innerWidth;
       const y = initY ? Math.random() * window.innerHeight : -10;
-      const size = type === "snow" ? Math.random() * 3 + 1 : Math.random() * 10 + 5;
+      const size = type === "snow" ? Math.random() * 3 + 1 : Math.random() * 35 + 20;
       const baseSpeedY = type === "snow" ? Math.random() * 1 + 0.5 : Math.random() * 0.8 + 0.4;
       const speedX = Math.random() * 1 - 0.5;
       const seed = Math.random() * 1000;
