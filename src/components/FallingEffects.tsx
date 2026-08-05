@@ -164,8 +164,10 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    const maxSnow = 60;
-    const maxLeaves = 30;
+    const isMobile = typeof window !== "undefined" && (window.innerWidth < 768 || navigator.maxTouchPoints > 0);
+
+    const maxSnow = isMobile ? 20 : 60;
+    const maxLeaves = isMobile ? 10 : 30;
 
     for (let i = 0; i < maxSnow; i++) {
       snowParticles.push({
@@ -186,14 +188,14 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
       return {
         x: Math.random() * window.innerWidth,
         y: initY ? Math.random() * window.innerHeight : -10,
-        size: Math.random() * 35 + 20,
-        speedY: Math.random() * 0.8 + 0.4,
-        speedX: Math.random() * 1 - 0.5,
+        size: 55,
+        speedY: Math.random() * 0.5 + 0.3,
+        speedX: Math.random() * 0.6 - 0.3,
         rotation: Math.random() * Math.PI * 2,
-        rotationSpeed: (Math.random() - 0.5) * 0.02,
+        rotationSpeed: (Math.random() - 0.5) * 0.015,
         swayPhase: Math.random() * Math.PI * 2,
-        swaySpeed: 0.0006 + Math.random() * 0.0012,
-        windInfluence: 0.3 + Math.random() * 0.7,
+        swaySpeed: 0.0004 + Math.random() * 0.0008,
+        windInfluence: 0.3 + Math.random() * 0.5,
         opacity: 0,
         fadeIn: true,
       };
@@ -204,21 +206,26 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
 
       const t = timestamp * 0.001;
 
+      const windGustMultiplier = isMobile ? 0.3 : 1;
+
       const windGust =
-        Math.sin(t * 0.3) * 0.3 +
-        Math.sin(t * 0.7 + 1.5) * 0.2 +
-        Math.sin(t * 1.5 + 3.0) * 0.15 +
-        Math.sin(t * 3.1 + 0.7) * 0.05;
+        Math.sin(t * 0.3) * 0.3 * windGustMultiplier +
+        Math.sin(t * 0.7 + 1.5) * 0.2 * windGustMultiplier +
+        Math.sin(t * 1.5 + 3.0) * 0.15 * windGustMultiplier +
+        Math.sin(t * 3.1 + 0.7) * 0.05 * windGustMultiplier;
+
+      const windNoiseOctaves = isMobile ? 2 : 3;
 
       const windNoise =
-        fbmNoise(t * 0.1, timestamp * 0.0001, 42, 3) * 0.6 - 0.3;
+        fbmNoise(t * 0.1, timestamp * 0.0001, 42, windNoiseOctaves) * 0.6 - 0.3;
 
       const wind = windGust + windNoise;
 
       if (activeEffects.snow) {
         snowParticles.forEach((p, idx) => {
           p.y += p.speedY;
-          p.x += p.speedX + Math.sin(p.y / 30) * 0.2;
+          const snowWind = isMobile ? 0 : Math.sin(p.y / 30) * 0.2;
+          p.x += p.speedX + snowWind;
 
           if (p.y > window.innerHeight + 10) {
             snowParticles[idx] = {
@@ -246,20 +253,25 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
           leaf.speedY += gravity;
           leaf.speedY = Math.max(0.2, Math.min(leaf.speedY, 2.5));
 
+          const swayMultiplier = isMobile ? 0.4 : 1;
           const sway =
-            Math.sin(timestamp * leaf.swaySpeed + leaf.swayPhase) * 0.8 * leaf.windInfluence;
-          const windDrift = wind * leaf.windInfluence * 0.6;
+            Math.sin(timestamp * leaf.swaySpeed + leaf.swayPhase) * 0.8 * leaf.windInfluence * swayMultiplier;
+          const windDrift = wind * leaf.windInfluence * 0.6 * swayMultiplier;
+          const noiseDriftOctaves = isMobile ? 1 : 2;
           const noiseDrift =
-            fbmNoise(leaf.x * 0.003 + t, leaf.y * 0.003 + t, leaf.swayPhase, 2) * 0.4 - 0.2;
+            fbmNoise(leaf.x * 0.003 + t, leaf.y * 0.003 + t, leaf.swayPhase, noiseDriftOctaves) * 0.4 - 0.2;
           leaf.x += leaf.speedX + sway + windDrift + noiseDrift;
 
-          leaf.rotation += leaf.rotationSpeed;
+          const rotationSpeedMultiplier = isMobile ? 0.5 : 1;
+          leaf.rotation += leaf.rotationSpeed * rotationSpeedMultiplier;
 
-          if (leaf.y < 80 && leaf.fadeIn) {
-            leaf.opacity = Math.max(0, leaf.y / 80);
+          const fadeZone = isMobile ? 120 : 80;
+
+          if (leaf.y < fadeZone && leaf.fadeIn) {
+            leaf.opacity = Math.max(0, leaf.y / fadeZone);
           }
-          if (leaf.y > window.innerHeight - 80) {
-            leaf.opacity = Math.max(0, (window.innerHeight - leaf.y) / 80);
+          if (leaf.y > window.innerHeight - fadeZone) {
+            leaf.opacity = Math.max(0, (window.innerHeight - leaf.y) / fadeZone);
           }
 
           ctx.save();
