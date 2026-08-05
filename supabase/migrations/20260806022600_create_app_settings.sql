@@ -27,3 +27,17 @@ CREATE POLICY "Admins can update app settings"
 
 GRANT SELECT, INSERT, UPDATE ON public.app_settings TO authenticated;
 GRANT ALL ON public.app_settings TO service_role;
+
+CREATE OR REPLACE FUNCTION public.update_animation_settings(_settings jsonb)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  INSERT INTO public.app_settings (key, value)
+  VALUES ('animation_settings', _settings)
+  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.update_animation_settings(jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.update_animation_settings(jsonb) TO service_role;

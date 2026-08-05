@@ -60,6 +60,11 @@ CREATE POLICY "Admins manage whitelist" ON public.admin_telegram_users
   USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
+CREATE POLICY "service_role bypass" ON public.admin_telegram_users
+  FOR ALL TO service_role
+  USING (true)
+  WITH CHECK (true);
+
 -- Function: check if a telegram username is in the whitelist (case-insensitive)
 CREATE OR REPLACE FUNCTION public.is_admin_telegram_username(_username text)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
