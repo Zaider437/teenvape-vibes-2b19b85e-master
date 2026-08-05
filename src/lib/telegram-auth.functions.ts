@@ -103,10 +103,10 @@ export const getTelegramLoginConfig = createServerFn({ method: "GET" }).handler(
     }
     return {
       botUsername:
-        env.TELEGRAM_LOGIN_BOT_USERNAME ||
-        getEnv("TELEGRAM_LOGIN_BOT_USERNAME") ||
-        "lovevape_admin_bot" ||
-        "",
+        (env.TELEGRAM_LOGIN_BOT_USERNAME ||
+          getEnv("TELEGRAM_LOGIN_BOT_USERNAME") ||
+          "lovevape_admin_bot" ||
+          "").replace(/^@/, ""),
     };
   },
 );

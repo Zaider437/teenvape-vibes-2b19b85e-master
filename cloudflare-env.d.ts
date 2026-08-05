@@ -12,6 +12,7 @@ interface Env {
   TELEGRAM_API_KEY: string;
   TELEGRAM_LOGIN_BOT_TOKEN: string;
   TELEGRAM_CHAT_ID: string;
+  TELEGRAM_LOGIN_BOT_USERNAME: string;
   ADMIN_PASSWORD_SEED: string;
   EMAIL_API_URL: string;
   PUBLIC_IMAGE_CDN_BASE: string;
