@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getAnimationSettings } from "@/lib/admin.functions";
 
-let leafTextureImage: HTMLImageElement | null = null;
+let leafTextureImage: HTMLCanvasElement | null = null;
 let leafTextureLoading = false;
 let leafTextureLoaded = false;
 
-function loadLeafTexture(): Promise<HTMLImageElement | null> {
+function loadLeafTexture(): Promise<HTMLCanvasElement | null> {
   return new Promise((resolve) => {
     if (leafTextureImage) {
       resolve(leafTextureImage);
@@ -25,10 +25,28 @@ function loadLeafTexture(): Promise<HTMLImageElement | null> {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      leafTextureImage = img;
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          if (r > 230 && g > 230 && b > 230) {
+            data[i + 3] = 0;
+          }
+        }
+        ctx.putImageData(imageData, 0, 0);
+      }
+      leafTextureImage = canvas;
       leafTextureLoaded = true;
       leafTextureLoading = false;
-      resolve(img);
+      resolve(canvas);
     };
     img.onerror = () => {
       leafTextureLoading = false;
@@ -99,7 +117,7 @@ function drawLeafShape(
   size: number,
   color: string,
   opacity: number,
-  texture: HTMLImageElement | null
+  texture: HTMLCanvasElement | HTMLImageElement | null
 ) {
   const s = size;
   const seed = size * 100 + color.charCodeAt(1);
@@ -206,7 +224,7 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
     snow: false,
     leaves: false,
   });
-  const [leafTexture, setLeafTexture] = useState<HTMLImageElement | null>(null);
+  const [leafTexture, setLeafTexture] = useState<HTMLCanvasElement | HTMLImageElement | null>(null);
 
   useEffect(() => {
     loadLeafTexture().then((img) => {
