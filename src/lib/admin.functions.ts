@@ -362,8 +362,8 @@ export const getAnimationSettings = createServerFn({ method: "GET" }).handler(as
     console.error("Failed to fetch animation settings:", error);
   }
   let settings = {
-    leaves: { enabled: true, from: 9, to: 11, count: 30 },
-    snow: { enabled: true, from: 12, to: 2, count: 40 },
+    leaves: { enabled: true, from: 1, to: 12, count: 30 },
+    snow: { enabled: true, from: 1, to: 12, count: 40 },
   };
   if (data && data.note) {
     try {
