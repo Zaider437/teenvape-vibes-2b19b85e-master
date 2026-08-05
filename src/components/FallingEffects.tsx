@@ -51,17 +51,6 @@ interface Particle {
   windInfluence: number;
   wobble: number;
   wobbleSpeed: number;
-  tumblePhase: number;
-  tumbleSpeed: number;
-  spinSpeed: number;
-  tiltPhase: number;
-  tiltSpeed: number;
-  flutterPhase: number;
-  flutterSpeed: number;
-  flutterAmp: number;
-  rotationX: number;
-  rotationY: number;
-  rotationZ: number;
   opacity: number;
   fadeIn: boolean;
   fadeOut: boolean;
@@ -109,9 +98,6 @@ function drawLeafShape(
   ctx: CanvasRenderingContext2D,
   size: number,
   color: string,
-  rotationX: number,
-  rotationY: number,
-  rotationZ: number,
   opacity: number,
   texture: HTMLImageElement | null
 ) {
@@ -121,14 +107,10 @@ function drawLeafShape(
   ctx.save();
   ctx.globalAlpha = opacity;
 
-  ctx.translate(0, 0);
-  ctx.rotate(rotationZ);
-  ctx.scale(1, Math.cos(rotationX) * 0.85 + 0.15);
-
-  const segments = 24;
   ctx.beginPath();
   ctx.moveTo(s * 0.05, s * 0.42);
 
+  const segments = 24;
   for (let i = 1; i <= segments; i++) {
     const t = i / segments;
     const maxWidth = s * 0.32;
@@ -329,17 +311,6 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
           windInfluence: 0.3 + Math.random() * 0.7,
           wobble: Math.random() * Math.PI * 2,
           wobbleSpeed: 0.001 + Math.random() * 0.0025,
-          tumblePhase: Math.random() * Math.PI * 2,
-          tumbleSpeed: 0.003 + Math.random() * 0.008,
-          spinSpeed: (Math.random() - 0.5) * 0.02,
-          tiltPhase: Math.random() * Math.PI * 2,
-          tiltSpeed: 0.001 + Math.random() * 0.003,
-          flutterPhase: Math.random() * Math.PI * 2,
-          flutterSpeed: 0.005 + Math.random() * 0.01,
-          flutterAmp: 0.3 + Math.random() * 0.7,
-          rotationX: 0,
-          rotationY: 0,
-          rotationZ: 0,
           opacity: 0,
           fadeIn: true,
           fadeOut: false,
@@ -360,17 +331,6 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
         windInfluence: 0,
         wobble: 0,
         wobbleSpeed: 0,
-        tumblePhase: 0,
-        tumbleSpeed: 0,
-        spinSpeed: 0,
-        tiltPhase: 0,
-        tiltSpeed: 0,
-        flutterPhase: 0,
-        flutterSpeed: 0,
-        flutterAmp: 0,
-        rotationX: 0,
-        rotationY: 0,
-        rotationZ: 0,
         opacity: 0.8,
         fadeIn: false,
         fadeOut: false,
@@ -405,9 +365,6 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
           const gravity = 0.0003;
           p.speedY += gravity;
 
-          const flutter = Math.sin(t * p.flutterSpeed + p.flutterPhase) * p.flutterAmp * 0.3;
-          p.speedY += flutter * 0.01;
-
           p.speedY = Math.max(0.2, Math.min(p.speedY, 2.5));
 
           const sway =
@@ -418,12 +375,6 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
           p.x += p.speedX + sway + windDrift + noiseDrift;
 
           p.wobble += p.wobbleSpeed;
-          p.tumblePhase += p.tumbleSpeed;
-          p.tiltPhase += p.tiltSpeed;
-
-          p.rotationX = Math.sin(p.tumblePhase) * Math.PI * 0.8;
-          p.rotationY = p.spinSpeed * timestamp * 0.05 + Math.sin(p.wobble) * 0.3;
-          p.rotationZ = Math.sin(p.tiltPhase) * 0.5;
 
           p.opacity = Math.min(1, p.opacity + 0.02);
         } else {
@@ -449,17 +400,10 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
           ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + Math.sin(timestamp * 0.002 + p.x) * 0.1})`;
           ctx.fill();
         } else if (p.type === "leaf" && p.color) {
-          const perspectiveScale = 0.6 + 0.4 * (1 - p.y / screenHeight);
-          const drawSize = p.size * perspectiveScale;
-
           ctx.save();
           ctx.translate(p.x, p.y);
-          ctx.rotate(p.rotationY);
-          ctx.scale(
-            Math.cos(p.rotationX) * (p.rotationZ > 0 ? 1 : 0.7),
-            Math.cos(p.rotationX) * (p.rotationZ < 0 ? 1 : 0.7)
-          );
-          drawLeafShape(ctx, drawSize, p.color, p.rotationX, p.rotationY, p.rotationZ, p.opacity, leafTexture);
+          ctx.rotate(Math.sin(p.wobble) * 0.3);
+          drawLeafShape(ctx, p.size, p.color, p.opacity, leafTexture);
           ctx.restore();
         }
 
