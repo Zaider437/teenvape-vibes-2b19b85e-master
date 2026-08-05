@@ -133,6 +133,9 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
       })
       .catch((err) => {
         console.error("Failed to load animation settings:", err);
+        if (!cancelled) {
+          setActiveEffects({ snow: true, leaves: true });
+        }
       });
 
     return () => {
@@ -238,10 +241,13 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
             };
           }
 
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
-          ctx.fill();
+           ctx.beginPath();
+           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+           ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+           ctx.shadowBlur = 8;
+           ctx.shadowColor = `rgba(255, 255, 255, ${p.opacity * 0.6})`;
+           ctx.fill();
+           ctx.shadowBlur = 0;
         });
       }
 
@@ -274,32 +280,35 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
             leaf.opacity = Math.max(0, (window.innerHeight - leaf.y) / fadeZone);
           }
 
-          ctx.save();
-          ctx.translate(leaf.x, leaf.y);
-          ctx.rotate(leaf.rotation);
-          ctx.globalAlpha = leaf.opacity;
+           ctx.save();
+           ctx.translate(leaf.x, leaf.y);
+           ctx.rotate(leaf.rotation);
+           ctx.globalAlpha = leaf.opacity;
+           ctx.shadowBlur = 12;
+           ctx.shadowColor = `rgba(255, 255, 255, ${leaf.opacity * 0.5})`;
 
-          const texW = leafTexture.width;
-          const texH = leafTexture.height;
-          const aspect = texW / texH;
-          let drawW = leaf.size * 0.7;
-          let drawH = drawW / aspect;
-          if (drawH > leaf.size * 0.9) {
-            drawH = leaf.size * 0.9;
-            drawW = drawH * aspect;
-          }
-          const offsetX = (leaf.size * 0.7 - drawW) / 2;
-          const offsetY = (leaf.size * 0.9 - drawH) / 2;
+           const texW = leafTexture.width;
+           const texH = leafTexture.height;
+           const aspect = texW / texH;
+           let drawW = leaf.size * 0.7;
+           let drawH = drawW / aspect;
+           if (drawH > leaf.size * 0.9) {
+             drawH = leaf.size * 0.9;
+             drawW = drawH * aspect;
+           }
+           const offsetX = (leaf.size * 0.7 - drawW) / 2;
+           const offsetY = (leaf.size * 0.9 - drawH) / 2;
 
-          ctx.drawImage(
-            leafTexture,
-            -leaf.size * 0.35 + offsetX,
-            -leaf.size * 0.45 + offsetY,
-            drawW,
-            drawH,
-          );
+           ctx.drawImage(
+             leafTexture,
+             -leaf.size * 0.35 + offsetX,
+             -leaf.size * 0.45 + offsetY,
+             drawW,
+             drawH,
+           );
 
-          ctx.restore();
+           ctx.shadowBlur = 0;
+           ctx.restore();
 
           if (leaf.y > window.innerHeight + 20 || leaf.x < -30 || leaf.x > window.innerWidth + 30) {
             leafInstances[idx] = createLeafInstance(false);
@@ -328,7 +337,6 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-50"
-      style={{ mixBlendMode: "screen" }}
     />
   );
 }
