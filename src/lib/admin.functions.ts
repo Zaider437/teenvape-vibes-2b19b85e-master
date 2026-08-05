@@ -354,9 +354,9 @@ export const adminUpdateMeetingTimes = createServerFn({ method: "POST" })
 export const getAnimationSettings = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await (supabaseAdmin
-    .from("admin_telegram_users" as any)
-    .select("note")
-    .eq("telegram_username", "__animation_settings__")
+    .from("app_settings" as any)
+    .select("value")
+    .eq("key", "animation_settings")
     .maybeSingle() as any);
   if (error) {
     throw new Error("Failed to fetch animation settings");
@@ -365,9 +365,9 @@ export const getAnimationSettings = createServerFn({ method: "GET" }).handler(as
     leaves: { enabled: true, from: 1, to: 12, count: 30 },
     snow: { enabled: true, from: 1, to: 12, count: 40 },
   };
-  if (data && data.note) {
+  if (data && data.value) {
     try {
-      settings = JSON.parse(data.note) as {
+      settings = data.value as {
         leaves: { enabled: boolean; from: number; to: number; count: number };
         snow: { enabled: boolean; from: number; to: number; count: number };
       };
@@ -402,25 +402,11 @@ export const adminUpdateAnimationSettings = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: existing } = await (supabaseAdmin
-      .from("admin_telegram_users" as any)
-      .select("id")
-      .eq("telegram_username", "__animation_settings__")
-      .maybeSingle() as any);
+    const { error } = await supabaseAdmin
+      .from("app_settings" as any)
+      .upsert({ key: "animation_settings", value: data });
 
-    if (existing) {
-      const { error } = await supabaseAdmin
-        .from("admin_telegram_users" as any)
-        .update({ note: JSON.stringify(data) })
-        .eq("telegram_username", "__animation_settings__");
-      if (error) throw error;
-    } else {
-      const { error } = await supabaseAdmin.from("admin_telegram_users" as any).insert({
-        telegram_username: "__animation_settings__",
-        note: JSON.stringify(data),
-      });
-      if (error) throw error;
-    }
+    if (error) throw error;
 
     return { ok: true };
   });
