@@ -400,21 +400,22 @@ export const adminUpdateAnimationSettings = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: existing } = await (context.supabase
+    const { data: existing } = await (supabaseAdmin
       .from("admin_telegram_users" as any)
       .select("id")
       .eq("telegram_username", "__animation_settings__")
       .maybeSingle() as any);
 
     if (existing) {
-      const { error } = await context.supabase
+      const { error } = await supabaseAdmin
         .from("admin_telegram_users" as any)
         .update({ note: JSON.stringify(data) })
         .eq("telegram_username", "__animation_settings__");
       if (error) throw error;
     } else {
-      const { error } = await context.supabase.from("admin_telegram_users" as any).insert({
+      const { error } = await supabaseAdmin.from("admin_telegram_users" as any).insert({
         telegram_username: "__animation_settings__",
         note: JSON.stringify(data),
       });
