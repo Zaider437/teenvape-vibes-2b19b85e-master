@@ -359,7 +359,7 @@ export const getAnimationSettings = createServerFn({ method: "GET" }).handler(as
     .eq("telegram_username", "__animation_settings__")
     .maybeSingle() as any);
   if (error) {
-    console.error("Failed to fetch animation settings:", error);
+    throw new Error("Failed to fetch animation settings");
   }
   let settings = {
     leaves: { enabled: true, from: 1, to: 12, count: 30 },
@@ -372,7 +372,7 @@ export const getAnimationSettings = createServerFn({ method: "GET" }).handler(as
         snow: { enabled: boolean; from: number; to: number; count: number };
       };
     } catch (e) {
-      console.error("Failed to parse animation settings:", e);
+      throw new Error("Failed to parse animation settings");
     }
   }
   return settings;
