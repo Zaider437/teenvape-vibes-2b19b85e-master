@@ -32,7 +32,7 @@ function loadLeafTexture(): Promise<HTMLImageElement | null> {
       leafTextureLoading = false;
       resolve(null);
     };
-    img.src = "/assets/images/pngwing-leaf.png";
+    img.src = "/assets/images/Osenniy-list-klena.png";
   });
 }
 
