@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { getAnimationSettings } from "@/lib/admin.functions";
 
 let leafTextureImage: HTMLImageElement | null = null;
@@ -105,12 +106,16 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
     leaves: false,
   });
   const [leafTexture, setLeafTexture] = useState<HTMLImageElement | null>(null);
+  const [snowCount, setSnowCount] = useState(40);
+  const [leavesCount, setLeavesCount] = useState(30);
 
   useEffect(() => {
     loadLeafTexture().then((img) => {
       if (img) setLeafTexture(img);
     });
   }, []);
+
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     let cancelled = false;
@@ -130,11 +135,15 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
           settings.leaves.enabled &&
           isMonthInRange(currentMonth, settings.leaves.from, settings.leaves.to);
         setActiveEffects({ snow: snowActive, leaves: leavesActive });
+        setSnowCount(settings.snow.count ?? 40);
+        setLeavesCount(settings.leaves.count ?? 30);
       })
       .catch((err) => {
         console.error("Failed to load animation settings:", err);
         if (!cancelled) {
           setActiveEffects({ snow: true, leaves: true });
+          setSnowCount(40);
+          setLeavesCount(30);
         }
       });
 
@@ -167,10 +176,8 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    const isMobile = typeof window !== "undefined" && (window.innerWidth < 768 || navigator.maxTouchPoints > 0);
-
-    const maxSnow = isMobile ? 20 : 60;
-    const maxLeaves = isMobile ? 10 : 30;
+    const maxSnow = snowCount;
+    const maxLeaves = leavesCount;
 
     for (let i = 0; i < maxSnow; i++) {
       snowParticles.push({
@@ -325,7 +332,7 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
       window.removeEventListener("resize", resizeCanvas);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [activeEffects, leafTexture]);
+  }, [activeEffects, leafTexture, isMobile, snowCount, leavesCount]);
 
   useEffect(() => {
     onSnowChange?.(activeEffects.snow);

@@ -351,15 +351,7 @@ export const adminUpdateMeetingTimes = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-let cachedAnimationSettings: any = null;
-let cachedAnimationSettingsExpiry = 0;
-
 export const getAnimationSettings = createServerFn({ method: "GET" }).handler(async () => {
-  const now = Date.now();
-  if (cachedAnimationSettings && cachedAnimationSettingsExpiry > now) {
-    return cachedAnimationSettings;
-  }
-
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await (supabaseAdmin
     .from("admin_telegram_users" as any)
@@ -383,8 +375,6 @@ export const getAnimationSettings = createServerFn({ method: "GET" }).handler(as
       console.error("Failed to parse animation settings:", e);
     }
   }
-  cachedAnimationSettings = settings;
-  cachedAnimationSettingsExpiry = now + 60 * 1000; // Cache for 1 minute
   return settings;
 });
 
@@ -431,8 +421,5 @@ export const adminUpdateAnimationSettings = createServerFn({ method: "POST" })
       if (error) throw error;
     }
 
-    // Update cache
-    cachedAnimationSettings = data;
-    cachedAnimationSettingsExpiry = Date.now() + 60 * 1000;
     return { ok: true };
   });
