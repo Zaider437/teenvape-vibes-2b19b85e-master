@@ -125,51 +125,6 @@ function drawLeafShape(
   ctx.save();
   ctx.globalAlpha = opacity;
 
-  ctx.beginPath();
-  ctx.moveTo(s * 0.05, s * 0.42);
-
-  const segments = 24;
-  for (let i = 1; i <= segments; i++) {
-    const t = i / segments;
-    const maxWidth = s * 0.32;
-    const minWidth = s * 0.01;
-    const widthAtT = maxWidth * (1 - t) + minWidth * t;
-
-    const nx = -s * 0.08 + t * s * 0.25;
-    const ny = s * 0.42 - t * s * 0.84;
-
-    const w1 = fbmNoise(nx * 0.1 + seed, ny * 0.1 + seed, seed, 2);
-    const w2 = fbmNoise(nx * 0.15 + seed + 100, ny * 0.15 + seed + 100, seed + 100, 2);
-    const edgeWobble = (w1 - 0.5) * s * 0.05 + (w2 - 0.5) * s * 0.03;
-
-    const asym = Math.sin(t * 5.3 + seed * 0.07) * s * 0.015;
-
-    ctx.lineTo(nx + widthAtT + edgeWobble + asym, ny);
-  }
-
-  ctx.lineTo(s * 0.17, -s * 0.42);
-
-  for (let i = segments; i >= 1; i--) {
-    const t = i / segments;
-    const maxWidth = s * 0.32;
-    const minWidth = s * 0.01;
-    const widthAtT = maxWidth * (1 - t) + minWidth * t;
-
-    const nx = -s * 0.08 + t * s * 0.25;
-    const ny = s * 0.42 - t * s * 0.84;
-
-    const w1 = fbmNoise(nx * 0.1 + seed + 200, ny * 0.1 + seed + 200, seed + 200, 2);
-    const w2 = fbmNoise(nx * 0.15 + seed + 300, ny * 0.15 + seed + 300, seed + 300, 2);
-    const edgeWobble = (w1 - 0.5) * s * 0.05 + (w2 - 0.5) * s * 0.03;
-
-    const asym = Math.sin(t * 4.7 + seed * 0.09 + 2.0) * s * 0.015;
-
-    ctx.lineTo(nx - widthAtT + edgeWobble + asym, ny);
-  }
-
-  ctx.closePath();
-  ctx.clip();
-
   if (texture) {
     const texW = texture.width;
     const texH = texture.height;
@@ -184,6 +139,51 @@ function drawLeafShape(
     const offsetY = (s * 0.9 - drawH) / 2;
     ctx.drawImage(texture, -s * 0.35 + offsetX, -s * 0.45 + offsetY, drawW, drawH);
   } else {
+    ctx.beginPath();
+    ctx.moveTo(s * 0.05, s * 0.42);
+
+    const segments = 24;
+    for (let i = 1; i <= segments; i++) {
+      const t = i / segments;
+      const maxWidth = s * 0.32;
+      const minWidth = s * 0.01;
+      const widthAtT = maxWidth * (1 - t) + minWidth * t;
+
+      const nx = -s * 0.08 + t * s * 0.25;
+      const ny = s * 0.42 - t * s * 0.84;
+
+      const w1 = fbmNoise(nx * 0.1 + seed, ny * 0.1 + seed, seed, 2);
+      const w2 = fbmNoise(nx * 0.15 + seed + 100, ny * 0.15 + seed + 100, seed + 100, 2);
+      const edgeWobble = (w1 - 0.5) * s * 0.05 + (w2 - 0.5) * s * 0.03;
+
+      const asym = Math.sin(t * 5.3 + seed * 0.07) * s * 0.015;
+
+      ctx.lineTo(nx + widthAtT + edgeWobble + asym, ny);
+    }
+
+    ctx.lineTo(s * 0.17, -s * 0.42);
+
+    for (let i = segments; i >= 1; i--) {
+      const t = i / segments;
+      const maxWidth = s * 0.32;
+      const minWidth = s * 0.01;
+      const widthAtT = maxWidth * (1 - t) + minWidth * t;
+
+      const nx = -s * 0.08 + t * s * 0.25;
+      const ny = s * 0.42 - t * s * 0.84;
+
+      const w1 = fbmNoise(nx * 0.1 + seed + 200, ny * 0.1 + seed + 200, seed + 200, 2);
+      const w2 = fbmNoise(nx * 0.15 + seed + 300, ny * 0.15 + seed + 300, seed + 300, 2);
+      const edgeWobble = (w1 - 0.5) * s * 0.05 + (w2 - 0.5) * s * 0.03;
+
+      const asym = Math.sin(t * 4.7 + seed * 0.09 + 2.0) * s * 0.015;
+
+      ctx.lineTo(nx - widthAtT + edgeWobble + asym, ny);
+    }
+
+    ctx.closePath();
+    ctx.clip();
+
     const cx = s * 0.05;
     const cy = 0;
     const radius = s * 0.45;
