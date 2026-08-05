@@ -140,11 +140,6 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
       })
       .catch((err) => {
         console.error("Failed to load animation settings:", err);
-        if (!cancelled) {
-          setActiveEffects({ snow: true, leaves: true });
-          setSnowCount(40);
-          setLeavesCount(30);
-        }
       });
 
     return () => {
