@@ -34,3 +34,7 @@ dist-ssr
 /src/generated/prisma
 
 src/oracleJdk-26/
+
+# Environment variables
+.env
+.env.*
