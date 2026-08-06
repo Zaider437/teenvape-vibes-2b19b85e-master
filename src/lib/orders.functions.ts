@@ -155,6 +155,7 @@ export const createOrder = createServerFn({ method: "POST" })
       customer_address: data.customer_address,
       customer_note: data.customer_note,
       items: trustedItems.map((i) => ({
+        id: i.id,
         name: i.name,
         brand: i.brand,
         qty: i.qty,
@@ -254,6 +255,13 @@ ${data.customer_note ? `<p>Note: ${data.customer_note}</p>` : ""}
       }
     } catch (err) {
       console.warn("[order] stock decrement failed:", err);
+    }
+
+    try {
+      const { invalidateProductsCache } = await import("./products");
+      invalidateProductsCache();
+    } catch (err) {
+      console.warn("[order] cache invalidation failed:", err);
     }
 
     return { id: orderData.id, emailSent, cancellationToken };
@@ -518,6 +526,13 @@ export const cancelOrder = createServerFn({ method: "POST" })
           console.warn("[cancelOrder] Failed to restore stock:", err);
         }
       }
+    }
+
+    try {
+      const { invalidateProductsCache } = await import("./products");
+      invalidateProductsCache();
+    } catch (err) {
+      console.warn("[cancelOrder] cache invalidation failed:", err);
     }
 
     try {
