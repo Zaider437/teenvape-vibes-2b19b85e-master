@@ -42,13 +42,11 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.update_animation_settings(jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.update_animation_settings(jsonb) TO service_role;
 
-CREATE POLICY "service_role bypass" ON public.app_settings
+CREATE POLICY IF NOT EXISTS "service_role bypass" ON public.app_settings
   FOR ALL TO service_role
   USING (true)
   WITH CHECK (true);
 
-ALTER TABLE public.app_settings DISABLE ROW LEVEL SECURITY;
 INSERT INTO public.app_settings (key, value)
 VALUES ('animation_settings', '{"leaves": {"enabled": true, "from": 1, "to": 12, "count": 30}, "snow": {"enabled": true, "from": 1, "to": 12, "count": 40}}')
 ON CONFLICT (key) DO NOTHING;
-ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
