@@ -497,17 +497,14 @@ export const cancelOrder = createServerFn({ method: "POST" })
 
 export const getMeetingTimes = createServerFn({ method: "GET" }).handler(async () => {
   return [
-    "10:00",
-    "11:00",
-    "12:00",
-    "13:00",
-    "14:00",
     "15:00",
     "16:00",
     "17:00",
     "18:00",
-    "19:00",
-    "20:00",
+    "20:20",
+    "21:00",
+    "После 21:00 — отдам там, где буду находиться. Закажите заранее!",
+    "Для заказа Яндекс Доставки",
   ];
 });
 
