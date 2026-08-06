@@ -88,6 +88,8 @@ function WhitelistAdmin() {
               @username
             </span>
             <input
+              id="username"
+              name="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="username_в_telegram"
@@ -99,6 +101,8 @@ function WhitelistAdmin() {
               Заметка (кто это)
             </span>
             <input
+              id="note"
+              name="note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Например: помощница по каталогу"

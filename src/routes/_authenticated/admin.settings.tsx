@@ -138,6 +138,8 @@ function AdminSettings() {
                 <label className="text-sm font-semibold cursor-pointer select-none flex items-center gap-2">
                   <input
                     type="checkbox"
+                    id="leavesEnabled"
+                    name="leavesEnabled"
                     checked={leavesEnabled}
                     onChange={(e) => setLeavesEnabled(e.target.checked)}
                     className="w-4 h-4 rounded border-border text-primary focus:ring-primary bg-background"
@@ -148,10 +150,12 @@ function AdminSettings() {
               {leavesEnabled && (
                 <div className="grid grid-cols-2 gap-3 pl-6">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <label htmlFor="leavesFrom" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Месяц с (1-12)
                     </label>
                     <input
+                      id="leavesFrom"
+                      name="leavesFrom"
                       type="number"
                       min="1"
                       max="12"
@@ -163,10 +167,12 @@ function AdminSettings() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <label htmlFor="leavesTo" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Месяц по (1-12)
                     </label>
                     <input
+                      id="leavesTo"
+                      name="leavesTo"
                       type="number"
                       min="1"
                       max="12"
@@ -181,10 +187,12 @@ function AdminSettings() {
               )}
               {leavesEnabled && (
                 <div className="pl-6 pt-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <label htmlFor="leavesCount" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Количество листьев: {leavesCount}
                   </label>
                   <input
+                    id="leavesCount"
+                    name="leavesCount"
                     type="range"
                     min="0"
                     max="100"
@@ -202,6 +210,8 @@ function AdminSettings() {
                 <label className="text-sm font-semibold cursor-pointer select-none flex items-center gap-2">
                   <input
                     type="checkbox"
+                    id="snowEnabled"
+                    name="snowEnabled"
                     checked={snowEnabled}
                     onChange={(e) => setSnowEnabled(e.target.checked)}
                     className="w-4 h-4 rounded border-border text-primary focus:ring-primary bg-background"
@@ -212,10 +222,12 @@ function AdminSettings() {
               {snowEnabled && (
                 <div className="grid grid-cols-2 gap-3 pl-6">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <label htmlFor="snowFrom" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Месяц с (1-12)
                     </label>
                     <input
+                      id="snowFrom"
+                      name="snowFrom"
                       type="number"
                       min="1"
                       max="12"
@@ -227,10 +239,12 @@ function AdminSettings() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <label htmlFor="snowTo" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Месяц по (1-12)
                     </label>
                     <input
+                      id="snowTo"
+                      name="snowTo"
                       type="number"
                       min="1"
                       max="12"
@@ -243,10 +257,12 @@ function AdminSettings() {
               )}
               {snowEnabled && (
                 <div className="pl-6 pt-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <label htmlFor="snowCount" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Количество снега: {snowCount}
                   </label>
                   <input
+                    id="snowCount"
+                    name="snowCount"
                     type="range"
                     min="0"
                     max="100"

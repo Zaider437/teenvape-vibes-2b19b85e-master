@@ -414,6 +414,8 @@ try {
         <input
           type="search"
           inputMode="search"
+          id="product-search"
+          name="product-search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск товара…"
@@ -500,6 +502,8 @@ try {
                       <>
                         <input
                           type="number"
+                          id={`stock-${row.id}`}
+                          name={`stock-${row.id}`}
                           min="0"
                           value={stockValue}
                           onChange={(e) => setStockValue(e.target.value)}
@@ -851,19 +855,23 @@ function DraftEditor({
             <XIcon className="w-4 h-4" />
           </button>
         </div>
-        <F label="Slug (уникальный)" v={draft.slug} on={(v) => set("slug", v)} />
-        <F label="Название" v={draft.name} on={(v) => set("name", v)} />
-        <F label="Бренд" v={draft.brand} on={(v) => set("brand", v)} />
+        <F label="Slug (уникальный)" v={draft.slug} on={(v) => set("slug", v)} id="slug" name="slug" />
+        <F label="Название" v={draft.name} on={(v) => set("name", v)} id="name" name="name" />
+        <F label="Бренд" v={draft.brand} on={(v) => set("brand", v)} id="brand" name="brand" />
         <F
           label="Подкатегория (опционально)"
           v={draft.subcategory || ""}
           on={(v) => set("subcategory", v)}
+          id="subcategory"
+          name="subcategory"
         />
         <label className="block">
           <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Категория
           </span>
           <select
+            id="category"
+            name="category"
             value={showCustomCategoryInput ? "+custom" : draft.category || "disposable"}
             onChange={(e) => {
               const val = e.target.value;
@@ -891,19 +899,23 @@ function DraftEditor({
               label="Название новой категории (на английском, например: pod)"
               v={draft.category}
               on={(v) => set("category", v.toLowerCase().trim())}
+              id="new-category"
+              name="new-category"
             />
           </div>
         )}
-        <F label="Цена (BYN)" v={draft.price} on={(v) => set("price", v)} type="number" />
-        <F label="Вкус / вариант" v={draft.flavor} on={(v) => set("flavor", v)} />
-        <F label="Затяжки" v={draft.puffs} on={(v) => set("puffs", v)} />
-        <F label="Объём / характеристики" v={draft.volume} on={(v) => set("volume", v)} />
-        <F label="Эмодзи (если нет фото)" v={draft.emoji} on={(v) => set("emoji", v)} />
+        <F label="Цена (BYN)" v={draft.price} on={(v) => set("price", v)} type="number" id="price" name="price" />
+        <F label="Вкус / вариант" v={draft.flavor} on={(v) => set("flavor", v)} id="flavor" name="flavor" />
+        <F label="Затяжки" v={draft.puffs} on={(v) => set("puffs", v)} id="puffs" name="puffs" />
+        <F label="Объём / характеристики" v={draft.volume} on={(v) => set("volume", v)} id="volume" name="volume" />
+        <F label="Эмодзи (если нет фото)" v={draft.emoji} on={(v) => set("emoji", v)} id="emoji" name="emoji" />
         <label className="block">
           <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Цвет акцента
           </span>
           <select
+            id="color"
+            name="color"
             value={draft.color}
             onChange={(e) => set("color", e.target.value as Draft["color"])}
             className="mt-1 w-full bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm"
@@ -913,12 +925,14 @@ function DraftEditor({
             <option value="lime">lime</option>
           </select>
 </label>
-        <F label="URL картинки (опционально)" v={draft.image_url} on={(v) => set("image_url", v)} />
+        <F label="URL картинки (опционально)" v={draft.image_url} on={(v) => set("image_url", v)} id="image_url" name="image_url" />
         <label className="block">
           <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Описание товара
           </span>
           <Textarea
+            id="description"
+            name="description"
             value={draft.description}
             onChange={(e) => set("description", e.target.value)}
             rows={3}
@@ -931,10 +945,14 @@ function DraftEditor({
           v={draft.sort_order}
           on={(v) => set("sort_order", v)}
           type="number"
+          id="sort_order"
+          name="sort_order"
         />
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
+            id="is_active"
+            name="is_active"
             checked={draft.is_active}
             onChange={(e) => set("is_active", e.target.checked)}
           />
@@ -961,11 +979,15 @@ function F({
   v,
   on,
   type = "text",
+  id,
+  name,
 }: {
   label: string;
   v: string;
   on: (v: string) => void;
   type?: string;
+  id?: string;
+  name?: string;
 }) {
   return (
     <label className="block">
@@ -973,6 +995,8 @@ function F({
         {label}
       </span>
       <input
+        id={id}
+        name={name}
         type={type}
         value={v}
         onChange={(e) => on(e.target.value)}

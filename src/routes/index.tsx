@@ -791,6 +791,8 @@ function CheckoutSheet({ onClose, meetingTimes }: { onClose: () => void; meeting
               value={telegram}
               onChange={setTelegram}
               placeholder="@username"
+              id="telegram"
+              name="telegram"
             />
             <Field
               label="Нужна ли сдача?"
@@ -798,6 +800,8 @@ function CheckoutSheet({ onClose, meetingTimes }: { onClose: () => void; meeting
               onChange={setChange}
               placeholder="Например: сдача с 50"
               textarea
+              id="change"
+              name="change"
             />
 
             <label className="block">
@@ -868,6 +872,8 @@ function Field({
   placeholder,
   type = "text",
   textarea,
+  id,
+  name,
 }: {
   label: string;
   value: string;
@@ -875,6 +881,8 @@ function Field({
   placeholder?: string;
   type?: string;
   textarea?: boolean;
+  id?: string;
+  name?: string;
 }) {
   const base =
     "w-full bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
@@ -885,6 +893,8 @@ function Field({
       </span>
       {textarea ? (
         <textarea
+          id={id}
+          name={name}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -893,6 +903,8 @@ function Field({
         />
       ) : (
         <input
+          id={id}
+          name={name}
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
