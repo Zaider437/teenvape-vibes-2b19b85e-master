@@ -9,49 +9,56 @@ function getEnv(key: string): string | undefined {
     return (
       (globalThis as any).TELEGRAM_API_KEY ||
       (globalThis as any).env?.TELEGRAM_API_KEY ||
-      (globalThis as any).__env__?.TELEGRAM_API_KEY
+      (globalThis as any).__env__?.TELEGRAM_API_KEY ||
+      process.env.TELEGRAM_API_KEY
     );
   }
   if (key === "TELEGRAM_CHAT_ID") {
     return (
       (globalThis as any).TELEGRAM_CHAT_ID ||
       (globalThis as any).env?.TELEGRAM_CHAT_ID ||
-      (globalThis as any).__env__?.TELEGRAM_CHAT_ID
+      (globalThis as any).__env__?.TELEGRAM_CHAT_ID ||
+      process.env.TELEGRAM_CHAT_ID
     );
   }
   if (key === "SMTP_HOST") {
     return (
       (globalThis as any).SMTP_HOST ||
       (globalThis as any).env?.SMTP_HOST ||
-      (globalThis as any).__env__?.SMTP_HOST
+      (globalThis as any).__env__?.SMTP_HOST ||
+      process.env.SMTP_HOST
     );
   }
   if (key === "SMTP_PORT") {
     return (
       (globalThis as any).SMTP_PORT ||
       (globalThis as any).env?.SMTP_PORT ||
-      (globalThis as any).__env__?.SMTP_PORT
+      (globalThis as any).__env__?.SMTP_PORT ||
+      process.env.SMTP_PORT
     );
   }
   if (key === "SMTP_USER") {
     return (
       (globalThis as any).SMTP_USER ||
       (globalThis as any).env?.SMTP_USER ||
-      (globalThis as any).__env__?.SMTP_USER
+      (globalThis as any).__env__?.SMTP_USER ||
+      process.env.SMTP_USER
     );
   }
   if (key === "SMTP_PASS") {
     return (
       (globalThis as any).SMTP_PASS ||
       (globalThis as any).env?.SMTP_PASS ||
-      (globalThis as any).__env__?.SMTP_PASS
+      (globalThis as any).__env__?.SMTP_PASS ||
+      process.env.SMTP_PASS
     );
   }
   if (key === "NOTIFY_EMAIL") {
     return (
       (globalThis as any).NOTIFY_EMAIL ||
       (globalThis as any).env?.NOTIFY_EMAIL ||
-      (globalThis as any).__env__?.NOTIFY_EMAIL
+      (globalThis as any).__env__?.NOTIFY_EMAIL ||
+      process.env.NOTIFY_EMAIL
     );
   }
   return undefined;
