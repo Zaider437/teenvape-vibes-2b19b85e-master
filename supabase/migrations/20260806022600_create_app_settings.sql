@@ -42,10 +42,20 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.update_animation_settings(jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.update_animation_settings(jsonb) TO service_role;
 
-CREATE POLICY "service_role bypass" ON public.app_settings
-  FOR ALL TO service_role
-  USING (true)
-  WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'public' 
+    AND tablename = 'app_settings' 
+    AND policyname = 'service_role bypass'
+  ) THEN
+    CREATE POLICY "service_role bypass" ON public.app_settings
+      FOR ALL TO service_role
+      USING (true)
+      WITH CHECK (true);
+  END IF;
+END $$;
 
 ALTER TABLE public.app_settings DISABLE ROW LEVEL SECURITY;
 
