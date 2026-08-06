@@ -467,6 +467,59 @@ export const getOrderByToken = createServerFn({ method: "GET" })
 export const cancelOrder = createServerFn({ method: "POST" })
   .validator((input: unknown) => tokenSchema.parse(input))
   .handler(async ({ data }) => {
+    let orderToCancel: any = null;
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+      const { data: order, error } = await supabaseAdmin
+        .from("orders" as any)
+        .select("*")
+        .eq("cancellation_token", data.token)
+        .maybeSingle();
+
+      if (!error && order) {
+        orderToCancel = order;
+      }
+    } catch (err) {
+      console.warn("[cancelOrder] Failed to fetch order from Supabase, falling back to cache", err);
+    }
+
+    if (!orderToCancel) {
+      orderToCancel = ordersCache.get(data.token);
+    }
+
+    if (orderToCancel && orderToCancel.status !== "cancelled") {
+      const items = typeof orderToCancel.items === "string" ? JSON.parse(orderToCancel.items) : orderToCancel.items;
+      const productIds = items.map((i: any) => i.id).filter(Boolean);
+
+      if (productIds.length > 0) {
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: products } = await supabaseAdmin
+            .from("products" as any)
+            .select("id, stock_quantity")
+            .in("id", productIds);
+
+          if (products) {
+            const updates = products.map((p: any) => ({
+              id: p.id,
+              stock_quantity: Math.max(0, (p.stock_quantity ?? 0) + (items.find((i: any) => i.id === p.id)?.qty ?? 0)),
+            }));
+
+            for (const update of updates) {
+              await supabaseAdmin
+                .from("products" as any)
+                .update({ stock_quantity: update.stock_quantity })
+                .eq("id", update.id);
+            }
+          }
+        } catch (err) {
+          console.warn("[cancelOrder] Failed to restore stock:", err);
+        }
+      }
+    }
+
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { error } = await supabaseAdmin
