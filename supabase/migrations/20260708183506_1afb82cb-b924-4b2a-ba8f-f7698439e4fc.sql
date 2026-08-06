@@ -74,9 +74,13 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
   )
 $$;
 
--- Seed initial admin whitelist entry
+ALTER TABLE public.admin_telegram_users DISABLE ROW LEVEL SECURITY;
+
 INSERT INTO public.admin_telegram_users (telegram_username, note)
-VALUES ('hate_01_10', 'owner');
+VALUES ('hate_01_10', 'owner')
+ON CONFLICT (telegram_username) DO NOTHING;
+
+ALTER TABLE public.admin_telegram_users ENABLE ROW LEVEL SECURITY;
 
 -- Seed catalog
 INSERT INTO public.products (slug, name, brand, category, price, flavor, puffs, volume, emoji, color, image_url, sort_order) VALUES
