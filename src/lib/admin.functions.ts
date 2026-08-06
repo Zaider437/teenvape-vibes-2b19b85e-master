@@ -353,28 +353,40 @@ export const adminUpdateMeetingTimes = createServerFn({ method: "POST" })
 
 export const getAnimationSettings = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await (supabaseAdmin
-    .from("app_settings" as any)
-    .select("value")
-    .eq("key", "animation_settings")
-    .maybeSingle() as any);
-  if (error) {
-    throw new Error("Failed to fetch animation settings");
-  }
   let settings = {
     leaves: { enabled: true, from: 1, to: 12, count: 30 },
     snow: { enabled: true, from: 1, to: 12, count: 40 },
   };
-  if (data && data.value) {
-    try {
-      settings = data.value as {
-        leaves: { enabled: boolean; from: number; to: number; count: number };
-        snow: { enabled: boolean; from: number; to: number; count: number };
-      };
-    } catch (e) {
-      throw new Error("Failed to parse animation settings");
+
+  try {
+    const { data, error } = await (supabaseAdmin
+      .from("app_settings" as any)
+      .select("value")
+      .eq("key", "animation_settings")
+      .maybeSingle() as any);
+
+    if (!error && data && data.value) {
+      try {
+        settings = data.value as {
+          leaves: { enabled: boolean; from: number; to: number; count: number };
+          snow: { enabled: boolean; from: number; to: number; count: number };
+        };
+      } catch {
+        // keep defaults on parse error
+      }
+    } else {
+      try {
+        await supabaseAdmin.rpc("update_animation_settings", {
+          _settings: settings,
+        } as any);
+      } catch {
+        // ignore bootstrap errors
+      }
     }
+  } catch {
+    // table may not exist yet; return defaults
   }
+
   return settings;
 });
 
