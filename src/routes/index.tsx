@@ -13,7 +13,7 @@ import {
   Search,
   Send,
 } from "lucide-react";
-import { CartProvider, useCart } from "../lib/cart";
+import { CartProvider, useCart, type CartItem } from "../lib/cart";
 import { CATEGORIES, fetchProducts, invalidateProductsCache, formatImageUrl, type Product } from "../lib/products";
 import { createOrder, debugEnv, getMeetingTimes } from "../lib/orders.functions";
 import { toast, Toaster } from "sonner";
@@ -271,7 +271,19 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
           }}
         />
       )}
-      {checkoutOpen && <CheckoutSheet onClose={() => setCheckoutOpen(false)} meetingTimes={meetingTimes} />}
+      {checkoutOpen && (
+        <CheckoutSheet
+          onClose={() => setCheckoutOpen(false)}
+          meetingTimes={meetingTimes}
+          onOrderPlaced={(orderedItems) => {
+            const orderedIds = new Set(orderedItems.map((i) => i.product.id));
+            setProducts((prev) =>
+              prev.map((p) => (orderedIds.has(p.id) ? { ...p, stock_quantity: Math.max(0, (p.stock_quantity ?? 0) - (orderedItems.find((i) => i.product.id === p.id)?.qty ?? 0)) } : p)),
+            );
+          }}
+          onProductsUpdate={setProducts}
+        />
+      )}
 
       <Dialog
         open={!!selectedProduct}
@@ -429,8 +441,11 @@ function Hero({ total }: { total: number }) {
 }
 
 function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Product) => void }) {
-  const { add } = useCart();
+  const { add, items } = useCart();
   const [broken, setBroken] = useState(false);
+  const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
+  const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
+  const isOutOfStock = remainingStock <= 0;
   return (
     <div
       className="relative rounded-xl border border-border overflow-hidden flex flex-col transition-all hover:border-primary/60 hover:-translate-y-0.5"
@@ -485,19 +500,22 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
               {product.price}{" "}
               <span className="text-[10px] sm:text-xs text-muted-foreground">BYN</span>
             </div>
-            {product.stock_quantity === 0 ? (
+            {isOutOfStock ? (
               <span className="text-[10px] sm:text-xs text-red-500 font-bold uppercase tracking-wider">
                 Нет в наличии
               </span>
             ) : (
               <button
                 onClick={() => {
-                  add(product);
-                  toast.success(
-                    `${product.name}${product.flavor ? ` (${product.flavor})` : ""} в корзине`,
-                  );
+                  const added = add(product);
+                  if (added) {
+                    toast.success(
+                      `${product.name}${product.flavor ? ` (${product.flavor})` : ""} в корзине`,
+                    );
+                  }
                 }}
-                className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-primary text-primary-foreground glow-soft active:translate-y-0.5"
+                disabled={isOutOfStock}
+                className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-primary text-primary-foreground glow-soft active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Добавить"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={3} />
@@ -529,8 +547,11 @@ function FloatingCartBar({ onOpen }: { onOpen: () => void }) {
 }
 
 function ProductDetail({ product }: { product: Product }) {
-  const { add } = useCart();
+  const { add, items } = useCart();
   const [broken, setBroken] = useState(false);
+  const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
+  const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
+  const isOutOfStock = remainingStock <= 0;
   return (
     <div className="space-y-2 sm:space-y-3">
       <div className="aspect-[4/3] sm:aspect-[3/4] grid place-items-center text-4xl sm:text-5xl bg-primary/5 rounded-lg overflow-hidden">
@@ -561,7 +582,7 @@ function ProductDetail({ product }: { product: Product }) {
             {product.description}
           </div>
         )}
-        {product.stock_quantity === 0 ? (
+        {isOutOfStock ? (
           <div className="mt-2 sm:mt-3 text-center">
             <span className="text-red-500 font-bold text-xs sm:text-sm uppercase tracking-wider">
               Нет в наличии — ждите пополнения
@@ -570,10 +591,13 @@ function ProductDetail({ product }: { product: Product }) {
         ) : (
           <button
             onClick={() => {
-              add(product);
-              toast.success(`${product.name} в корзине`);
+              const added = add(product);
+              if (added) {
+                toast.success(`${product.name} в корзине`);
+              }
             }}
-            className="mt-2 sm:mt-3 w-full bg-primary text-primary-foreground font-black uppercase tracking-widest py-2 sm:py-2.5 rounded-xl glow-soft text-xs sm:text-sm"
+            disabled={isOutOfStock}
+            className="mt-2 sm:mt-3 w-full bg-primary text-primary-foreground font-black uppercase tracking-widest py-2 sm:py-2.5 rounded-xl glow-soft text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             В корзину
           </button>
@@ -702,7 +726,7 @@ function CartDrawer({
   );
 }
 
-function CheckoutSheet({ onClose, meetingTimes }: { onClose: () => void; meetingTimes: string[] }) {
+function CheckoutSheet({ onClose, meetingTimes, onOrderPlaced, onProductsUpdate }: { onClose: () => void; meetingTimes: string[]; onOrderPlaced?: (items: CartItem[]) => void; onProductsUpdate?: (products: Product[]) => void }) {
   const { items, total, clear } = useCart();
   const submit = useServerFn(createOrder);
   const [telegram, setTelegram] = useState("");
@@ -723,6 +747,7 @@ function CheckoutSheet({ onClose, meetingTimes }: { onClose: () => void; meeting
       toast.error("Юзернейм слишком короткий");
       return;
     }
+    const currentItems = [...items];
     setLoading(true);
     try {
       const noteParts = [`Сдача: ${change.trim() ? change.trim() : "не нужна"}`];
@@ -732,7 +757,7 @@ function CheckoutSheet({ onClose, meetingTimes }: { onClose: () => void; meeting
           customer_phone: "Telegram",
           customer_address: meetingTime,
           customer_note: noteParts.join(" · "),
-          items: items.map((i) => ({
+          items: currentItems.map((i) => ({
             id: i.product.id,
             name: i.product.name,
             price: i.product.price,
@@ -746,7 +771,15 @@ function CheckoutSheet({ onClose, meetingTimes }: { onClose: () => void; meeting
       setDone({ id: res.id });
       clear();
       invalidateProductsCache();
-      fetchProducts().then((data) => setProducts(data));
+      onOrderPlaced?.(currentItems);
+      fetchProducts()
+        .then((data) => {
+          onProductsUpdate?.(data);
+        })
+        .catch((err) => {
+          console.error("[shop] refetch products failed", err);
+          toast.error("Не удалось обновить каталог. Обновите страницу.");
+        });
     } catch (err) {
       console.error(err);
       toast.error("Не удалось отправить заказ. Попробуй ещё раз.");

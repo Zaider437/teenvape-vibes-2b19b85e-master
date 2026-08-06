@@ -56,20 +56,57 @@ describe("Cart Context & Hook", () => {
     expect(result.current.total).toBe(0);
   });
 
-  it("adds a product to the cart", () => {
+  it("adds a product to the cart and returns true", () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <CartProvider>{children}</CartProvider>
+    );
+    const { result } = renderHook(() => useCart(), { wrapper });
+
+    let added = false;
+    act(() => {
+      added = result.current.add(mockProduct1);
+    });
+
+    expect(added).toBe(true);
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.items[0]).toEqual({ product: mockProduct1, qty: 1 });
+    expect(result.current.count).toBe(1);
+    expect(result.current.total).toBe(10.0);
+  });
+
+  it("returns false when adding exceeds stock limit", () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <CartProvider>{children}</CartProvider>
     );
     const { result } = renderHook(() => useCart(), { wrapper });
 
     act(() => {
-      result.current.add(mockProduct1);
+      result.current.setQty(mockProduct1.id, mockProduct1.stock_quantity);
     });
 
+    let added = false;
+    act(() => {
+      added = result.current.add(mockProduct1);
+    });
+
+    expect(added).toBe(false);
+    expect(result.current.items[0].qty).toBe(mockProduct1.stock_quantity);
+  });
+
+  it("allows adding when product has no stock limit", () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <CartProvider>{children}</CartProvider>
+    );
+    const { result } = renderHook(() => useCart(), { wrapper });
+
+    const unlimitedProduct = { ...mockProduct1, stock_quantity: undefined };
+    let added = false;
+    act(() => {
+      added = result.current.add(unlimitedProduct);
+    });
+
+    expect(added).toBe(true);
     expect(result.current.items).toHaveLength(1);
-    expect(result.current.items[0]).toEqual({ product: mockProduct1, qty: 1 });
-    expect(result.current.count).toBe(1);
-    expect(result.current.total).toBe(10.0);
   });
 
   it("increments quantity when adding the same product multiple times", () => {

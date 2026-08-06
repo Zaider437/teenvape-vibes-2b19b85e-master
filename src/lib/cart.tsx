@@ -5,7 +5,7 @@ export type CartItem = { product: Product; qty: number };
 
 type CartCtx = {
   items: CartItem[];
-  add: (p: Product) => void;
+  add: (p: Product) => boolean;
   remove: (id: string) => void;
   setQty: (id: string, qty: number) => void;
   clear: () => void;
@@ -34,31 +34,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, isLoaded]);
 
   const value = useMemo<CartCtx>(
-    () => ({
-      items,
-      add: (p) =>
-        setItems((prev) => {
-          const maxQty = (p.stock_quantity ?? Infinity) > 0 ? p.stock_quantity : Infinity;
-          const ex = prev.find((i) => i.product.id === p.id);
-          if (ex) {
-            if (ex.qty >= maxQty) return prev;
-            return prev.map((i) => (i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i));
-          }
-          return [...prev, { product: p, qty: 1 }];
-        }),
-      remove: (id) => setItems((prev) => prev.filter((i) => i.product.id !== id)),
-      setQty: (id, qty) =>
-        setItems((prev) => {
-          const item = prev.find((i) => i.product.id === id);
-          const maxQty = (item?.product.stock_quantity ?? Infinity) > 0 ? item!.product.stock_quantity : Infinity;
-          const capped = Math.min(qty, maxQty);
-          if (capped <= 0) return prev.filter((i) => i.product.id !== id);
-          return prev.map((i) => (i.product.id === id ? { ...i, qty: capped } : i));
-        }),
-      clear: () => setItems([]),
-      count: items.reduce((s, i) => s + i.qty, 0),
-      total: items.reduce((s, i) => s + i.qty * i.product.price, 0),
-    }),
+    () => {
+      const getMaxQty = (stockQuantity: number | undefined) => {
+        if (stockQuantity == null) return Infinity;
+        return Math.max(0, stockQuantity);
+      };
+      return {
+        items,
+        add: (p) => {
+          const maxQty = getMaxQty(p.stock_quantity);
+          let added = false;
+          setItems((prev) => {
+            const ex = prev.find((i) => i.product.id === p.id);
+            if (ex) {
+              if (ex.qty >= maxQty) return prev;
+              added = true;
+              return prev.map((i) => (i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i));
+            }
+            added = true;
+            return [...prev, { product: p, qty: 1 }];
+          });
+          return added;
+        },
+        remove: (id) => setItems((prev) => prev.filter((i) => i.product.id !== id)),
+        setQty: (id, qty) =>
+          setItems((prev) => {
+            const item = prev.find((i) => i.product.id === id);
+            const maxQty = getMaxQty(item?.product.stock_quantity);
+            const capped = Math.min(qty, maxQty);
+            if (capped <= 0) return prev.filter((i) => i.product.id !== id);
+            return prev.map((i) => (i.product.id === id ? { ...i, qty: capped } : i));
+          }),
+        clear: () => setItems([]),
+        count: items.reduce((s, i) => s + i.qty, 0),
+        total: items.reduce((s, i) => s + i.qty * i.product.price, 0),
+      };
+    },
     [items],
   );
 
