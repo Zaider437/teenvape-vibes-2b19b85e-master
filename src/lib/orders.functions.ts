@@ -495,6 +495,22 @@ export const cancelOrder = createServerFn({ method: "POST" })
     return { success: true, alreadyCancelled: false };
   });
 
+export const getMeetingTimes = createServerFn({ method: "GET" }).handler(async () => {
+  return [
+    "10:00",
+    "11:00",
+    "12:00",
+    "13:00",
+    "14:00",
+    "15:00",
+    "16:00",
+    "17:00",
+    "18:00",
+    "19:00",
+    "20:00",
+  ];
+});
+
 export const debugEnv = createServerFn({ method: "GET" }).handler(async ({ context }) => {
   const keys = {
     contextKeys: Object.keys(context || {}),
