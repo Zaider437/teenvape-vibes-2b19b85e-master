@@ -578,7 +578,7 @@ export async function fetchProducts(): Promise<Product[]> {
 
       if (error) throw error;
       if (data && data.length > 0) {
-const mapped = data.map((p: any) => {
+        const mapped = data.map((p: any) => {
           return {
             id: p.id,
             slug: p.slug,
@@ -598,9 +598,12 @@ const mapped = data.map((p: any) => {
             description: buildDescription(p),
           };
         });
-        cachedProducts = mapped.filter((p) => p.is_active);
-        cachedProductsExpiry = Date.now() + 30 * 1000;
-        return mapped.filter((p) => p.is_active);
+        const active = mapped.filter((p) => p.is_active);
+        if (active.length > 0) {
+          cachedProducts = active;
+          cachedProductsExpiry = Date.now() + 30 * 1000;
+          return active;
+        }
       }
       const fallback = PRODUCTS.map((p) => ({
         ...p,
