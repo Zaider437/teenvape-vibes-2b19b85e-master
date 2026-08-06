@@ -57,8 +57,7 @@ function createSupabaseAdminClient() {
   const SUPABASE_URL =
     (globalThis as any).SUPABASE_URL ||
     (globalThis as any).env?.SUPABASE_URL ||
-    (globalThis as any).__env__?.SUPABASE_URL ||
-    "https://ueazjqvxjlppgtkhcmut.supabase.co";
+    (globalThis as any).__env__?.SUPABASE_URL;
   const SUPABASE_SERVICE_ROLE_KEY =
     (globalThis as any).SUPABASE_SERVICE_ROLE_KEY ||
     (globalThis as any).SUPABASE_SECRET_KEY ||
@@ -69,8 +68,7 @@ function createSupabaseAdminClient() {
   const SUPABASE_PUBLISHABLE_KEY =
     (globalThis as any).SUPABASE_PUBLISHABLE_KEY ||
     (globalThis as any).env?.SUPABASE_PUBLISHABLE_KEY ||
-    (globalThis as any).__env__?.SUPABASE_PUBLISHABLE_KEY ||
-    "sb_publishable_DLmGdw_zbkrtIE-pNvtovA_jkqoDzZP";
+    (globalThis as any).__env__?.SUPABASE_PUBLISHABLE_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     const missing = [

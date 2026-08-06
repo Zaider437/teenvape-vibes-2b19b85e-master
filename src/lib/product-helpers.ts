@@ -1,7 +1,6 @@
 const PUBLIC_IMAGE_CDN_BASE =
   (globalThis as any).env?.PUBLIC_IMAGE_CDN_BASE ||
-  (globalThis as any).__env__?.PUBLIC_IMAGE_CDN_BASE ||
-  "https://ueazjqvxjlppgtkhcmut.supabase.co/storage/v1/object/public/product-images";
+  (globalThis as any).__env__?.PUBLIC_IMAGE_CDN_BASE;
 
 export function formatImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
