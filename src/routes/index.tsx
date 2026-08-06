@@ -14,7 +14,7 @@ import {
   Send,
 } from "lucide-react";
 import { CartProvider, useCart } from "../lib/cart";
-import { CATEGORIES, fetchProducts, formatImageUrl, type Product } from "../lib/products";
+import { CATEGORIES, fetchProducts, invalidateProductsCache, formatImageUrl, type Product } from "../lib/products";
 import { createOrder, debugEnv } from "../lib/orders.functions";
 import { toast, Toaster } from "sonner";
 import { FallingEffects } from "../components/FallingEffects";
@@ -744,6 +744,8 @@ function CheckoutSheet({ onClose }: { onClose: () => void }) {
       });
       setDone({ id: res.id });
       clear();
+      invalidateProductsCache();
+      fetchProducts().then((data) => setProducts(data));
     } catch (err) {
       console.error(err);
       toast.error("Не удалось отправить заказ. Попробуй ещё раз.");
