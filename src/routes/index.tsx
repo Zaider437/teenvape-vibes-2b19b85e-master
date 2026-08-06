@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { CartProvider, useCart } from "../lib/cart";
 import { CATEGORIES, fetchProducts, invalidateProductsCache, formatImageUrl, type Product } from "../lib/products";
-import { createOrder, debugEnv } from "../lib/orders.functions";
+import { createOrder, debugEnv, getMeetingTimes } from "../lib/orders.functions";
 import { toast, Toaster } from "sonner";
 import { FallingEffects } from "../components/FallingEffects";
 import { LoveVapeLogo } from "../components/LoveVapeLogo";
@@ -54,6 +54,8 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [meetingTimes, setMeetingTimes] = useState<string[]>([]);
+  const [loadingMeetingTimes, setLoadingMeetingTimes] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +69,16 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       })
       .finally(() => {
         if (!cancelled) setLoadingProducts(false);
+      });
+    getMeetingTimes()
+      .then((data) => {
+        if (!cancelled) setMeetingTimes(data);
+      })
+      .catch((err) => {
+        console.error("[shop] load meeting times failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMeetingTimes(false);
       });
     return () => {
       cancelled = true;
@@ -259,7 +271,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
           }}
         />
       )}
-      {checkoutOpen && <CheckoutSheet onClose={() => setCheckoutOpen(false)} />}
+      {checkoutOpen && <CheckoutSheet onClose={() => setCheckoutOpen(false)} meetingTimes={meetingTimes} />}
 
       <Dialog
         open={!!selectedProduct}
@@ -690,23 +702,12 @@ function CartDrawer({
   );
 }
 
-const MEETING_TIMES = [
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "20:20",
-  "21:00",
-  "После 21:00 — отдам там, где буду находиться. Закажите заранее!",
-  "Для заказа Яндекс Доставки",
-] as const;
-
-function CheckoutSheet({ onClose }: { onClose: () => void }) {
+function CheckoutSheet({ onClose, meetingTimes }: { onClose: () => void; meetingTimes: string[] }) {
   const { items, total, clear } = useCart();
   const submit = useServerFn(createOrder);
   const [telegram, setTelegram] = useState("");
   const [change, setChange] = useState("");
-  const [meetingTime, setMeetingTime] = useState<string>(MEETING_TIMES[0]);
+  const [meetingTime, setMeetingTime] = useState<string>(meetingTimes[0] || "");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<null | { id: string }>(null);
 
@@ -804,7 +805,7 @@ function CheckoutSheet({ onClose }: { onClose: () => void }) {
                 Время встречи
               </span>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                {MEETING_TIMES.map((t) => {
+                 {meetingTimes.map((t) => {
                   const active = meetingTime === t;
                   return (
                     <button

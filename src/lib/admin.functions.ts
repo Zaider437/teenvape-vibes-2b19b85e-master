@@ -351,6 +351,40 @@ export const adminUpdateMeetingTimes = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const getMeetingTimes = createServerFn({ method: "GET" }).handler(async () => {
+  const defaults = [
+    "15:00",
+    "16:00",
+    "17:00",
+    "18:00",
+    "20:20",
+    "21:00",
+    "После 21:00 — отдам там, где буду находиться. Закажите заранее!",
+    "Для заказа Яндекс Доставки",
+  ];
+
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin
+      .from("admin_telegram_users" as any)
+      .select("note")
+      .eq("telegram_username", "__meeting_times__")
+      .maybeSingle() as any);
+
+    if (!error && data && data.note) {
+      try {
+        return JSON.parse(data.note) as string[];
+      } catch (e) {
+        console.error("Failed to parse meeting times:", e);
+      }
+    }
+  } catch (err) {
+    console.warn("[meetingTimes] Failed to fetch meeting times, using defaults", err);
+  }
+
+  return defaults;
+});
+
 export const getAnimationSettings = createServerFn({ method: "GET" }).handler(async () => {
   const defaults = {
     leaves: { enabled: true, from: 1, to: 12, count: 30 },
