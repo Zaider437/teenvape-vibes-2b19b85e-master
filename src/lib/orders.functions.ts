@@ -496,7 +496,7 @@ export const cancelOrder = createServerFn({ method: "POST" })
   });
 
 export const getMeetingTimes = createServerFn({ method: "GET" }).handler(async () => {
-  return [
+  const defaults = [
     "15:00",
     "16:00",
     "17:00",
@@ -506,6 +506,30 @@ export const getMeetingTimes = createServerFn({ method: "GET" }).handler(async (
     "После 21:00 — отдам там, где буду находиться. Закажите заранее!",
     "Для заказа Яндекс Доставки",
   ];
+
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin
+      .from("admin_telegram_users" as any)
+      .select("note")
+      .eq("telegram_username", "__meeting_times__")
+      .maybeSingle() as any);
+
+    if (!error && data && data.note) {
+      try {
+        const parsed = JSON.parse(data.note);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((item) => typeof item === "string")) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error("Failed to parse meeting times:", e);
+      }
+    }
+  } catch (e) {
+    console.error("Failed to load meeting times:", e);
+  }
+
+  return defaults;
 });
 
 export const debugEnv = createServerFn({ method: "GET" }).handler(async ({ context }) => {

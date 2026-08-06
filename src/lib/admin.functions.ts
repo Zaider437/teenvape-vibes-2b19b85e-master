@@ -307,7 +307,7 @@ export const adminGetMeetingTimes = createServerFn({ method: "GET" })
     if (data && data.note) {
       try {
         const parsed = JSON.parse(data.note);
-        if (Array.isArray(parsed) && parsed.every((item) => typeof item === "string")) {
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((item) => typeof item === "string")) {
           return parsed;
         }
       } catch (e) {
