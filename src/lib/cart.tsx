@@ -38,7 +38,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       add: (p) =>
         setItems((prev) => {
-          const maxQty = p.stock_quantity ?? Infinity;
+          const maxQty = (p.stock_quantity ?? Infinity) > 0 ? p.stock_quantity : Infinity;
           const ex = prev.find((i) => i.product.id === p.id);
           if (ex) {
             if (ex.qty >= maxQty) return prev;
@@ -50,7 +50,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setQty: (id, qty) =>
         setItems((prev) => {
           const item = prev.find((i) => i.product.id === id);
-          const maxQty = item?.product.stock_quantity ?? Infinity;
+          const maxQty = (item?.product.stock_quantity ?? Infinity) > 0 ? item!.product.stock_quantity : Infinity;
           const capped = Math.min(qty, maxQty);
           if (capped <= 0) return prev.filter((i) => i.product.id !== id);
           return prev.map((i) => (i.product.id === id ? { ...i, qty: capped } : i));
