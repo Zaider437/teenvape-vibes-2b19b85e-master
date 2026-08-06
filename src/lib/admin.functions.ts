@@ -352,13 +352,13 @@ export const adminUpdateMeetingTimes = createServerFn({ method: "POST" })
   });
 
 export const getAnimationSettings = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  let settings = {
+  const defaults = {
     leaves: { enabled: true, from: 1, to: 12, count: 30 },
     snow: { enabled: true, from: 1, to: 12, count: 40 },
   };
 
   try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await (supabaseAdmin
       .from("app_settings" as any)
       .select("value")
@@ -367,27 +367,19 @@ export const getAnimationSettings = createServerFn({ method: "GET" }).handler(as
 
     if (!error && data && data.value) {
       try {
-        settings = data.value as {
+        return data.value as {
           leaves: { enabled: boolean; from: number; to: number; count: number };
           snow: { enabled: boolean; from: number; to: number; count: number };
         };
       } catch {
         // keep defaults on parse error
       }
-    } else {
-      try {
-        await supabaseAdmin.rpc("update_animation_settings", {
-          _settings: settings,
-        } as any);
-      } catch {
-        // ignore bootstrap errors
-      }
     }
   } catch {
-    // table may not exist yet; return defaults
+    // table may not exist yet or RPC failed; return defaults
   }
 
-  return settings;
+  return defaults;
 });
 
 export const adminUpdateAnimationSettings = createServerFn({ method: "POST" })
