@@ -34,16 +34,17 @@ model products {
 }
 
 model orders {
-  id               String  @id @default(dbgenerated("gen_random_uuid()"))
-  customer_name    String
-  customer_phone   String
-  customer_address String
-  customer_note    String?
-  items            Json
-  total_amount     Float
-  status           String  @default("new")
-  email_sent       Boolean @default(false)
-  created_at       DateTime @default(now())
+  id                 String    @id @default(dbgenerated("gen_random_uuid()"))
+  customer_name      String
+  customer_phone     String
+  customer_address   String
+  customer_note      String?
+  items              Json
+  total_amount       Float
+  status             String    @default("new")
+  email_sent         Boolean   @default(false)
+  cancellation_token String?   @unique
+  created_at         DateTime  @default(now())
 
   @@map("orders")
 }

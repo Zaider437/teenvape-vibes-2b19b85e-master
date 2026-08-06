@@ -171,7 +171,25 @@ export const createOrder = createServerFn({ method: "POST" })
     const cancellationToken = crypto.randomUUID();
 
     // Save the order details in our in-memory cache so the cancellation page can load them!
-    ordersCache.set(cancellationToken, { ...orderData });
+    ordersCache.set(cancellationToken, { ...orderData, cancellation_token: cancellationToken });
+
+    // Persist order to Supabase so cancellation link works across server instances/restarts
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("orders" as any).insert({
+        id: orderId,
+        customer_name: data.customer_name,
+        customer_phone: data.customer_phone,
+        customer_address: data.customer_address,
+        customer_note: data.customer_note,
+        items: orderData.items,
+        total_amount: trustedTotal,
+        status: "new",
+        cancellation_token: cancellationToken,
+      });
+    } catch (err) {
+      console.warn("[order] Failed to persist order to Supabase, relying on in-memory cache", err);
+    }
 
     // Build cancellation link from the current request origin.
     let cancelUrl: string | undefined;
