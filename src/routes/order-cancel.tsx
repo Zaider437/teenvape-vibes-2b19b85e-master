@@ -2,6 +2,7 @@ import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { cancelOrder, getOrderByToken } from "@/lib/orders.functions";
+import { invalidateProductsCache } from "@/lib/products";
 import { Link } from "@tanstack/react-router";
 import { toast, Toaster } from "sonner";
 import { ShoppingBag, X, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -84,6 +85,7 @@ export function OrderCancelPage() {
       if (!result.alreadyCancelled && order) {
         setOrder({ ...order, status: "cancelled" });
       }
+      invalidateProductsCache();
       toast.success(result.alreadyCancelled ? "Заказ уже был отменён ранее." : "Заказ отменён.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Не удалось отменить заказ.");
