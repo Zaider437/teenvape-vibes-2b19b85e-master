@@ -306,7 +306,10 @@ export const adminGetMeetingTimes = createServerFn({ method: "GET" })
     if (error) throw error;
     if (data && data.note) {
       try {
-        return JSON.parse(data.note) as string[];
+        const parsed = JSON.parse(data.note);
+        if (Array.isArray(parsed) && parsed.every((item) => typeof item === "string")) {
+          return parsed;
+        }
       } catch (e) {
         console.error("Failed to parse meeting times:", e);
       }

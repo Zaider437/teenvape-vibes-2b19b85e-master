@@ -22,7 +22,7 @@ function AdminSettings() {
 
   const [times, setTimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setCancelling] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [newTime, setNewTime] = useState("");
 
   // Animation settings states
@@ -64,7 +64,7 @@ function AdminSettings() {
   }, []);
 
   async function handleSave() {
-    setCancelling(true);
+    setSaving(true);
     try {
       await Promise.all([
         updateTimes({ data: { times } }),
@@ -79,7 +79,7 @@ function AdminSettings() {
     } catch (e: any) {
       toast.error(e?.message ?? "Не удалось сохранить");
     } finally {
-      setCancelling(false);
+      setSaving(false);
     }
   }
 
@@ -283,6 +283,8 @@ function AdminSettings() {
               </div>
               <div className="flex gap-2">
                 <input
+                  id="new-meeting-time"
+                  name="new-meeting-time"
                   type="text"
                   value={newTime}
                   onChange={(e) => setNewTime(e.target.value)}
@@ -290,6 +292,7 @@ function AdminSettings() {
                   className="flex-1 bg-background border-2 border-border rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                 />
                 <button
+                  type="button"
                   onClick={addTime}
                   className="bg-primary text-primary-foreground font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-1"
                 >
