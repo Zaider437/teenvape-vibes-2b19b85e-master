@@ -35,13 +35,15 @@ function createSupabaseClient() {
     process.env.SUPABASE_URL ||
     (globalThis as any).SUPABASE_URL ||
     (globalThis as any).env?.SUPABASE_URL ||
-    (globalThis as any).__env__?.SUPABASE_URL;
+    (globalThis as any).__env__?.SUPABASE_URL ||
+    "https://ueazjqvxjlppgtkhcmut.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY =
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     process.env.SUPABASE_PUBLISHABLE_KEY ||
     (globalThis as any).SUPABASE_PUBLISHABLE_KEY ||
     (globalThis as any).env?.SUPABASE_PUBLISHABLE_KEY ||
-    (globalThis as any).__env__?.SUPABASE_PUBLISHABLE_KEY;
+    (globalThis as any).__env__?.SUPABASE_PUBLISHABLE_KEY ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlYXpqcXZ4amxwcGd0a2hjbXV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDg2MjgsImV4cCI6MjA5OTc4NDYyOH0.jyJjCPse3Woz3ghOs3exBEGMImG7SSsa69BTlCvVx50";
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [
