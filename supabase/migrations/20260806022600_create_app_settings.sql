@@ -42,7 +42,7 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.update_animation_settings(jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.update_animation_settings(jsonb) TO service_role;
 
-CREATE POLICY IF NOT EXISTS "service_role bypass" ON public.app_settings
+CREATE POLICY "service_role bypass" ON public.app_settings
   FOR ALL TO service_role
   USING (true)
   WITH CHECK (true);
