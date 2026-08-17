@@ -117,6 +117,7 @@ function ProductsAdmin() {
   const [moveCopyCategory, setMoveCopyCategory] = useState<string>("");
   const [moveCopySubcategory, setMoveCopySubcategory] = useState<string>("");
   const [moveCopyCustomSubcategory, setMoveCopyCustomSubcategory] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(rows.map((r) => r.category)));
@@ -434,16 +435,47 @@ try {
         )}
       </div>
 
-      <div className="flex gap-1.5 overflow-x-auto">
-        {dynamicCategories.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => selectCategory(c.id)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${filter === c.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
-          >
-            {c.label}
-          </button>
-        ))}
+      <div className="space-y-1">
+        {dynamicCategories.map((c) => {
+          const isExpanded = expandedCategory === c.id;
+          const subs = c.id !== "all" ? (subcategoriesByCategory.get(c.id) || []) : [];
+          const isActive = filter === c.id;
+          return (
+            <div key={c.id}>
+              <button
+                onClick={() => {
+                  setExpandedCategory(c.id === "all" ? null : c.id);
+                  selectCategory(c.id);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg border text-xs font-semibold transition-colors flex items-center justify-between ${isActive ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
+              >
+                <span>{c.label}</span>
+                {subs.length > 0 && (
+                  <span className="text-[10px] opacity-70">{isExpanded ? "▾" : "▸"}</span>
+                )}
+              </button>
+              {isExpanded && subs.length > 0 && (
+                <div className="ml-4 mt-1 space-y-1 border-l border-border pl-3">
+                  <button
+                    onClick={() => setSelectedSubcategory("all")}
+                    className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors w-full ${selectedSubcategory === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
+                  >
+                    Все подкаталоги
+                  </button>
+                  {subs.map((sub) => (
+                    <button
+                      key={sub}
+                      onClick={() => setSelectedSubcategory(sub)}
+                      className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors w-full ${selectedSubcategory === sub ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {hasSub && (brandOptions.length > 0 || flavorOptions.length > 0) && (
