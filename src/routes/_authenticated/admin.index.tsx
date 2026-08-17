@@ -200,10 +200,6 @@ function ProductsAdmin() {
     return Array.from(new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s))).sort();
   }, [inCategory, hasSub, filter]);
 
-  const subcategoryLabel = useMemo(() => {
-    if (filter.toLowerCase() === "snus" || filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid") return "Вкус";
-    return "Подкаталоги";
-  }, [filter]);
   const visible = useMemo(() => {
     let list = inCategory;
     if (hasSub) {
@@ -478,7 +474,7 @@ try {
       </div>
 
       {/* sub-filters for categories */}
-      {hasSub && (brandOptions.length > 0 || flavorOptions.length > 0 || subcategoryOptions.length > 0) && (
+      {hasSub && (brandOptions.length > 0 || flavorOptions.length > 0) && (
         <div className="px-3 sm:px-4 mt-2">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -525,31 +521,6 @@ try {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {hasSub && subcategoryOptions.length > 0 && (
-        <div className="px-3 sm:px-4 mt-2 space-y-1.5">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            {subcategoryLabel}
-          </div>
-          <div className="flex flex-col gap-1">
-            <button
-              onClick={() => setSelectedSubcategory("all")}
-              className={`text-left px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${selectedSubcategory === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
-            >
-              Все
-            </button>
-            {subcategoryOptions.map((sub) => (
-              <button
-                key={sub}
-                onClick={() => setSelectedSubcategory(sub)}
-                className={`text-left px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${selectedSubcategory === sub ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
-              >
-                {sub}
-              </button>
-            ))}
           </div>
         </div>
       )}
