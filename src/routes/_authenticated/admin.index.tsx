@@ -117,6 +117,7 @@ function ProductsAdmin() {
   const [moveCopyCategory, setMoveCopyCategory] = useState<string>("");
   const [moveCopySubcategory, setMoveCopySubcategory] = useState<string>("");
   const [moveCopyCustomSubcategory, setMoveCopyCustomSubcategory] = useState(false);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
 
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(rows.map((r) => r.category)));
@@ -190,25 +191,17 @@ function ProductsAdmin() {
     return Array.from(set).sort();
   }, [inCategory, hasSub, brand]);
 
-  const subcategoriesByCategory = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const r of rows) {
-      const value = r.subcategory;
-      if (!value) continue;
-      const list = map.get(r.category) || [];
-      if (!list.includes(value)) list.push(value);
-      map.set(r.category, list);
-    }
-    return map;
-  }, [rows]);
-
   const subcategoryOptions = useMemo(() => {
     if (!hasSub) return [] as string[];
+    const useFlavor = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
+    if (useFlavor) {
+      return Array.from(new Set(inCategory.map((r) => r.flavor).filter((s): s is string => !!s))).sort();
+    }
     return Array.from(new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s))).sort();
-  }, [inCategory, hasSub]);
+  }, [inCategory, hasSub, filter]);
 
   const subcategoryLabel = useMemo(() => {
-    if (filter === "snus" || filter === "disposable" || filter === "liquid") return "Вкус";
+    if (filter.toLowerCase() === "snus" || filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid") return "Вкус";
     return "Подкаталоги";
   }, [filter]);
   const visible = useMemo(() => {
@@ -217,7 +210,12 @@ function ProductsAdmin() {
       if (brand !== "all") list = list.filter((r) => r.brand === brand);
       if (flavor !== "all") list = list.filter((r) => r.flavor === flavor);
       if (selectedSubcategory !== "all") {
-        list = list.filter((r) => r.subcategory === selectedSubcategory);
+        const useFlavor = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
+        if (useFlavor) {
+          list = list.filter((r) => r.flavor === selectedSubcategory);
+        } else {
+          list = list.filter((r) => r.subcategory === selectedSubcategory);
+        }
       }
     }
     const q = query.trim().toLowerCase();
@@ -234,6 +232,7 @@ function ProductsAdmin() {
     setFilter(id);
     setBrand("all");
     setFlavor("all");
+    setSelectedSubcategory("all");
   }
 
 function edit(row: ProductRow) {
@@ -506,7 +505,7 @@ try {
             </div>
             <div>
               <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
-                {filter === "liquid" || filter === "disposable" || filter === "snus" ? "Вкус" : "Тип"}
+                {filter.toLowerCase() === "liquid" || filter.toLowerCase() === "disposable" || filter.toLowerCase() === "snus" ? "Вкус" : "Тип"}
               </div>
               <div className="flex flex-col gap-1">
                 <button
