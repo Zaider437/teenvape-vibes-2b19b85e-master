@@ -56,6 +56,8 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [meetingTimes, setMeetingTimes] = useState<string[]>([]);
   const [loadingMeetingTimes, setLoadingMeetingTimes] = useState(true);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -131,10 +133,23 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
     return [{ id: "all", label: "Всё", emoji: "🔥" }, ...list];
   }, [products]);
 
+  const subcategoriesByCategory = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const p of products) {
+      if (!p.subcategory) continue;
+      const list = map.get(p.category) || [];
+      if (!list.includes(p.subcategory)) list.push(p.subcategory);
+      map.set(p.category, list);
+    }
+    return map;
+  }, [products]);
+
   function selectCategory(id: string) {
     setCategory(id);
     setBrand("all");
     setFlavor("all");
+    setSelectedSubcategory("all");
+    setExpandedCategory(id === "all" ? null : id);
   }
 
   const filtered = useMemo(() => {
@@ -142,6 +157,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
     if (hasSubfilters) {
       if (brand !== "all") list = list.filter((p) => p.brand === brand);
       if (flavor !== "all") list = list.filter((p) => p.flavor === flavor);
+      if (selectedSubcategory !== "all") list = list.filter((p) => p.subcategory === selectedSubcategory);
     }
     const q = query.trim().toLowerCase();
     if (!q) return list;
@@ -152,7 +168,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [inCategory, hasSubfilters, brand, flavor, query]);
+  }, [inCategory, hasSubfilters, brand, flavor, selectedSubcategory, query]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-32">
@@ -190,23 +206,50 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       </div>
 
       {/* categories */}
-      <div className="px-3 sm:px-4 mt-2 sm:mt-3">
-        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 sm:pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 snap-x">
-          {dynamicCategories.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => selectCategory(c.id)}
-              className={`snap-start shrink-0 px-4 sm:px-4 py-2 sm:py-2 rounded-full border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
-                category === c.id
-                  ? "bg-primary text-primary-foreground border-primary glow-pink"
-                  : "bg-card text-foreground border-border hover:border-primary/60"
-              }`}
-            >
-              <span className="mr-1">{c.emoji}</span>
-              {c.label}
-            </button>
-          ))}
-        </div>
+      <div className="px-3 sm:px-4 mt-2 sm:mt-3 space-y-1.5">
+        {dynamicCategories.map((c) => {
+          const isExpanded = expandedCategory === c.id;
+          const subs = c.id !== "all" ? (subcategoriesByCategory.get(c.id) || []) : [];
+          const isActive = category === c.id;
+          return (
+            <div key={c.id}>
+              <button
+                onClick={() => selectCategory(c.id)}
+                className={`w-full text-left px-3 py-2 rounded-xl border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-between ${isActive ? "bg-primary text-primary-foreground border-primary glow-pink" : "bg-card text-foreground border-border hover:border-primary/60"}`}
+              >
+                <span><span className="mr-1">{c.emoji}</span>{c.label}</span>
+                {subs.length > 0 && (
+                  <span className="text-[10px] opacity-70">{isExpanded ? "▾" : "▸"}</span>
+                )}
+              </button>
+              {isExpanded && subs.length > 0 && (
+                <div className="ml-4 mt-1 space-y-1 border-l-2 border-border pl-3">
+                  <button
+                    onClick={() => {
+                      setCategory(c.id);
+                      setSelectedSubcategory("all");
+                    }}
+                    className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors w-full ${selectedSubcategory === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
+                  >
+                    Все подкаталоги
+                  </button>
+                  {subs.map((sub) => (
+                    <button
+                      key={sub}
+                      onClick={() => {
+                        setCategory(c.id);
+                        setSelectedSubcategory(sub);
+                      }}
+                      className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors w-full ${selectedSubcategory === sub ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* sub-filters for liquid / consumable */}
