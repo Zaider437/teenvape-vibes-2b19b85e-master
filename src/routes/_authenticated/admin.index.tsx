@@ -193,9 +193,9 @@ function ProductsAdmin() {
 
   const subcategoryOptions = useMemo(() => {
     if (!hasSub) return [] as string[];
-    const useFlavor = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
-    if (useFlavor) {
-      return Array.from(new Set(inCategory.map((r) => r.flavor).filter((s): s is string => !!s))).sort();
+    const useSubcategory = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
+    if (useSubcategory) {
+      return Array.from(new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s))).sort();
     }
     return Array.from(new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s))).sort();
   }, [inCategory, hasSub, filter]);
@@ -210,9 +210,9 @@ function ProductsAdmin() {
       if (brand !== "all") list = list.filter((r) => r.brand === brand);
       if (flavor !== "all") list = list.filter((r) => r.flavor === flavor);
       if (selectedSubcategory !== "all") {
-        const useFlavor = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
-        if (useFlavor) {
-          list = list.filter((r) => r.flavor === selectedSubcategory);
+        const useSubcategory = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
+        if (useSubcategory) {
+          list = list.filter((r) => r.subcategory === selectedSubcategory);
         } else {
           list = list.filter((r) => r.subcategory === selectedSubcategory);
         }
