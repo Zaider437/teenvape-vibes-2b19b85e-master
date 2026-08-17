@@ -117,7 +117,6 @@ function ProductsAdmin() {
   const [moveCopyCategory, setMoveCopyCategory] = useState<string>("");
   const [moveCopySubcategory, setMoveCopySubcategory] = useState<string>("");
   const [moveCopyCustomSubcategory, setMoveCopyCustomSubcategory] = useState(false);
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(rows.map((r) => r.category)));
@@ -435,67 +434,99 @@ try {
         )}
       </div>
 
-      <div className="space-y-1">
-        {dynamicCategories.map((c) => {
-          const isExpanded = expandedCategory === c.id;
-          const subs = c.id !== "all" ? (subcategoriesByCategory.get(c.id) || []) : [];
-          const isActive = filter === c.id;
-          return (
-            <div key={c.id}>
-              <button
-                onClick={() => {
-                  setExpandedCategory(c.id === "all" ? null : c.id);
-                  selectCategory(c.id);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-lg border text-xs font-semibold transition-colors flex items-center justify-between ${isActive ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
-              >
-                <span>{c.label}</span>
-                {subs.length > 0 && (
-                  <span className="text-[10px] opacity-70">{isExpanded ? "▾" : "▸"}</span>
-                )}
-              </button>
-              {isExpanded && subs.length > 0 && (
-                <div className="ml-4 mt-1 space-y-1 border-l border-border pl-3">
-                  <button
-                    onClick={() => setSelectedSubcategory("all")}
-                    className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors w-full ${selectedSubcategory === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
-                  >
-                    Все подкаталоги
-                  </button>
-                  {subs.map((sub) => (
-                    <button
-                      key={sub}
-                      onClick={() => setSelectedSubcategory(sub)}
-                      className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors w-full ${selectedSubcategory === sub ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* categories */}
+      <div className="px-3 sm:px-4 mt-2 sm:mt-3">
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 sm:pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 snap-x">
+          {dynamicCategories.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => selectCategory(c.id)}
+              className={`snap-start shrink-0 px-4 sm:px-4 py-2 sm:py-2 rounded-full border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
+                filter === c.id
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground border-border hover:border-primary/60"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {hasSub && (brandOptions.length > 0 || flavorOptions.length > 0) && (
-        <div className="space-y-2">
-          {brandOptions.length > 0 && (
-            <SubRow
-              label="Производитель"
-              options={brandOptions}
-              value={brand}
-              onChange={setBrand}
-            />
-          )}
-          {flavorOptions.length > 0 && (
-            <SubRow
-              label={filter === "liquid" || filter === "disposable" ? "Вкус" : "Тип"}
-              options={flavorOptions}
-              value={flavor}
-              onChange={setFlavor}
-            />
-          )}
+      {/* sub-filters for categories */}
+      {hasSub && (brandOptions.length > 0 || flavorOptions.length > 0 || subcategoryOptions.length > 0) && (
+        <div className="px-3 sm:px-4 mt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
+                Производитель
+              </div>
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => setBrand("all")}
+                  className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+                >
+                  Все
+                </button>
+                {brandOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setBrand(opt)}
+                    className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
+                {filter === "liquid" || filter === "disposable" ? "Вкус" : "Тип"}
+              </div>
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => setFlavor("all")}
+                  className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${flavor === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+                >
+                  Все
+                </button>
+                {flavorOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setFlavor(opt)}
+                    className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${flavor === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hasSub && subcategoryOptions.length > 0 && (
+        <div className="px-3 sm:px-4 mt-2 space-y-1.5">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Подкаталоги
+          </div>
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={() => setSelectedSubcategory("all")}
+              className={`text-left px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${selectedSubcategory === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
+            >
+              Все подкаталоги
+            </button>
+            {subcategoryOptions.map((sub) => (
+              <button
+                key={sub}
+                onClick={() => setSelectedSubcategory(sub)}
+                className={`text-left px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${selectedSubcategory === sub ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
+              >
+                {sub}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1038,39 +1069,3 @@ function F({
   );
 }
 
-function SubRow({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: string[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
-        {label}
-      </div>
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
-        <button
-          onClick={() => onChange("all")}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${value === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border"}`}
-        >
-          Все
-        </button>
-        {options.map((opt) => (
-          <button
-            key={opt}
-            onClick={() => onChange(opt)}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${value === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border"}`}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
