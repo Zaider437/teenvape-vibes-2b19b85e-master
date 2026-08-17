@@ -120,9 +120,17 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
     const set = new Set<string>();
     const productsForBrand =
       brand === "all" ? inCategory : inCategory.filter((p) => p.brand === brand);
-    for (const p of productsForBrand) if (p.flavor) set.add(p.flavor);
+    for (const p of productsForBrand) {
+      const value =
+        category.toLowerCase() === "snus" ||
+        category.toLowerCase() === "disposable" ||
+        category.toLowerCase() === "liquid"
+          ? p.subcategory
+          : p.flavor;
+      if (value) set.add(value);
+    }
     return Array.from(set).sort();
-  }, [inCategory, hasSubfilters, brand]);
+  }, [inCategory, hasSubfilters, brand, category]);
 
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(products.map((p) => p.category)));
@@ -154,7 +162,17 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
     let list = inCategory;
     if (hasSubfilters) {
       if (brand !== "all") list = list.filter((p) => p.brand === brand);
-      if (flavor !== "all") list = list.filter((p) => p.flavor === flavor);
+      if (flavor !== "all") {
+        const useSubcategory =
+          category.toLowerCase() === "snus" ||
+          category.toLowerCase() === "disposable" ||
+          category.toLowerCase() === "liquid";
+        if (useSubcategory) {
+          list = list.filter((p) => p.subcategory === flavor);
+        } else {
+          list = list.filter((p) => p.flavor === flavor);
+        }
+      }
     }
     const q = query.trim().toLowerCase();
     if (!q) return list;
@@ -165,7 +183,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [inCategory, hasSubfilters, brand, flavor, query]);
+  }, [inCategory, hasSubfilters, brand, flavor, category, query]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-32">
