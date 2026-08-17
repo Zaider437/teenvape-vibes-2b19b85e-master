@@ -221,8 +221,10 @@ export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
     if (!source) throw new Error("Товар не найден");
 
     const src = source as any;
+    const baseSlug = (src.slug || "").trim() || `product-${Date.now()}`;
+    const newSlug = `${baseSlug}-copy-${Date.now()}`;
     const { error: insertError } = await supabaseAdmin.from("products" as any).insert({
-      slug: src.slug,
+      slug: newSlug,
       name: "Копия: " + src.name,
       brand: src.brand,
       category: data.targetCategory,
