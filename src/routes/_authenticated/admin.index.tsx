@@ -193,8 +193,12 @@ function ProductsAdmin() {
 
   const subcategoryOptions = useMemo(() => {
     if (!hasSub) return [] as string[];
+    const useFlavor = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
+    if (useFlavor) {
+      return Array.from(new Set(inCategory.map((r) => r.flavor).filter((s): s is string => !!s))).sort();
+    }
     return Array.from(new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s))).sort();
-  }, [inCategory, hasSub]);
+  }, [inCategory, hasSub, filter]);
 
   const subcategoryLabel = useMemo(() => {
     if (filter.toLowerCase() === "snus" || filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid") return "Вкус";
@@ -206,7 +210,12 @@ function ProductsAdmin() {
       if (brand !== "all") list = list.filter((r) => r.brand === brand);
       if (flavor !== "all") list = list.filter((r) => r.flavor === flavor);
       if (selectedSubcategory !== "all") {
-        list = list.filter((r) => r.subcategory === selectedSubcategory);
+        const useFlavor = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
+        if (useFlavor) {
+          list = list.filter((r) => r.flavor === selectedSubcategory);
+        } else {
+          list = list.filter((r) => r.subcategory === selectedSubcategory);
+        }
       }
     }
     const q = query.trim().toLowerCase();
