@@ -224,60 +224,52 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
 
       {/* sub-filters for liquid / consumable */}
       {hasSubfilters && (
-        <div className="px-3 sm:px-4 mt-2">
-          <div className="flex gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
-                Производитель
-              </div>
-              <div className="flex flex-col gap-1">
-                <button
-                  onClick={() => setBrand("all")}
-                  className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
-                >
-                  Все
-                </button>
-                {brandOptions.map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => {
-                      setBrand(opt);
-                      setFlavor("all");
-                    }}
-                    onMouseEnter={() => setHoveredBrand(opt)}
-                    onMouseLeave={() => setHoveredBrand(null)}
-                    className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {(hoveredBrand || brand !== "all") && (
-              <div className="w-40 sm:w-48 shrink-0">
-                <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
-                  {category === "liquid" || category === "disposable" ? "Вкус" : "Тип"}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <button
-                    onClick={() => setFlavor("all")}
-                    className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${flavor === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
-                  >
-                    Все
-                  </button>
-                  {(flavorsByBrand.get(hoveredBrand ?? brand) || []).map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => setFlavor(opt)}
-                      className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${flavor === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+        <div className="px-3 sm:px-4 mt-2 space-y-1.5">
+          <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Производитель
           </div>
+          <div className="flex gap-1 overflow-x-auto pb-1 -mx-3 sm:-mx-4 px-3 sm:px-4 snap-x">
+            <button
+              onClick={() => setBrand("all")}
+              className={`snap-start shrink-0 px-2.5 py-1 rounded-md border text-[11px] font-semibold transition-colors ${brand === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+            >
+              Все
+            </button>
+            {brandOptions.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => {
+                  setBrand(opt);
+                  setFlavor("all");
+                }}
+                onMouseEnter={() => setHoveredBrand(opt)}
+                onMouseLeave={() => setHoveredBrand(null)}
+                className={`snap-start shrink-0 px-2.5 py-1 rounded-md border text-[11px] font-semibold transition-colors ${brand === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+
+          {(hoveredBrand || brand !== "all") && (
+            <div className="flex gap-1 overflow-x-auto pb-1 -mx-3 sm:-mx-4 px-3 sm:px-4 snap-x">
+              <button
+                onClick={() => setFlavor("all")}
+                className={`snap-start shrink-0 px-2.5 py-1 rounded-md border text-[11px] font-semibold transition-colors ${flavor === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+              >
+                Все
+              </button>
+              {(flavorsByBrand.get(hoveredBrand ?? brand) || []).map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setFlavor(opt)}
+                  className={`snap-start shrink-0 px-2.5 py-1 rounded-md border text-[11px] font-semibold transition-colors ${flavor === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
