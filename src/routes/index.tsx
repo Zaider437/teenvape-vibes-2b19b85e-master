@@ -240,7 +240,10 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
                 {brandOptions.map((opt) => (
                   <button
                     key={opt}
-                    onClick={() => setBrand(opt)}
+                    onClick={() => {
+                      setBrand(opt);
+                      setFlavor("all");
+                    }}
                     onMouseEnter={() => setHoveredBrand(opt)}
                     onMouseLeave={() => setHoveredBrand(null)}
                     className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
