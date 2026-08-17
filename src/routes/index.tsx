@@ -125,7 +125,9 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
         category.toLowerCase() === "snus" ||
         category.toLowerCase() === "disposable" ||
         category.toLowerCase() === "liquid"
-          ? p.subcategory || (p.name && p.name.includes(" - ") ? p.name.split(" - ").pop() || p.name : p.name || "")
+          ? p.name && p.name.includes(" - ")
+            ? p.name.split(" - ").pop() || p.name
+            : p.name || ""
           : p.flavor;
       if (value) set.add(value);
     }
@@ -169,7 +171,6 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
           category.toLowerCase() === "liquid";
         if (useSubcategory) {
           list = list.filter((p) => {
-            if (p.subcategory === flavor) return true;
             if (p.name && p.name.includes(" - ") && p.name.split(" - ").pop() === flavor) return true;
             return false;
           });
