@@ -195,7 +195,14 @@ function ProductsAdmin() {
     if (!hasSub) return [] as string[];
     const useFlavor = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
     if (useFlavor) {
-      return Array.from(new Set(inCategory.map((r) => r.flavor).filter((s): s is string => !!s))).sort();
+      const values = inCategory
+        .map((r) => {
+          if (r.subcategory) return r.subcategory;
+          if (r.name && r.name.includes(" - ")) return r.name.split(" - ").pop() || r.name;
+          return r.name || r.flavor || "";
+        })
+        .filter((s): s is string => !!s);
+      return Array.from(new Set(values)).sort();
     }
     return Array.from(new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s))).sort();
   }, [inCategory, hasSub, filter]);
@@ -208,7 +215,11 @@ function ProductsAdmin() {
       if (selectedSubcategory !== "all") {
         const useFlavor = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
         if (useFlavor) {
-          list = list.filter((r) => r.flavor === selectedSubcategory);
+          list = list.filter((r) => {
+            if (r.subcategory === selectedSubcategory) return true;
+            if (r.name && r.name.includes(" - ") && r.name.split(" - ").pop() === selectedSubcategory) return true;
+            return false;
+          });
         } else {
           list = list.filter((r) => r.subcategory === selectedSubcategory);
         }
