@@ -232,6 +232,7 @@ function ProductsAdmin() {
     setBrand("all");
     setFlavor("all");
     setSelectedSubcategory("all");
+    setQuery("");
   }
 
 function edit(row: ProductRow) {
@@ -486,7 +487,10 @@ try {
               </div>
               <div className="flex flex-col gap-1">
                 <button
-                  onClick={() => setBrand("all")}
+                  onClick={() => {
+                    setBrand("all");
+                    setQuery("");
+                  }}
                   className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
                 >
                   Все
@@ -494,7 +498,10 @@ try {
                 {brandOptions.map((opt) => (
                   <button
                     key={opt}
-                    onClick={() => setBrand(opt)}
+                    onClick={() => {
+                      setBrand(opt);
+                      setQuery("");
+                    }}
                     className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
                   >
                     {opt}
@@ -508,7 +515,10 @@ try {
               </div>
               <div className="flex flex-col gap-1">
                 <button
-                  onClick={() => setFlavor("all")}
+                  onClick={() => {
+                    setFlavor("all");
+                    setQuery("");
+                  }}
                   className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${flavor === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
                 >
                   Все
@@ -516,7 +526,10 @@ try {
                 {flavorOptions.map((opt) => (
                   <button
                     key={opt}
-                    onClick={() => setFlavor(opt)}
+                    onClick={() => {
+                      setFlavor(opt);
+                      setQuery("");
+                    }}
                     className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${flavor === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
                   >
                     {opt}
