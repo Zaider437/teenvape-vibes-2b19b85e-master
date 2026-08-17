@@ -278,8 +278,6 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
           </div>
         </div>
       )}
-        </div>
-      )}
 
       {/* products grid */}
       {loadingProducts ? (
