@@ -125,7 +125,9 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
         category.toLowerCase() === "snus" ||
         category.toLowerCase() === "disposable" ||
         category.toLowerCase() === "liquid"
-          ? p.subcategory
+          ? p.name && p.name.includes(" - ")
+            ? p.name.split(" - ").pop() || p.name
+            : p.name || ""
           : p.flavor;
       if (value) set.add(value);
     }
@@ -168,7 +170,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
           category.toLowerCase() === "disposable" ||
           category.toLowerCase() === "liquid";
         if (useSubcategory) {
-          list = list.filter((p) => p.subcategory === flavor);
+          list = list.filter((p) => (p.name && p.name.includes(" - ") ? p.name.split(" - ").pop() === flavor : p.name === flavor));
         } else {
           list = list.filter((p) => p.flavor === flavor);
         }
@@ -510,6 +512,11 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
             {product.flavor}
           </div>
         )}
+        {product.subcategory && (
+          <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2 min-h-[1.25rem] sm:min-h-[1.5rem] flex items-center">
+            {product.subcategory}
+          </div>
+        )}
         {product.puffs && (
           <div className="text-[9px] sm:text-[10px] text-primary mt-0.5">{product.puffs}</div>
         )}
@@ -592,6 +599,7 @@ function ProductDetail({ product }: { product: Product }) {
         <div className="text-xs sm:text-sm text-muted-foreground">
           <span className="font-bold text-foreground">{product.brand}</span>
           {product.flavor && <span> · {product.flavor}</span>}
+          {product.subcategory && <span> · {product.subcategory}</span>}
         </div>
         {product.puffs && <div className="text-xs sm:text-sm text-primary">{product.puffs}</div>}
         {product.volume && <div className="text-xs sm:text-sm text-primary">{product.volume}</div>}
