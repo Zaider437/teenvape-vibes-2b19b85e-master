@@ -189,11 +189,45 @@ function ProductsAdmin() {
     for (const r of rowsForBrand) if (r.flavor) set.add(r.flavor);
     return Array.from(set).sort();
   }, [inCategory, hasSub, brand]);
+
+  const subcategoriesByCategory = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const r of rows) {
+      const value = r.subcategory;
+      if (!value) continue;
+      const list = map.get(r.category) || [];
+      if (!list.includes(value)) list.push(value);
+      map.set(r.category, list);
+    }
+    return map;
+  }, [rows]);
+
+  const subcategoryOptions = useMemo(() => {
+    if (!hasSub) return [] as string[];
+    const useFlavor = filter === "disposable" || filter === "liquid" || filter === "snus";
+    if (useFlavor) {
+      return Array.from(new Set(inCategory.map((r) => r.flavor).filter((s): s is string => !!s))).sort();
+    }
+    return Array.from(new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s))).sort();
+  }, [inCategory, hasSub, filter]);
+
+  const subcategoryLabel = useMemo(() => {
+    if (filter === "snus" || filter === "disposable" || filter === "liquid") return "Вкус";
+    return "Подкаталоги";
+  }, [filter]);
   const visible = useMemo(() => {
     let list = inCategory;
     if (hasSub) {
       if (brand !== "all") list = list.filter((r) => r.brand === brand);
       if (flavor !== "all") list = list.filter((r) => r.flavor === flavor);
+      if (selectedSubcategory !== "all") {
+        const useFlavor = filter === "disposable" || filter === "liquid" || filter === "snus";
+        if (useFlavor) {
+          list = list.filter((r) => r.flavor === selectedSubcategory);
+        } else {
+          list = list.filter((r) => r.subcategory === selectedSubcategory);
+        }
+      }
     }
     const q = query.trim().toLowerCase();
     if (!q) return list;
@@ -204,7 +238,7 @@ function ProductsAdmin() {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [inCategory, hasSub, brand, flavor, query]);
+  }, [inCategory, hasSub, brand, flavor, selectedSubcategory, query]);
   function selectCategory(id: string) {
     setFilter(id);
     setBrand("all");
@@ -481,7 +515,7 @@ try {
             </div>
             <div>
               <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
-                {filter === "liquid" || filter === "disposable" ? "Вкус" : "Тип"}
+                {filter === "liquid" || filter === "disposable" || filter === "snus" ? "Вкус" : "Тип"}
               </div>
               <div className="flex flex-col gap-1">
                 <button
@@ -508,14 +542,14 @@ try {
       {hasSub && subcategoryOptions.length > 0 && (
         <div className="px-3 sm:px-4 mt-2 space-y-1.5">
           <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Подкаталоги
+            {subcategoryLabel}
           </div>
           <div className="flex flex-col gap-1">
             <button
               onClick={() => setSelectedSubcategory("all")}
               className={`text-left px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${selectedSubcategory === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:border-primary hover:bg-primary/5"}`}
             >
-              Все подкаталоги
+              Все
             </button>
             {subcategoryOptions.map((sub) => (
               <button

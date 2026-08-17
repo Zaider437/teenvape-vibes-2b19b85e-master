@@ -255,7 +255,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
             </div>
             <div>
               <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
-                {category === "liquid" || category === "disposable" ? "Вкус" : "Тип"}
+                {category === "liquid" || category === "disposable" || category === "snus" ? "Вкус" : "Тип"}
               </div>
               <div className="flex flex-col gap-1">
                 <button
