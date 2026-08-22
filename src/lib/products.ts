@@ -598,7 +598,7 @@ export async function fetchProducts(): Promise<Product[]> {
             description: buildDescription(p),
           };
         });
-        const active = mapped.filter((p) => p.is_active);
+        const active = mapped.filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
         if (active.length > 0) {
           cachedProducts = active;
           cachedProductsExpiry = Date.now() + 30 * 1000;
@@ -610,7 +610,7 @@ export async function fetchProducts(): Promise<Product[]> {
         image: formatImageUrl(p.image),
         description: buildDescription(p),
         stock_quantity: 0,
-      })).filter((p) => p.is_active);
+      })).filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
       cachedProducts = fallback;
       cachedProductsExpiry = Date.now() + 30 * 1000;
       return fallback;
@@ -622,7 +622,7 @@ export async function fetchProducts(): Promise<Product[]> {
       image: formatImageUrl(p.image),
       description: buildDescription(p),
       stock_quantity: 0,
-    })).filter((p) => p.is_active);
+    })).filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
     cachedProducts = fallback;
     cachedProductsExpiry = Date.now() + 30 * 1000;
     return fallback;
@@ -636,7 +636,8 @@ export async function fetchProducts(): Promise<Product[]> {
           ...p,
           image: formatImageUrl(p.image),
           description: buildDescription(p),
-        })).filter((p) => p.is_active),
+          stock_quantity: 0,
+        })).filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0),
       );
     }, 10000),
   );
