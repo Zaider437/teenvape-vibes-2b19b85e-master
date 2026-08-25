@@ -609,7 +609,7 @@ export async function fetchProducts(): Promise<Product[]> {
         ...p,
         image: formatImageUrl(p.image),
         description: buildDescription(p),
-        stock_quantity: 0,
+        stock_quantity: p.stock_quantity ?? Infinity,
       })).filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
       cachedProducts = fallback;
       cachedProductsExpiry = Date.now() + 30 * 1000;
@@ -621,7 +621,7 @@ export async function fetchProducts(): Promise<Product[]> {
       ...p,
       image: formatImageUrl(p.image),
       description: buildDescription(p),
-      stock_quantity: 0,
+      stock_quantity: p.stock_quantity ?? Infinity,
     })).filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
     cachedProducts = fallback;
     cachedProductsExpiry = Date.now() + 30 * 1000;
@@ -636,7 +636,7 @@ export async function fetchProducts(): Promise<Product[]> {
           ...p,
           image: formatImageUrl(p.image),
           description: buildDescription(p),
-          stock_quantity: 0,
+          stock_quantity: p.stock_quantity ?? Infinity,
         })).filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0),
       );
     }, 10000),

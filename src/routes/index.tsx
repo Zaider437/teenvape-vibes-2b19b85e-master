@@ -14,7 +14,13 @@ import {
   Send,
 } from "lucide-react";
 import { CartProvider, useCart, type CartItem } from "../lib/cart";
-import { CATEGORIES, fetchProducts, invalidateProductsCache, formatImageUrl, type Product } from "../lib/products";
+import {
+  CATEGORIES,
+  fetchProducts,
+  invalidateProductsCache,
+  formatImageUrl,
+  type Product,
+} from "../lib/products";
 import { createOrder, debugEnv, getMeetingTimes } from "../lib/orders.functions";
 import { toast, Toaster } from "sonner";
 import { FallingEffects } from "../components/FallingEffects";
@@ -57,6 +63,22 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   const [meetingTimes, setMeetingTimes] = useState<string[]>([]);
   const [loadingMeetingTimes, setLoadingMeetingTimes] = useState(true);
   const [hoveredBrand, setHoveredBrand] = useState<string | null>(null);
+  const { items } = useCart();
+  const cartQtyByProduct = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of items) {
+      map.set(item.product.id, (map.get(item.product.id) ?? 0) + item.qty);
+    }
+    return map;
+  }, [items]);
+
+  const availableProducts = useMemo(() => {
+    return products.filter((p) => {
+      const cartQty = cartQtyByProduct.get(p.id) ?? 0;
+      const remaining = (p.stock_quantity ?? Infinity) - cartQty;
+      return remaining > 0;
+    });
+  }, [products, cartQtyByProduct]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,8 +116,11 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
     category === "snus";
 
   const inCategory = useMemo(
-    () => (category === "all" ? products : products.filter((p) => p.category === category)),
-    [category, products],
+    () =>
+      category === "all"
+        ? availableProducts
+        : availableProducts.filter((p) => p.category === category),
+    [category, availableProducts],
   );
 
   const brandOptions = useMemo(() => {
@@ -135,7 +160,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   }, [inCategory, hasSubfilters, brand, category]);
 
   const dynamicCategories = useMemo(() => {
-    const uniqueCategories = Array.from(new Set(products.map((p) => p.category)));
+    const uniqueCategories = Array.from(new Set(availableProducts.map((p) => p.category)));
     const CATEGORY_MAP: Record<string, { label: string; emoji: string }> = {
       disposable: { label: "Одноразки", emoji: "💨" },
       device: { label: "Устройства", emoji: "⚡" },
@@ -152,7 +177,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       return { id, label, emoji: "📦" };
     });
     return [{ id: "all", label: "Всё", emoji: "🔥" }, ...list];
-  }, [products]);
+  }, [availableProducts]);
 
   function selectCategory(id: string) {
     setCategory(id);
@@ -170,27 +195,37 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
           category.toLowerCase() === "disposable" ||
           category.toLowerCase() === "liquid";
         if (useSubcategory) {
-          list = list.filter((p) => (p.name && p.name.includes(" - ") ? p.name.split(" - ").pop() === flavor : p.name === flavor));
+          list = list.filter((p) =>
+            p.name && p.name.includes(" - ")
+              ? p.name.split(" - ").pop() === flavor
+              : p.name === flavor,
+          );
         } else {
           list = list.filter((p) => p.flavor === flavor);
         }
       }
     }
     const q = query.trim().toLowerCase();
-    if (!q) return list;
+    if (!q) {
+      return list.filter(
+        (p) => (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0,
+      );
+    }
     return list.filter((p) => {
       const hay = [p.name, p.brand, p.flavor, p.puffs, p.volume]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-      return hay.includes(q);
+      return (
+        hay.includes(q) && (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0
+      );
     });
-  }, [inCategory, hasSubfilters, brand, flavor, category, query]);
+  }, [inCategory, hasSubfilters, brand, flavor, category, query, cartQtyByProduct]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-32">
       <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} />
-      <Hero total={products.length} />
+      <Hero total={availableProducts.length} />
 
       {/* search */}
       <div className="px-3 sm:px-4 mt-3 sm:mt-4">
@@ -275,7 +310,11 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
             </div>
             <div>
               <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
-                {category.toLowerCase() === "liquid" || category.toLowerCase() === "disposable" || category.toLowerCase() === "snus" ? "Вкус" : "Тип"}
+                {category.toLowerCase() === "liquid" ||
+                category.toLowerCase() === "disposable" ||
+                category.toLowerCase() === "snus"
+                  ? "Вкус"
+                  : "Тип"}
               </div>
               <div className="flex flex-col gap-1">
                 <button
@@ -346,7 +385,18 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
           onOrderPlaced={(orderedItems) => {
             const orderedIds = new Set(orderedItems.map((i) => i.product.id));
             setProducts((prev) =>
-              prev.map((p) => (orderedIds.has(p.id) ? { ...p, stock_quantity: Math.max(0, (p.stock_quantity ?? 0) - (orderedItems.find((i) => i.product.id === p.id)?.qty ?? 0)) } : p)),
+              prev.map((p) =>
+                orderedIds.has(p.id)
+                  ? {
+                      ...p,
+                      stock_quantity: Math.max(
+                        0,
+                        (p.stock_quantity ?? 0) -
+                          (orderedItems.find((i) => i.product.id === p.id)?.qty ?? 0),
+                      ),
+                    }
+                  : p,
+              ),
             );
           }}
           onProductsUpdate={setProducts}
@@ -523,33 +573,33 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
         {product.volume && (
           <div className="text-[9px] sm:text-[10px] text-primary mt-0.5">{product.volume}</div>
         )}
-<div className="mt-1.5 sm:mt-2 flex items-center justify-between gap-2">
-            <div className="font-display text-lg sm:text-xl">
-              {product.price}{" "}
-              <span className="text-[10px] sm:text-xs text-muted-foreground">BYN</span>
-            </div>
-            {isOutOfStock ? (
-              <span className="text-[10px] sm:text-xs text-red-500 font-bold uppercase tracking-wider">
-                Нет в наличии
-              </span>
-            ) : (
-              <button
-                onClick={() => {
-                  const added = add(product);
-                  if (added) {
-                    toast.success(
-                      `${product.name}${product.flavor ? ` (${product.flavor})` : ""} в корзине`,
-                    );
-                  }
-                }}
-                disabled={isOutOfStock}
-                className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-primary text-primary-foreground glow-soft active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Добавить"
-              >
-                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={3} />
-              </button>
-            )}
+        <div className="mt-1.5 sm:mt-2 flex items-center justify-between gap-2">
+          <div className="font-display text-lg sm:text-xl">
+            {product.price}{" "}
+            <span className="text-[10px] sm:text-xs text-muted-foreground">BYN</span>
           </div>
+          {isOutOfStock ? (
+            <span className="text-[10px] sm:text-xs text-red-500 font-bold uppercase tracking-wider">
+              Нет в наличии
+            </span>
+          ) : (
+            <button
+              onClick={() => {
+                const added = add(product);
+                if (added) {
+                  toast.success(
+                    `${product.name}${product.flavor ? ` (${product.flavor})` : ""} в корзине`,
+                  );
+                }
+              }}
+              disabled={isOutOfStock}
+              className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-primary text-primary-foreground glow-soft active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Добавить"
+            >
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={3} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -755,7 +805,17 @@ function CartDrawer({
   );
 }
 
-function CheckoutSheet({ onClose, meetingTimes, onOrderPlaced, onProductsUpdate }: { onClose: () => void; meetingTimes: string[]; onOrderPlaced?: (items: CartItem[]) => void; onProductsUpdate?: (products: Product[]) => void }) {
+function CheckoutSheet({
+  onClose,
+  meetingTimes,
+  onOrderPlaced,
+  onProductsUpdate,
+}: {
+  onClose: () => void;
+  meetingTimes: string[];
+  onOrderPlaced?: (items: CartItem[]) => void;
+  onProductsUpdate?: (products: Product[]) => void;
+}) {
   const { items, total, clear } = useCart();
   const submit = useServerFn(createOrder);
   const [telegram, setTelegram] = useState("");
@@ -871,7 +931,7 @@ function CheckoutSheet({ onClose, meetingTimes, onOrderPlaced, onProductsUpdate 
                 Время встречи
               </span>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                 {meetingTimes.map((t) => {
+                {meetingTimes.map((t) => {
                   const active = meetingTime === t;
                   return (
                     <button
