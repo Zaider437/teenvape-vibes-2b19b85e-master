@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, getRequest } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -248,7 +248,7 @@ export const adminUploadProductImage = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await assertAdmin(context);
 
-    const formData = await context.request.formData();
+    const formData = await getRequest().formData();
     const file = formData.get("file");
 
     if (!file || !(file instanceof File)) {
