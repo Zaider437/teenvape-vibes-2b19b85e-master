@@ -526,10 +526,12 @@ try {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {row.brand} · {row.category} {row.subcategory ? `· ${row.subcategory}` : ""}
+                <div className="flex flex-wrap items-baseline gap-x-1.5">
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+                    {row.brand} · {row.category} {row.subcategory ? `· ${row.subcategory}` : ""}
+                  </span>
+                  <span className="font-bold text-sm leading-snug break-words">{row.name}</span>
                 </div>
-                <div className="font-bold text-sm leading-snug break-words">{row.name}</div>
                 <div className="text-xs text-muted-foreground break-words">
                   {row.flavor || row.volume || row.puffs || "—"}
                 </div>
