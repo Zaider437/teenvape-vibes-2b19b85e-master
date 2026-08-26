@@ -440,6 +440,21 @@ function ProductsAdmin() {
     }
   }
 
+  function generateRandomSlug(): string {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let slug = "product-";
+    for (let i = 0; i < 8; i++) {
+      slug += chars[Math.floor(Math.random() * chars.length)];
+    }
+    const existing = new Set(rows.map((r) => r.slug));
+    let counter = 1;
+    let uniqueSlug = slug;
+    while (existing.has(uniqueSlug)) {
+      uniqueSlug = `${slug}-${counter++}`;
+    }
+    return uniqueSlug;
+  }
+
   return (
     <div className="space-y-4">
       <Toaster position="top-center" theme="dark" richColors />
@@ -929,21 +944,6 @@ function DraftEditor({
     } finally {
       setUploading(false);
     }
-  }
-
-  function generateRandomSlug(): string {
-    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let slug = "product-";
-    for (let i = 0; i < 8; i++) {
-      slug += chars[Math.floor(Math.random() * chars.length)];
-    }
-    const existing = new Set(rows.map((r) => r.slug));
-    let counter = 1;
-    let uniqueSlug = slug;
-    while (existing.has(uniqueSlug)) {
-      uniqueSlug = `${slug}-${counter++}`;
-    }
-    return uniqueSlug;
   }
 
   const formCategories = useMemo(() => {
