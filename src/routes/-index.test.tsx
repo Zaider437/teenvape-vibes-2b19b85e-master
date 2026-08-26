@@ -6,7 +6,7 @@
 import { describe, it, vi, beforeEach, expect } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { Shop } from "./index";
-import { fetchProducts } from "../lib/products";
+import { fetchProductsWithImages } from "../lib/products";
 import { createOrder } from "../lib/orders.functions";
 import { CartProvider } from "../lib/cart";
 import React from "react";
@@ -18,7 +18,7 @@ expect.extend(matchers);
 
 // Mock the external modules
 vi.mock("../lib/products", () => ({
-  fetchProducts: vi.fn(),
+  fetchProductsWithImages: vi.fn(),
   formatImageUrl: vi.fn((url) => url),
   CATEGORIES: [
     { id: "all", label: "Всё", emoji: "🔥" },
@@ -74,7 +74,7 @@ vi.mock("../assets/lovevape-logo.jpg.asset.json", () => ({
 describe("Shop Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(fetchProducts).mockResolvedValue(mockProducts);
+    vi.mocked(fetchProductsWithImages).mockResolvedValue(mockProducts);
   });
 
   it("renders the shop with products and categories", async () => {
@@ -158,11 +158,11 @@ describe("Shop Component", () => {
     expect(podElements.length).toBeGreaterThan(0);
   });
 
-  it("handles fetchProducts rejection gracefully", async () => {
+  it("handles fetchProductsWithImages rejection gracefully", async () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       const { toast } = await import("sonner");
-      vi.mocked(fetchProducts).mockRejectedValueOnce(new Error("Network error"));
+      vi.mocked(fetchProductsWithImages).mockRejectedValueOnce(new Error("Network error"));
 
       render(
         <CartProvider>

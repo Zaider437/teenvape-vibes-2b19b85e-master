@@ -682,3 +682,39 @@ export async function fetchMeetingTimes(): Promise<string[]> {
   cachedMeetingTimesExpiry = Date.now() + 60 * 1000;
   return defaults;
 }
+
+import { createServerFn } from "@tanstack/react-start";
+import { getSignedImageUrl } from "./product-helpers";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+export const fetchProductsWithImages = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("products" as any)
+      .select("*")
+      .order("sort_order", { ascending: true });
+
+    if (error) throw error;
+
+    const mapped = (data ?? []).map((p: any) => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      brand: p.brand,
+      category: p.category,
+      price: p.price,
+      flavor: p.flavor,
+      puffs: p.puffs,
+      volume: p.volume,
+      emoji: p.emoji,
+      color: p.color,
+      image: getSignedImageUrl(p.image_url) || p.image_url || null,
+      is_active: p.is_active !== false,
+      sort_order: p.sort_order,
+      stock_quantity: p.stock_quantity ?? 0,
+      description: buildDescription(p),
+    }));
+
+    return mapped;
+  });

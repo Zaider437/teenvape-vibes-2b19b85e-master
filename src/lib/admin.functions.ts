@@ -160,10 +160,10 @@ export const adminListProducts = createServerFn({ method: "GET" })
       .select("*")
       .order("sort_order", { ascending: true });
     if (error) throw error;
-    const { formatImageUrl, buildDescription } = await import("./product-helpers");
+    const { formatImageUrl, buildDescription, getSignedImageUrl } = await import("./product-helpers");
     return (data ?? []).map((p: any) => ({
       ...p,
-      image_url: formatImageUrl(p.image_url),
+      image_url: getSignedImageUrl(p.image_url),
       description: buildDescription(p),
       is_active: p.is_active !== false,
     }));
@@ -238,6 +238,48 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
     });
 
     return { id: newId };
+  });
+
+export const adminUploadProductImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+
+    const formData = await context.request.formData();
+    const file = formData.get("file");
+
+    if (!file || !(file instanceof File)) {
+      throw new Error("Файл не выбран");
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error("Недопустимый формат файла");
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new Error("Файл слишком большой (макс. 5MB)");
+    }
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const fileName = `${crypto.randomUUID()}.${ext}`;
+    const filePath = `product-images/${fileName}`;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { error } = await supabaseAdmin.storage
+      .from("product-images")
+      .upload(filePath, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) {
+      throw new Error(`Ошибка загрузки: ${error.message}`);
+    }
+
+    return { path: filePath };
   });
 
 export const adminDeleteProduct = createServerFn({ method: "POST" })

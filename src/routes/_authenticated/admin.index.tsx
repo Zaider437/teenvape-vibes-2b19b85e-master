@@ -20,6 +20,7 @@ import {
   adminToggleActive,
   adminMoveOrCopyProduct,
   adminUpdateStock,
+  adminUploadProductImage,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
 import {
@@ -542,7 +543,7 @@ function ProductsAdmin() {
           {visible.map((row) => (
             <div
               key={row.id}
-              className={`bg-card border rounded-xl p-3 flex items-center gap-3 ${row.is_active ? "border-border" : "border-amber-500/50 bg-amber-500/5"}`}
+              className={`bg-card border rounded-xl p-3 flex items-center gap-3 ${row.is_active ? "border-border" : "border-red-500/50 bg-red-500/5"}`}
             >
               <div className="w-12 h-12 rounded-lg bg-muted grid place-items-center text-2xl shrink-0 overflow-hidden">
                 {row.image_url ? (
@@ -647,7 +648,7 @@ function ProductsAdmin() {
                   <button
                     onClick={() => toggleActive(row)}
                     title={row.is_active ? "Активен" : "Отключён"}
-                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center ${row.is_active ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"}`}
+                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center ${row.is_active ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "bg-red-500/10 text-red-500 hover:bg-red-500/20"}`}
                   >
                     {row.is_active ? <Check className="w-4 h-4" /> : <XIcon className="w-4 h-4" />}
                   </button>
@@ -895,6 +896,58 @@ function DraftEditor({
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => onChange({ ...draft, [k]: v });
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const uploadImage = useServerFn(adminUploadProductImage);
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setSelectedFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setPreviewUrl(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setPreviewUrl(null);
+    }
+  }
+
+  async function onUploadClick() {
+    if (!selectedFile) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      const result = await uploadImage({ data: formData });
+      set("image_url", result.path);
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      toast.success("Фото загружено");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Ошибка загрузки");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function generateUniqueSlug(name: string): string {
+    const base = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, "")
+      .substring(0, 100);
+    if (!base) return `product-${Date.now()}`;
+    const existing = new Set(rows.map((r) => r.slug));
+    let slug = base;
+    let counter = 1;
+    while (existing.has(slug) || (draft.id && slug === draft.slug)) {
+      slug = `${base}-${counter++}`;
+    }
+    return slug;
+  }
+
   const formCategories = useMemo(() => {
     const defaults = [
       { id: "disposable", label: "Одноразка" },
@@ -932,7 +985,18 @@ function DraftEditor({
           id="slug"
           name="slug"
         />
-        <F label="Название" v={draft.name} on={(v) => set("name", v)} id="name" name="name" />
+        <F
+          label="Название"
+          v={draft.name}
+          on={(v) => {
+            set("name", v);
+            if (!draft.id) {
+              set("slug", generateUniqueSlug(v));
+            }
+          }}
+          id="name"
+          name="name"
+        />
         <F label="Бренд" v={draft.brand} on={(v) => set("brand", v)} id="brand" name="brand" />
         <F
           label="Подкатегория (опционально)"
@@ -1026,13 +1090,52 @@ function DraftEditor({
             <option value="lime">lime</option>
           </select>
         </label>
-        <F
-          label="URL картинки (опционально)"
-          v={draft.image_url}
-          on={(v) => set("image_url", v)}
-          id="image_url"
-          name="image_url"
-        />
+        <div className="space-y-2">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Фото товара
+          </span>
+          {(draft.image_url || previewUrl) && (
+            <div className="relative w-full h-40 rounded-xl overflow-hidden bg-muted border border-border">
+              <img
+                src={previewUrl || draft.image_url}
+                alt=""
+                className="w-full h-full object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  set("image_url", "");
+                  setSelectedFile(null);
+                  setPreviewUrl(null);
+                }}
+                className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-destructive text-white grid place-items-center"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <label className="flex-1 cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={onFileChange}
+                className="hidden"
+              />
+              <div className="w-full py-2.5 px-4 rounded-xl border-2 border-dashed border-border text-center text-sm hover:border-muted-foreground transition-colors">
+                {selectedFile ? selectedFile.name : "Выбрать файл"}
+              </div>
+            </label>
+            <button
+              type="button"
+              onClick={onUploadClick}
+              disabled={!selectedFile || uploading}
+              className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+            >
+              {uploading ? "Загрузка..." : "Загрузить"}
+            </button>
+          </div>
+        </div>
         <label className="block">
           <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Описание товара

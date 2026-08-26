@@ -16,7 +16,7 @@ import {
 import { CartProvider, useCart, type CartItem } from "../lib/cart";
 import {
   CATEGORIES,
-  fetchProducts,
+  fetchProductsWithImages,
   invalidateProductsCache,
   formatImageUrl,
   type Product,
@@ -64,6 +64,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   const [loadingMeetingTimes, setLoadingMeetingTimes] = useState(true);
   const [hoveredBrand, setHoveredBrand] = useState<string | null>(null);
   const { items } = useCart();
+  const fetchProductsServer = useServerFn(fetchProductsWithImages);
   const cartQtyByProduct = useMemo(() => {
     const map = new Map<string, number>();
     for (const item of items) {
@@ -82,7 +83,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchProducts()
+    fetchProductsServer()
       .then((data) => {
         if (!cancelled) setProducts(data);
       })
@@ -370,6 +371,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
             );
           }}
           onProductsUpdate={setProducts}
+          refetchProducts={fetchProductsServer}
         />
       )}
 
@@ -780,11 +782,13 @@ function CheckoutSheet({
   meetingTimes,
   onOrderPlaced,
   onProductsUpdate,
+  refetchProducts,
 }: {
   onClose: () => void;
   meetingTimes: string[];
   onOrderPlaced?: (items: CartItem[]) => void;
   onProductsUpdate?: (products: Product[]) => void;
+  refetchProducts?: () => Promise<Product[]>;
 }) {
   const { items, total, clear } = useCart();
   const submit = useServerFn(createOrder);
@@ -831,7 +835,7 @@ function CheckoutSheet({
       clear();
       invalidateProductsCache();
       onOrderPlaced?.(currentItems);
-      fetchProducts()
+      (refetchProducts || fetchProducts)()
         .then((data) => {
           onProductsUpdate?.(data);
         })

@@ -107,8 +107,8 @@ export const createOrder = createServerFn({ method: "POST" })
     const notifyEmail = env.NOTIFY_EMAIL || getEnv("NOTIFY_EMAIL") || "375333631370moroz@gmail.com";
     // SECURITY: never trust client-supplied prices. Recompute from the
     // authoritative product catalog and reject unknown items.
-    const { fetchProducts } = await import("./products");
-    const dbProducts = await fetchProducts();
+    const { fetchProductsWithImages } = await import("./products");
+    const dbProducts = await fetchProductsWithImages();
     const byId = new Map(dbProducts.map((p) => [p.id, p]));
 
     const trustedItems = data.items.map((i) => {

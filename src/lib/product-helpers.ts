@@ -1,6 +1,7 @@
 const PUBLIC_IMAGE_CDN_BASE =
   (globalThis as any).env?.PUBLIC_IMAGE_CDN_BASE ||
-  (globalThis as any).__env__?.PUBLIC_IMAGE_CDN_BASE;
+  (globalThis as any).__env__?.PUBLIC_IMAGE_CDN_BASE ||
+  "https://ueazjqvxjlppgtkhcmut.supabase.co/storage/v1/object/public/product-images";
 
 export function formatImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -10,6 +11,59 @@ export function formatImageUrl(url: string | null | undefined): string | null {
     ? url.split("/").pop()
     : url.split("/").pop() || url.replace(/^\//, "");
   return `${PUBLIC_IMAGE_CDN_BASE}/${encodeURIComponent(fileName || "")}?width=400&quality=80&format=webp`;
+}
+
+export async function getSignedImageUrl(
+  url: string | null | undefined,
+  expiresIn: number = 3600,
+): Promise<string | null> {
+  if (!url || typeof window !== "undefined") return url;
+
+  const SUPABASE_URL =
+    (globalThis as any).env?.SUPABASE_URL ||
+    (globalThis as any).__env__?.SUPABASE_URL ||
+    "https://ueazjqvxjlppgtkhcmut.supabase.co";
+  const BUCKET = "product-images";
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // If it's already a full HTTP URL, check if it's an old Supabase public URL
+  if (url.startsWith("http")) {
+    if (url.includes(`${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/`)) {
+      try {
+        const urlObj = new URL(url);
+        const pathname = urlObj.pathname;
+        const filePath = pathname.replace(`/storage/v1/object/public/${BUCKET}/`, "");
+        const { data } = supabaseAdmin.storage
+          .from(BUCKET)
+          .createSignedUrl(filePath, expiresIn);
+        return data.signedUrl || url;
+      } catch {
+        return url;
+      }
+    }
+    return url;
+  }
+
+  // Local assets stay as-is
+  if (url.startsWith("/assets/")) return url;
+
+  // Extract the file path
+  let filePath = url;
+  if (url.startsWith("/__l5e/")) {
+    filePath = `${BUCKET}/${url.split("/").pop()}`;
+  } else if (!url.startsWith(`${BUCKET}/`)) {
+    filePath = `${BUCKET}/${url.split("/").pop() || url.replace(/^\//, "")}`;
+  }
+
+  try {
+    const { data } = supabaseAdmin.storage
+      .from(BUCKET)
+      .createSignedUrl(filePath, expiresIn);
+    return data.signedUrl || url;
+  } catch {
+    return url;
+  }
 }
 
 export function buildDescription(p: {

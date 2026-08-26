@@ -42,7 +42,7 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   },
   deactivate: {
     label: "Товар отключён",
-    color: "bg-amber-500/10 text-amber-500 border-amber-500/30",
+    color: "bg-red-500/10 text-red-500 border-red-500/30",
   },
   stock_update: {
     label: "Остаток изменён",
