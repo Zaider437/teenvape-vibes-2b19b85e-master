@@ -919,7 +919,7 @@ function DraftEditor({
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const result = await uploadImage({ data: formData });
+      const result = await uploadImage({ data: formData as any });
       set("image_url", result.path);
       setSelectedFile(null);
       setPreviewUrl(null);
