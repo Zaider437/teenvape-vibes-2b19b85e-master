@@ -697,24 +697,26 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" })
 
     if (error) throw error;
 
-    const mapped = (data ?? []).map((p: any) => ({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      brand: p.brand,
-      category: p.category,
-      price: p.price,
-      flavor: p.flavor,
-      puffs: p.puffs,
-      volume: p.volume,
-      emoji: p.emoji,
-      color: p.color,
-      image: getSignedImageUrl(p.image_url) || p.image_url || null,
-      is_active: p.is_active !== false,
-      sort_order: p.sort_order,
-      stock_quantity: p.stock_quantity ?? 0,
-      description: buildDescription(p),
-    }));
+    const mapped = await Promise.all(
+      (data ?? []).map(async (p: any) => ({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        brand: p.brand,
+        category: p.category,
+        price: p.price,
+        flavor: p.flavor,
+        puffs: p.puffs,
+        volume: p.volume,
+        emoji: p.emoji,
+        color: p.color,
+        image: (await getSignedImageUrl(p.image_url)) || p.image_url || null,
+        is_active: p.is_active !== false,
+        sort_order: p.sort_order,
+        stock_quantity: p.stock_quantity ?? 0,
+        description: buildDescription(p),
+      })),
+    );
 
     return mapped;
   });

@@ -71,16 +71,16 @@ async function uploadToSupabase(fileBuffer, fileName) {
 async function makeBucketPrivate() {
   const url = `${SUPABASE_URL}/storage/v1/bucket/${BUCKET}`;
   const result = await httpsRequest(url, {
-    method: "PATCH",
+    method: "PUT",
     headers: {
       Authorization: `Bearer ${SUPABASE_SECRET}`,
       apikey: SUPABASE_SECRET,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ public: false }),
+    body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }),
   });
 
-  if (result.status === 200 || result.status === 204) {
+  if (result.status === 200 || result.status === 201 || result.status === 204) {
     console.log("✓ Bucket made private");
     return true;
   } else {

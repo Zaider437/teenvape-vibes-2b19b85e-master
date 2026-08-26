@@ -161,12 +161,15 @@ export const adminListProducts = createServerFn({ method: "GET" })
       .order("sort_order", { ascending: true });
     if (error) throw error;
     const { formatImageUrl, buildDescription, getSignedImageUrl } = await import("./product-helpers");
-    return (data ?? []).map((p: any) => ({
-      ...p,
-      image_url: getSignedImageUrl(p.image_url),
-      description: buildDescription(p),
-      is_active: p.is_active !== false,
-    }));
+    const mapped = await Promise.all(
+      (data ?? []).map(async (p: any) => ({
+        ...p,
+        image_url: await getSignedImageUrl(p.image_url),
+        description: buildDescription(p),
+        is_active: p.is_active !== false,
+      })),
+    );
+    return mapped;
   });
 
 export const adminUpsertProduct = createServerFn({ method: "POST" })
