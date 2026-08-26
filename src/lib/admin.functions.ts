@@ -255,7 +255,6 @@ export const adminUploadProductImage = createServerFn({ method: "POST" })
     }
 
     const file = formData.get("file");
-    const file = formData.get("file");
 
     if (!file || !(file instanceof File)) {
       throw new Error("Файл не выбран");
