@@ -34,10 +34,10 @@ export async function getSignedImageUrl(
         const urlObj = new URL(url);
         const pathname = urlObj.pathname;
         const filePath = pathname.replace(`/storage/v1/object/public/${BUCKET}/`, "");
-        const { data } = supabaseAdmin.storage
+        const { data } = await supabaseAdmin.storage
           .from(BUCKET)
           .createSignedUrl(filePath, expiresIn);
-        return data.signedUrl || url;
+        return data?.signedUrl || url;
       } catch {
         return url;
       }
@@ -57,10 +57,8 @@ export async function getSignedImageUrl(
   }
 
   try {
-    const { data } = supabaseAdmin.storage
-      .from(BUCKET)
-      .createSignedUrl(filePath, expiresIn);
-    return data.signedUrl || url;
+    const { data } = await supabaseAdmin.storage.from(BUCKET).createSignedUrl(filePath, expiresIn);
+    return data?.signedUrl || url;
   } catch {
     return url;
   }
