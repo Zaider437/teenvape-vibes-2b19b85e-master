@@ -480,26 +480,62 @@ try {
       {/* sub-filters for categories */}
       {hasSub && (brandOptions.length > 0 || flavorOptions.length > 0) && (
         <div className="px-3 sm:px-4 mt-2">
-          <div className="w-full">
-            <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
-              Производитель
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => { setBrand("all"); setQuery(""); }}
-                className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
-              >
-                Все
-              </button>
-              {brandOptions.map((opt) => (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
+                Производитель
+              </div>
+              <div className="flex flex-col gap-1">
                 <button
-                  key={opt}
-                  onClick={() => { setBrand(opt); setQuery(""); }}
-                  className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+                  onClick={() => {
+                    setBrand("all");
+                    setQuery("");
+                  }}
+                  className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
                 >
-                  {opt}
+                  Все
                 </button>
-              ))}
+                {brandOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => {
+                      setBrand(opt);
+                      setQuery("");
+                    }}
+                    className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
+                {filter.toLowerCase() === "liquid" || filter.toLowerCase() === "disposable" || filter.toLowerCase() === "snus" ? "Вкус" : "Тип"}
+              </div>
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => {
+                    setFlavor("all");
+                    setQuery("");
+                  }}
+                  className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${flavor === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+                >
+                  Все
+                </button>
+                {flavorOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => {
+                      setFlavor(opt);
+                      setQuery("");
+                    }}
+                    className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${flavor === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
