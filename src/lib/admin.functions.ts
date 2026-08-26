@@ -246,10 +246,15 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
 
 export const adminUploadProductImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ data, context }) => {
     await assertAdmin(context);
 
-    const formData = await getRequest().formData();
+    const formData = data as FormData | undefined;
+    if (!(formData instanceof FormData)) {
+      throw new Error("Ожидается FormData");
+    }
+
+    const file = formData.get("file");
     const file = formData.get("file");
 
     if (!file || !(file instanceof File)) {

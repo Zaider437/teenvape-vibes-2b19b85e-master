@@ -932,7 +932,9 @@ function DraftEditor({
     if (!selectedFile) return;
     setUploading(true);
     try {
-      const result = await uploadImage();
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      const result = await uploadImage({ data: formData as any });
       set("image_url", result.path);
       setSelectedFile(null);
       setPreviewUrl(null);
