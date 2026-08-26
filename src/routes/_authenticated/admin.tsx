@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, Package, Users, Clock } from "lucide-react";
+import { LogOut, Package, Users, Clock, History } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminLayout,
@@ -67,6 +67,14 @@ function AdminLayout() {
               className="px-3 py-2 sm:py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 whitespace-nowrap min-h-[44px] sm:min-h-0 w-full sm:w-auto"
             >
               <Clock className="w-4 h-4" /> Время встречи
+            </Link>
+            <Link
+              to="/admin/recent-actions"
+              activeProps={{ className: "bg-primary text-primary-foreground" }}
+              onClick={() => setMobileNavOpen(false)}
+              className="px-3 py-2 sm:py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 whitespace-nowrap min-h-[44px] sm:min-h-0 w-full sm:w-auto"
+            >
+              <History className="w-4 h-4" /> Недавние действия
             </Link>
             <button
               onClick={() => {

@@ -135,7 +135,10 @@ function AdminLogin() {
         {showPasswordForm ? (
           <form onSubmit={handlePasswordLogin} className="space-y-3 text-left">
             <div>
-              <label htmlFor="email" className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <label
+                htmlFor="email"
+                className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground"
+              >
                 Email
               </label>
               <input
@@ -150,7 +153,10 @@ function AdminLogin() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <label
+                htmlFor="password"
+                className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground"
+              >
                 Пароль
               </label>
               <input

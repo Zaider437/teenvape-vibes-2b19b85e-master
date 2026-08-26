@@ -82,6 +82,75 @@ const productSchema = z.object({
   stock_quantity: z.number().int().nonnegative(),
 });
 
+type ProductField =
+  | "slug"
+  | "name"
+  | "brand"
+  | "category"
+  | "subcategory"
+  | "price"
+  | "flavor"
+  | "puffs"
+  | "volume"
+  | "emoji"
+  | "color"
+  | "image_url"
+  | "description"
+  | "is_active"
+  | "sort_order"
+  | "stock_quantity";
+
+function diffProductFields(
+  oldData: Record<string, any>,
+  newData: Record<string, any>,
+): { field: string; oldValue: any; newValue: any }[] {
+  const fields: ProductField[] = [
+    "slug",
+    "name",
+    "brand",
+    "category",
+    "subcategory",
+    "price",
+    "flavor",
+    "puffs",
+    "volume",
+    "emoji",
+    "color",
+    "image_url",
+    "description",
+    "is_active",
+    "sort_order",
+    "stock_quantity",
+  ];
+  const changes: { field: string; oldValue: any; newValue: any }[] = [];
+  for (const f of fields) {
+    const oldVal = oldData[f];
+    const newVal = newData[f];
+    if (oldVal !== newVal) {
+      changes.push({ field: f, oldValue: oldVal, newValue: newVal });
+    }
+  }
+  return changes;
+}
+
+async function logProductActivity(
+  context: { supabase: any },
+  payload: {
+    product_id?: string | null;
+    action: string;
+    details: Record<string, any>;
+    product_snapshot?: Record<string, any> | null;
+  },
+) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("product_activity_log" as any).insert({
+    product_id: payload.product_id || null,
+    action: payload.action,
+    details: payload.details,
+    product_snapshot: payload.product_snapshot || null,
+  });
+}
+
 export const adminListProducts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -107,6 +176,21 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    let previousSnapshot: Record<string, any> | null = null;
+    let changes: { field: string; oldValue: any; newValue: any }[] = [];
+
+    if (data.id && data.id.trim() !== "") {
+      const { data: existing, error: fetchError } = await supabaseAdmin
+        .from("products" as any)
+        .select("*")
+        .eq("id", data.id)
+        .single();
+      if (!fetchError && existing) {
+        previousSnapshot = existing as any;
+        changes = diffProductFields(existing as any, data);
+      }
+    }
+
     const row = {
       ...data,
       flavor: data.flavor?.trim() || null,
@@ -124,6 +208,16 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
         .update(updateFields)
         .eq("id", id);
       if (error) throw error;
+
+      if (changes.length > 0) {
+        await logProductActivity(context, {
+          product_id: id,
+          action: "update",
+          details: { changed_fields: changes.map((c) => c.field), changes },
+          product_snapshot: previousSnapshot,
+        });
+      }
+
       return { id: data.id };
     }
 
@@ -134,7 +228,16 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw error;
-    return { id: (inserted as unknown as { id: string }).id };
+
+    const newId = (inserted as unknown as { id: string }).id;
+    await logProductActivity(context, {
+      product_id: newId,
+      action: "create",
+      details: { name: row.name, category: row.category },
+      product_snapshot: { ...row, id: newId },
+    });
+
+    return { id: newId };
   });
 
 export const adminDeleteProduct = createServerFn({ method: "POST" })
@@ -143,11 +246,34 @@ export const adminDeleteProduct = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from("products" as any)
+      .select("*")
+      .eq("id", data.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
     const { error } = await supabaseAdmin
       .from("products" as any)
       .delete()
       .eq("id", data.id);
     if (error) throw error;
+
+    if (existing) {
+      await logProductActivity(context, {
+        product_id: (existing as any).id,
+        action: "delete",
+        details: {
+          name: (existing as any).name,
+          category: (existing as any).category,
+          brand: (existing as any).brand,
+        },
+        product_snapshot: existing as any,
+      });
+    }
+
     return { ok: true };
   });
 
@@ -159,11 +285,32 @@ export const adminToggleActive = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from("products" as any)
+      .select("name, category, brand")
+      .eq("id", data.id)
+      .single();
+
     const { error } = await supabaseAdmin
       .from("products" as any)
       .update({ is_active: data.is_active })
       .eq("id", data.id);
     if (error) throw error;
+
+    if (!fetchError && existing) {
+      await logProductActivity(context, {
+        product_id: data.id,
+        action: data.is_active ? "activate" : "deactivate",
+        details: {
+          name: (existing as any).name,
+          category: (existing as any).category,
+          brand: (existing as any).brand,
+        },
+        product_snapshot: null,
+      });
+    }
+
     return { ok: true };
   });
 
@@ -175,11 +322,36 @@ export const adminUpdateStock = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from("products" as any)
+      .select("name, category, brand, stock_quantity")
+      .eq("id", data.id)
+      .single();
+
+    const oldStock = fetchError ? null : (existing as any)?.stock_quantity;
+
     const { error } = await supabaseAdmin
       .from("products" as any)
       .update({ stock_quantity: data.stock_quantity })
       .eq("id", data.id);
     if (error) throw error;
+
+    if (!fetchError && existing) {
+      await logProductActivity(context, {
+        product_id: data.id,
+        action: "stock_update",
+        details: {
+          name: (existing as any).name,
+          category: (existing as any).category,
+          brand: (existing as any).brand,
+          old_stock_quantity: oldStock,
+          new_stock_quantity: data.stock_quantity,
+        },
+        product_snapshot: null,
+      });
+    }
+
     return { ok: true };
   });
 
@@ -201,17 +373,6 @@ export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
 
     const targetSubcategory = (data.targetSubcategory || "").trim() || null;
 
-    if (data.mode === "move") {
-      const updatePayload: Record<string, any> = { category: data.targetCategory };
-      updatePayload.subcategory = targetSubcategory;
-      const { error } = await supabaseAdmin
-        .from("products" as any)
-        .update(updatePayload)
-        .eq("id", data.id);
-      if (error) throw error;
-      return { ok: true, mode: "move" };
-    }
-
     const { data: source, error: fetchError } = await supabaseAdmin
       .from("products" as any)
       .select("*")
@@ -221,6 +382,32 @@ export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
     if (!source) throw new Error("Товар не найден");
 
     const src = source as any;
+
+    if (data.mode === "move") {
+      const updatePayload: Record<string, any> = { category: data.targetCategory };
+      updatePayload.subcategory = targetSubcategory;
+      const { error } = await supabaseAdmin
+        .from("products" as any)
+        .update(updatePayload)
+        .eq("id", data.id);
+      if (error) throw error;
+
+      await logProductActivity(context, {
+        product_id: data.id,
+        action: "move",
+        details: {
+          name: src.name,
+          oldCategory: src.category,
+          oldSubcategory: src.subcategory,
+          targetCategory: data.targetCategory,
+          targetSubcategory,
+        },
+        product_snapshot: src,
+      });
+
+      return { ok: true, mode: "move" };
+    }
+
     const baseSlug = (src.slug || "").trim() || `product-${Date.now()}`;
     const newSlug = `${baseSlug}-copy-${Date.now()}`;
     const { error: insertError } = await supabaseAdmin.from("products" as any).insert({
@@ -241,6 +428,21 @@ export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
       sort_order: src.sort_order,
     });
     if (insertError) throw insertError;
+
+    await logProductActivity(context, {
+      product_id: data.id,
+      action: "copy",
+      details: {
+        name: src.name,
+        sourceCategory: src.category,
+        sourceSubcategory: src.subcategory,
+        targetCategory: data.targetCategory,
+        targetSubcategory,
+        newSlug,
+      },
+      product_snapshot: src,
+    });
+
     return { ok: true, mode: "copy" };
   });
 
@@ -309,7 +511,11 @@ export const adminGetMeetingTimes = createServerFn({ method: "GET" })
     if (data && data.note) {
       try {
         const parsed = JSON.parse(data.note);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((item) => typeof item === "string")) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          parsed.every((item) => typeof item === "string")
+        ) {
           return parsed;
         }
       } catch (e) {
@@ -452,4 +658,93 @@ export const adminUpdateAnimationSettings = createServerFn({ method: "POST" })
     if (error) throw error;
 
     return { ok: true };
+  });
+
+export const adminListProductActivity = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("product_activity_log" as any)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    return data ?? [];
+  });
+
+export const adminClearProductActivity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("product_activity_log" as any)
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const adminRestoreProductFromActivity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: activity, error: fetchError } = await supabaseAdmin
+      .from("product_activity_log" as any)
+      .select("*")
+      .eq("id", data.id)
+      .eq("action", "delete")
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (!activity) throw new Error("Запись не найдена или товар не был удалён");
+
+    const snapshot = (activity as any).product_snapshot;
+    if (!snapshot) throw new Error("Нет данных товара для восстановления");
+
+    const restored = {
+      slug: (snapshot.slug || "") + "-restored-" + Date.now(),
+      name: snapshot.name,
+      brand: snapshot.brand,
+      category: snapshot.category,
+      subcategory: snapshot.subcategory,
+      price: snapshot.price,
+      flavor: snapshot.flavor,
+      puffs: snapshot.puffs,
+      volume: snapshot.volume,
+      emoji: snapshot.emoji || "🔥",
+      color: snapshot.color || "pink",
+      image_url: snapshot.image_url,
+      description: snapshot.description,
+      is_active: true,
+      sort_order: snapshot.sort_order ?? 0,
+      stock_quantity: snapshot.stock_quantity ?? 0,
+    };
+
+    const { data: inserted, error: insertError } = await supabaseAdmin
+      .from("products" as any)
+      .insert(restored)
+      .select("id")
+      .single();
+
+    if (insertError) throw insertError;
+
+    await logProductActivity(context, {
+      product_id: (inserted as any).id,
+      action: "restore",
+      details: {
+        name: snapshot.name,
+        category: snapshot.category,
+        brand: snapshot.brand,
+        restored_from_activity_id: data.id,
+      },
+      product_snapshot: { ...restored, id: (inserted as any).id },
+    });
+
+    return { id: (inserted as any).id };
   });

@@ -141,8 +141,14 @@ export const createOrder = createServerFn({ method: "POST" })
 
     for (const item of trustedItems) {
       const dbProduct = byId.get(item.id);
-      if (dbProduct && dbProduct.stock_quantity !== undefined && item.qty > dbProduct.stock_quantity) {
-        return { error: `Недостаточно товара "${item.name}" на складе. Доступно: ${dbProduct.stock_quantity}, запрошено: ${item.qty}.` };
+      if (
+        dbProduct &&
+        dbProduct.stock_quantity !== undefined &&
+        item.qty > dbProduct.stock_quantity
+      ) {
+        return {
+          error: `Недостаточно товара "${item.name}" на складе. Доступно: ${dbProduct.stock_quantity}, запрошено: ${item.qty}.`,
+        };
       }
     }
 
@@ -216,7 +222,7 @@ export const createOrder = createServerFn({ method: "POST" })
 <p>Address: ${data.customer_address}</p>
 ${data.customer_note ? `<p>Note: ${data.customer_note}</p>` : ""}
 <p>Items:</p>
-<ul>${trustedItems.map(i => `<li>${i.name} ${i.brand ? `(${i.brand})` : ""}${i.flavor ? `, ${i.flavor}` : ""} × ${i.qty} — ${(i.price * i.qty).toFixed(2)} BYN</li>`).join("")}</ul>
+<ul>${trustedItems.map((i) => `<li>${i.name} ${i.brand ? `(${i.brand})` : ""}${i.flavor ? `, ${i.flavor}` : ""} × ${i.qty} — ${(i.price * i.qty).toFixed(2)} BYN</li>`).join("")}</ul>
 <p><strong>Total: ${trustedTotal.toFixed(2)} BYN</strong></p>
 <p>Cancel: <a href="${cancelUrl || "#"}">${cancelUrl || "#"}</a></p>`;
         const emailRes = await fetch(emailApiUrl, {
@@ -516,7 +522,10 @@ export const cancelOrder = createServerFn({ method: "POST" })
     }
 
     if (orderToCancel && orderToCancel.status !== "cancelled") {
-      const items = typeof orderToCancel.items === "string" ? JSON.parse(orderToCancel.items) : orderToCancel.items;
+      const items =
+        typeof orderToCancel.items === "string"
+          ? JSON.parse(orderToCancel.items)
+          : orderToCancel.items;
       const productIds = items.map((i: any) => i.id).filter(Boolean);
 
       if (productIds.length > 0) {
@@ -530,7 +539,10 @@ export const cancelOrder = createServerFn({ method: "POST" })
           if (products) {
             const updates = products.map((p: any) => ({
               id: p.id,
-              stock_quantity: Math.max(0, (p.stock_quantity ?? 0) + (items.find((i: any) => i.id === p.id)?.qty ?? 0)),
+              stock_quantity: Math.max(
+                0,
+                (p.stock_quantity ?? 0) + (items.find((i: any) => i.id === p.id)?.qty ?? 0),
+              ),
             }));
 
             for (const update of updates) {
@@ -604,7 +616,11 @@ export const getMeetingTimes = createServerFn({ method: "GET" }).handler(async (
     if (!error && data && data.note) {
       try {
         const parsed = JSON.parse(data.note);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((item) => typeof item === "string")) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          parsed.every((item) => typeof item === "string")
+        ) {
           return parsed;
         }
       } catch (e) {

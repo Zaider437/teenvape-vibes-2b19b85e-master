@@ -70,8 +70,18 @@ function AdminSettings() {
         updateTimes({ data: { times } }),
         updateAnim({
           data: {
-            leaves: { enabled: leavesEnabled, from: Number(leavesFrom), to: Number(leavesTo), count: Number(leavesCount) },
-            snow: { enabled: snowEnabled, from: Number(snowFrom), to: Number(snowTo), count: Number(snowCount) },
+            leaves: {
+              enabled: leavesEnabled,
+              from: Number(leavesFrom),
+              to: Number(leavesTo),
+              count: Number(leavesCount),
+            },
+            snow: {
+              enabled: snowEnabled,
+              from: Number(snowFrom),
+              to: Number(snowTo),
+              count: Number(snowCount),
+            },
           },
         }),
       ]);
@@ -150,7 +160,10 @@ function AdminSettings() {
               {leavesEnabled && (
                 <div className="grid grid-cols-2 gap-3 pl-6">
                   <div>
-                    <label htmlFor="leavesFrom" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <label
+                      htmlFor="leavesFrom"
+                      className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                    >
                       Месяц с (1-12)
                     </label>
                     <input
@@ -167,7 +180,10 @@ function AdminSettings() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="leavesTo" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <label
+                      htmlFor="leavesTo"
+                      className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                    >
                       Месяц по (1-12)
                     </label>
                     <input
@@ -187,7 +203,10 @@ function AdminSettings() {
               )}
               {leavesEnabled && (
                 <div className="pl-6 pt-2">
-                  <label htmlFor="leavesCount" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <label
+                    htmlFor="leavesCount"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                  >
                     Количество листьев: {leavesCount}
                   </label>
                   <input
@@ -222,7 +241,10 @@ function AdminSettings() {
               {snowEnabled && (
                 <div className="grid grid-cols-2 gap-3 pl-6">
                   <div>
-                    <label htmlFor="snowFrom" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <label
+                      htmlFor="snowFrom"
+                      className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                    >
                       Месяц с (1-12)
                     </label>
                     <input
@@ -239,7 +261,10 @@ function AdminSettings() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="snowTo" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <label
+                      htmlFor="snowTo"
+                      className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                    >
                       Месяц по (1-12)
                     </label>
                     <input
@@ -257,7 +282,10 @@ function AdminSettings() {
               )}
               {snowEnabled && (
                 <div className="pl-6 pt-2">
-                  <label htmlFor="snowCount" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <label
+                    htmlFor="snowCount"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+                  >
                     Количество снега: {snowCount}
                   </label>
                   <input

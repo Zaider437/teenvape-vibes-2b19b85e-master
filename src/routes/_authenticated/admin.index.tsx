@@ -1,7 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Check, X as XIcon, Search, Copy, FolderInput, Package } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X as XIcon,
+  Search,
+  Copy,
+  FolderInput,
+  Package,
+} from "lucide-react";
 import { toast, Toaster } from "sonner";
 import {
   adminListProducts,
@@ -22,62 +32,62 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 type ProductRow = {
-   id: string;
-   slug: string;
-   name: string;
-   brand: string;
-   category: "device" | "disposable" | "liquid" | "consumable" | string;
-   price: number | string;
-   flavor: string | null;
-   puffs: string | null;
-   volume: string | null;
-   emoji: string;
-   color: string;
-   image_url: string | null;
-   description: string | null;
-   is_active: boolean;
-   sort_order: number;
-   stock_quantity: number;
-   subcategory?: string | null;
- };
+  id: string;
+  slug: string;
+  name: string;
+  brand: string;
+  category: "device" | "disposable" | "liquid" | "consumable" | string;
+  price: number | string;
+  flavor: string | null;
+  puffs: string | null;
+  volume: string | null;
+  emoji: string;
+  color: string;
+  image_url: string | null;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+  stock_quantity: number;
+  subcategory?: string | null;
+};
 
 type Draft = {
-   id?: string;
-   slug: string;
-   name: string;
-   brand: string;
-   category: string;
-   price: string;
-   flavor: string;
-   puffs: string;
-   volume: string;
-   emoji: string;
-   color: "pink" | "cyan" | "lime";
-   image_url: string;
-   description: string;
-   is_active: boolean;
-   sort_order: string;
-   stock_quantity: string;
-   subcategory?: string;
- };
+  id?: string;
+  slug: string;
+  name: string;
+  brand: string;
+  category: string;
+  price: string;
+  flavor: string;
+  puffs: string;
+  volume: string;
+  emoji: string;
+  color: "pink" | "cyan" | "lime";
+  image_url: string;
+  description: string;
+  is_active: boolean;
+  sort_order: string;
+  stock_quantity: string;
+  subcategory?: string;
+};
 
 const EMPTY: Draft = {
-   slug: "",
-   name: "",
-   brand: "",
-   category: "disposable",
-   price: "0",
-   flavor: "",
-   puffs: "",
-   volume: "",
-   emoji: "🔥",
-   color: "pink",
-   image_url: "",
-   description: "",
-   is_active: true,
-   sort_order: "0",
-   stock_quantity: "0",
- };
+  slug: "",
+  name: "",
+  brand: "",
+  category: "disposable",
+  price: "0",
+  flavor: "",
+  puffs: "",
+  volume: "",
+  emoji: "🔥",
+  color: "pink",
+  image_url: "",
+  description: "",
+  is_active: true,
+  sort_order: "0",
+  stock_quantity: "0",
+};
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: ProductsAdmin,
@@ -193,14 +203,21 @@ function ProductsAdmin() {
 
   const subcategoryOptions = useMemo(() => {
     if (!hasSub) return [] as string[];
-    const useName = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
+    const useName =
+      filter.toLowerCase() === "disposable" ||
+      filter.toLowerCase() === "liquid" ||
+      filter.toLowerCase() === "snus";
     if (useName) {
       const values = inCategory
-        .map((r) => (r.name && r.name.includes(" - ") ? r.name.split(" - ").pop() || r.name : r.name))
+        .map((r) =>
+          r.name && r.name.includes(" - ") ? r.name.split(" - ").pop() || r.name : r.name,
+        )
         .filter((s): s is string => !!s);
       return Array.from(new Set(values)).sort();
     }
-    return Array.from(new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s))).sort();
+    return Array.from(
+      new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s)),
+    ).sort();
   }, [inCategory, hasSub, filter]);
 
   const visible = useMemo(() => {
@@ -209,9 +226,16 @@ function ProductsAdmin() {
       if (brand !== "all") list = list.filter((r) => r.brand === brand);
       if (flavor !== "all") list = list.filter((r) => r.flavor === flavor);
       if (selectedSubcategory !== "all") {
-        const useName = filter.toLowerCase() === "disposable" || filter.toLowerCase() === "liquid" || filter.toLowerCase() === "snus";
+        const useName =
+          filter.toLowerCase() === "disposable" ||
+          filter.toLowerCase() === "liquid" ||
+          filter.toLowerCase() === "snus";
         if (useName) {
-          list = list.filter((r) => (r.name && r.name.includes(" - ") ? r.name.split(" - ").pop() === selectedSubcategory : r.name === selectedSubcategory));
+          list = list.filter((r) =>
+            r.name && r.name.includes(" - ")
+              ? r.name.split(" - ").pop() === selectedSubcategory
+              : r.name === selectedSubcategory,
+          );
         } else {
           list = list.filter((r) => r.subcategory === selectedSubcategory);
         }
@@ -235,55 +259,55 @@ function ProductsAdmin() {
     setQuery("");
   }
 
-function edit(row: ProductRow) {
-     setShowCustomCategoryInput(false);
-     setDraft({
-       id: row.id,
-       slug: row.slug,
-       name: row.name,
-       brand: row.brand,
-       category: row.category ?? "disposable",
-       price: String(row.price),
-       flavor: row.flavor ?? "",
-       puffs: row.puffs ?? "",
-       volume: row.volume ?? "",
-       emoji: row.emoji || "🔥",
-       color: (row.color as Draft["color"]) ?? "pink",
-       image_url: row.image_url ?? "",
-       description: row.description ?? "",
-       is_active: row.is_active,
-       sort_order: String(row.sort_order),
-       stock_quantity: String(row.stock_quantity ?? 0),
-       subcategory: row.subcategory ?? "",
-     });
-   }
+  function edit(row: ProductRow) {
+    setShowCustomCategoryInput(false);
+    setDraft({
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      brand: row.brand,
+      category: row.category ?? "disposable",
+      price: String(row.price),
+      flavor: row.flavor ?? "",
+      puffs: row.puffs ?? "",
+      volume: row.volume ?? "",
+      emoji: row.emoji || "🔥",
+      color: (row.color as Draft["color"]) ?? "pink",
+      image_url: row.image_url ?? "",
+      description: row.description ?? "",
+      is_active: row.is_active,
+      sort_order: String(row.sort_order),
+      stock_quantity: String(row.stock_quantity ?? 0),
+      subcategory: row.subcategory ?? "",
+    });
+  }
 
   async function save() {
     if (!draft) return;
     const isEdit = !!draft.id;
-const savedProduct: ProductRow = {
-       id:
-         draft.id ||
-         (typeof crypto !== "undefined" && crypto.randomUUID
-           ? crypto.randomUUID()
-           : Math.random().toString(36).substring(2)),
-       slug: draft.slug.trim(),
-       name: draft.name.trim(),
-       brand: draft.brand.trim(),
-       category: draft.category,
-       price: Number(draft.price) || 0,
-       flavor: draft.flavor || null,
-       puffs: draft.puffs || null,
-       volume: draft.volume || null,
-       emoji: draft.emoji.trim() || "🔥",
-       color: draft.color,
-       image_url: draft.image_url || null,
-       description: draft.description || null,
-       is_active: draft.is_active,
-       sort_order: Number(draft.sort_order) || 0,
-       stock_quantity: Number(draft.stock_quantity) || 0,
-       subcategory: draft.subcategory || null,
-     };
+    const savedProduct: ProductRow = {
+      id:
+        draft.id ||
+        (typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2)),
+      slug: draft.slug.trim(),
+      name: draft.name.trim(),
+      brand: draft.brand.trim(),
+      category: draft.category,
+      price: Number(draft.price) || 0,
+      flavor: draft.flavor || null,
+      puffs: draft.puffs || null,
+      volume: draft.volume || null,
+      emoji: draft.emoji.trim() || "🔥",
+      color: draft.color,
+      image_url: draft.image_url || null,
+      description: draft.description || null,
+      is_active: draft.is_active,
+      sort_order: Number(draft.sort_order) || 0,
+      stock_quantity: Number(draft.stock_quantity) || 0,
+      subcategory: draft.subcategory || null,
+    };
 
     // Optimistically update local state instantly
     if (isEdit) {
@@ -299,28 +323,28 @@ const savedProduct: ProductRow = {
 
     setDraft(null);
 
-try {
-       await upsert({
-         data: {
-           id: draft.id,
-           slug: draft.slug.trim(),
-           name: draft.name.trim(),
-           brand: draft.brand.trim(),
-           category: draft.category,
-           price: Number(draft.price) || 0,
-           flavor: draft.flavor,
-           puffs: draft.puffs,
-           volume: draft.volume,
-           emoji: draft.emoji.trim() || "рџ”Ґ",
-           color: draft.color,
-           image_url: draft.image_url,
-           description: draft.description,
-           is_active: draft.is_active,
-           sort_order: Number(draft.sort_order) || 0,
-           subcategory: draft.subcategory,
-           stock_quantity: Number(draft.stock_quantity) || 0,
-         },
-       });
+    try {
+      await upsert({
+        data: {
+          id: draft.id,
+          slug: draft.slug.trim(),
+          name: draft.name.trim(),
+          brand: draft.brand.trim(),
+          category: draft.category,
+          price: Number(draft.price) || 0,
+          flavor: draft.flavor,
+          puffs: draft.puffs,
+          volume: draft.volume,
+          emoji: draft.emoji.trim() || "рџ”Ґ",
+          color: draft.color,
+          image_url: draft.image_url,
+          description: draft.description,
+          is_active: draft.is_active,
+          sort_order: Number(draft.sort_order) || 0,
+          subcategory: draft.subcategory,
+          stock_quantity: Number(draft.stock_quantity) || 0,
+        },
+      });
       toast.success(isEdit ? "Сохранено" : "Товар добавлен");
       invalidateProductsCache();
       await reload(true);
@@ -330,7 +354,7 @@ try {
     }
   }
 
-async function del(row: ProductRow) {
+  async function del(row: ProductRow) {
     if (!confirm(`Удалить «${row.name}»?`)) return;
 
     // Optimistically remove from local state instantly
@@ -359,7 +383,9 @@ async function del(row: ProductRow) {
     } catch (e: any) {
       toast.error(e?.message ?? "РћС€РёР±РєР°");
       // Rollback on error
-      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, is_active: row.is_active } : r)));
+      setRows((prev) =>
+        prev.map((r) => (r.id === row.id ? { ...r, is_active: row.is_active } : r)),
+      );
     }
   }
 
@@ -375,7 +401,7 @@ async function del(row: ProductRow) {
     if (!moveCopyTarget) return;
     const row = moveCopyTarget;
     const normalizedSubcategory = (targetSubcategory ?? "").trim() || null;
-try {
+    try {
       await adminMoveOrCopyProduct({
         data: {
           id: row.id,
@@ -536,109 +562,109 @@ try {
                   {row.flavor || row.volume || row.puffs || "—"}
                 </div>
               </div>
-<div className="flex items-center gap-3 sm:gap-1.5 sm:ml-auto sm:flex-row flex-wrap">
-                  <div className="text-right sm:text-right w-full sm:w-auto">
-                    <div className="font-display text-lg">{Number(row.price).toFixed(2)}</div>
-                    <div className="text-[10px] text-muted-foreground">BYN</div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {editingStockId === row.id ? (
-                      <>
-                        <input
-                          type="number"
-                          id={`stock-${row.id}`}
-                          name={`stock-${row.id}`}
-                          min="0"
-                          value={stockValue}
-                          onChange={(e) => setStockValue(e.target.value)}
-                          className="w-20 h-9 rounded-lg bg-background border-2 border-border px-2 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              const val = parseInt(stockValue, 10);
-                              if (!isNaN(val) && val >= 0) {
-                                updateStockQty(row, val);
-                                setEditingStockId(null);
-                              }
-                            }
-                            if (e.key === "Escape") {
-                              setEditingStockId(null);
-                            }
-                          }}
-                        />
-                        <button
-                          onClick={() => {
+              <div className="flex items-center gap-3 sm:gap-1.5 sm:ml-auto sm:flex-row flex-wrap">
+                <div className="text-right sm:text-right w-full sm:w-auto">
+                  <div className="font-display text-lg">{Number(row.price).toFixed(2)}</div>
+                  <div className="text-[10px] text-muted-foreground">BYN</div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {editingStockId === row.id ? (
+                    <>
+                      <input
+                        type="number"
+                        id={`stock-${row.id}`}
+                        name={`stock-${row.id}`}
+                        min="0"
+                        value={stockValue}
+                        onChange={(e) => setStockValue(e.target.value)}
+                        className="w-20 h-9 rounded-lg bg-background border-2 border-border px-2 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
                             const val = parseInt(stockValue, 10);
                             if (!isNaN(val) && val >= 0) {
                               updateStockQty(row, val);
+                              setEditingStockId(null);
                             }
+                          }
+                          if (e.key === "Escape") {
                             setEditingStockId(null);
-                          }}
-                          className="w-8 h-9 rounded-lg bg-primary text-primary-foreground grid place-items-center text-xs font-bold"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setEditingStockId(null)}
-                          className="w-8 h-9 rounded-lg bg-muted grid place-items-center"
-                        >
-                          <XIcon className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => {
-                            setEditingStockId(row.id);
-                            setStockValue(String(row.stock_quantity ?? 0));
-                          }}
-                          title="Установить количество"
-                          className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center ${row.stock_quantity === 0 ? "bg-red-500/10 text-red-500 hover:bg-red-500/20" : "bg-muted hover:bg-muted/80"}`}
-                        >
-                          <Package className="w-4 h-4" />
-                        </button>
-                        <span
-                          className={`text-xs font-bold ${row.stock_quantity === 0 ? "text-red-500" : "text-muted-foreground"}`}
-                        >
-                          {row.stock_quantity ?? 0}
-                        </span>
-                      </>
-                    )}
-                    <button
-                      onClick={() => moveOrCopy(row, "move")}
-                      title="Переместить в каталог/подкаталог"
-                      className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
-                    >
-                      <FolderInput className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => moveOrCopy(row, "copy")}
-                      title="Копировать в каталог/подкаталог"
-                      className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => toggleActive(row)}
-                      title={row.is_active ? "Активен" : "Отключён"}
-                      className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center ${row.is_active ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"}`}
-                    >
-                      {row.is_active ? <Check className="w-4 h-4" /> : <XIcon className="w-4 h-4" />}
-                    </button>
-                    <button
-                      onClick={() => edit(row)}
-                      className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-muted"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => del(row)}
-                      className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-destructive/20 text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          const val = parseInt(stockValue, 10);
+                          if (!isNaN(val) && val >= 0) {
+                            updateStockQty(row, val);
+                          }
+                          setEditingStockId(null);
+                        }}
+                        className="w-8 h-9 rounded-lg bg-primary text-primary-foreground grid place-items-center text-xs font-bold"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setEditingStockId(null)}
+                        className="w-8 h-9 rounded-lg bg-muted grid place-items-center"
+                      >
+                        <XIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditingStockId(row.id);
+                          setStockValue(String(row.stock_quantity ?? 0));
+                        }}
+                        title="Установить количество"
+                        className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center ${row.stock_quantity === 0 ? "bg-red-500/10 text-red-500 hover:bg-red-500/20" : "bg-muted hover:bg-muted/80"}`}
+                      >
+                        <Package className="w-4 h-4" />
+                      </button>
+                      <span
+                        className={`text-xs font-bold ${row.stock_quantity === 0 ? "text-red-500" : "text-muted-foreground"}`}
+                      >
+                        {row.stock_quantity ?? 0}
+                      </span>
+                    </>
+                  )}
+                  <button
+                    onClick={() => moveOrCopy(row, "move")}
+                    title="Переместить в каталог/подкаталог"
+                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
+                  >
+                    <FolderInput className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => moveOrCopy(row, "copy")}
+                    title="Копировать в каталог/подкаталог"
+                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => toggleActive(row)}
+                    title={row.is_active ? "Активен" : "Отключён"}
+                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center ${row.is_active ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"}`}
+                  >
+                    {row.is_active ? <Check className="w-4 h-4" /> : <XIcon className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => edit(row)}
+                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-muted"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => del(row)}
+                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-destructive/20 text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
+              </div>
             </div>
           ))}
         </div>
@@ -899,7 +925,13 @@ function DraftEditor({
             <XIcon className="w-4 h-4" />
           </button>
         </div>
-        <F label="Slug (уникальный)" v={draft.slug} on={(v) => set("slug", v)} id="slug" name="slug" />
+        <F
+          label="Slug (уникальный)"
+          v={draft.slug}
+          on={(v) => set("slug", v)}
+          id="slug"
+          name="slug"
+        />
         <F label="Название" v={draft.name} on={(v) => set("name", v)} id="name" name="name" />
         <F label="Бренд" v={draft.brand} on={(v) => set("brand", v)} id="brand" name="brand" />
         <F
@@ -948,11 +980,36 @@ function DraftEditor({
             />
           </div>
         )}
-        <F label="Цена (BYN)" v={draft.price} on={(v) => set("price", v)} type="number" id="price" name="price" />
-        <F label="Вкус / вариант" v={draft.flavor} on={(v) => set("flavor", v)} id="flavor" name="flavor" />
+        <F
+          label="Цена (BYN)"
+          v={draft.price}
+          on={(v) => set("price", v)}
+          type="number"
+          id="price"
+          name="price"
+        />
+        <F
+          label="Вкус / вариант"
+          v={draft.flavor}
+          on={(v) => set("flavor", v)}
+          id="flavor"
+          name="flavor"
+        />
         <F label="Затяжки" v={draft.puffs} on={(v) => set("puffs", v)} id="puffs" name="puffs" />
-        <F label="Объём / характеристики" v={draft.volume} on={(v) => set("volume", v)} id="volume" name="volume" />
-        <F label="Эмодзи (если нет фото)" v={draft.emoji} on={(v) => set("emoji", v)} id="emoji" name="emoji" />
+        <F
+          label="Объём / характеристики"
+          v={draft.volume}
+          on={(v) => set("volume", v)}
+          id="volume"
+          name="volume"
+        />
+        <F
+          label="Эмодзи (если нет фото)"
+          v={draft.emoji}
+          on={(v) => set("emoji", v)}
+          id="emoji"
+          name="emoji"
+        />
         <label className="block">
           <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Цвет акцента
@@ -968,8 +1025,14 @@ function DraftEditor({
             <option value="cyan">cyan</option>
             <option value="lime">lime</option>
           </select>
-</label>
-        <F label="URL картинки (опционально)" v={draft.image_url} on={(v) => set("image_url", v)} id="image_url" name="image_url" />
+        </label>
+        <F
+          label="URL картинки (опционально)"
+          v={draft.image_url}
+          on={(v) => set("image_url", v)}
+          id="image_url"
+          name="image_url"
+        />
         <label className="block">
           <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Описание товара
@@ -1049,4 +1112,3 @@ function F({
     </label>
   );
 }
-

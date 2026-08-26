@@ -33,45 +33,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, isLoaded]);
 
-  const value = useMemo<CartCtx>(
-    () => {
-      const getMaxQty = (stockQuantity: number | undefined) => {
-        if (stockQuantity == null) return Infinity;
-        return Math.max(0, stockQuantity);
-      };
-      return {
-        items,
-        add: (p) => {
-          const maxQty = getMaxQty(p.stock_quantity);
-          let added = false;
-          setItems((prev) => {
-            const ex = prev.find((i) => i.product.id === p.id);
-            if (ex) {
-              if (ex.qty >= maxQty) return prev;
-              added = true;
-              return prev.map((i) => (i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i));
-            }
+  const value = useMemo<CartCtx>(() => {
+    const getMaxQty = (stockQuantity: number | undefined) => {
+      if (stockQuantity == null) return Infinity;
+      return Math.max(0, stockQuantity);
+    };
+    return {
+      items,
+      add: (p) => {
+        const maxQty = getMaxQty(p.stock_quantity);
+        let added = false;
+        setItems((prev) => {
+          const ex = prev.find((i) => i.product.id === p.id);
+          if (ex) {
+            if (ex.qty >= maxQty) return prev;
             added = true;
-            return [...prev, { product: p, qty: 1 }];
-          });
-          return added;
-        },
-        remove: (id) => setItems((prev) => prev.filter((i) => i.product.id !== id)),
-        setQty: (id, qty) =>
-          setItems((prev) => {
-            const item = prev.find((i) => i.product.id === id);
-            const maxQty = getMaxQty(item?.product.stock_quantity);
-            const capped = Math.min(qty, maxQty);
-            if (capped <= 0) return prev.filter((i) => i.product.id !== id);
-            return prev.map((i) => (i.product.id === id ? { ...i, qty: capped } : i));
-          }),
-        clear: () => setItems([]),
-        count: items.reduce((s, i) => s + i.qty, 0),
-        total: items.reduce((s, i) => s + i.qty * i.product.price, 0),
-      };
-    },
-    [items],
-  );
+            return prev.map((i) => (i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i));
+          }
+          added = true;
+          return [...prev, { product: p, qty: 1 }];
+        });
+        return added;
+      },
+      remove: (id) => setItems((prev) => prev.filter((i) => i.product.id !== id)),
+      setQty: (id, qty) =>
+        setItems((prev) => {
+          const item = prev.find((i) => i.product.id === id);
+          const maxQty = getMaxQty(item?.product.stock_quantity);
+          const capped = Math.min(qty, maxQty);
+          if (capped <= 0) return prev.filter((i) => i.product.id !== id);
+          return prev.map((i) => (i.product.id === id ? { ...i, qty: capped } : i));
+        }),
+      clear: () => setItems([]),
+      count: items.reduce((s, i) => s + i.qty, 0),
+      total: items.reduce((s, i) => s + i.qty * i.product.price, 0),
+    };
+  }, [items]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

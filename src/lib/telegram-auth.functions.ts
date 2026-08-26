@@ -31,7 +31,9 @@ function getEnv(key: string): string | undefined {
       (globalThis as any).TELEGRAM_LOGIN_BOT_USERNAME ||
       (globalThis as any).env?.TELEGRAM_LOGIN_BOT_USERNAME ||
       (globalThis as any).__env__?.TELEGRAM_LOGIN_BOT_USERNAME ||
-      (typeof process !== "undefined" ? (process.env as any)?.TELEGRAM_LOGIN_BOT_USERNAME : undefined)
+      (typeof process !== "undefined"
+        ? (process.env as any)?.TELEGRAM_LOGIN_BOT_USERNAME
+        : undefined)
     );
   }
   if (key === "TELEGRAM_USER_EMAIL_DOMAIN") {
@@ -39,7 +41,9 @@ function getEnv(key: string): string | undefined {
       (globalThis as any).TELEGRAM_USER_EMAIL_DOMAIN ||
       (globalThis as any).env?.TELEGRAM_USER_EMAIL_DOMAIN ||
       (globalThis as any).__env__?.TELEGRAM_USER_EMAIL_DOMAIN ||
-      (typeof process !== "undefined" ? (process.env as any)?.TELEGRAM_USER_EMAIL_DOMAIN : undefined)
+      (typeof process !== "undefined"
+        ? (process.env as any)?.TELEGRAM_USER_EMAIL_DOMAIN
+        : undefined)
     );
   }
   return undefined;
@@ -102,11 +106,12 @@ export const getTelegramLoginConfig = createServerFn({ method: "GET" }).handler(
       console.warn("[getTelegramLoginConfig] failed to get H3 event", err);
     }
     return {
-      botUsername:
-        (env.TELEGRAM_LOGIN_BOT_USERNAME ||
-          getEnv("TELEGRAM_LOGIN_BOT_USERNAME") ||
-          "lovevape_admin_bot" ||
-          "").replace(/^@/, ""),
+      botUsername: (
+        env.TELEGRAM_LOGIN_BOT_USERNAME ||
+        getEnv("TELEGRAM_LOGIN_BOT_USERNAME") ||
+        "lovevape_admin_bot" ||
+        ""
+      ).replace(/^@/, ""),
     };
   },
 );

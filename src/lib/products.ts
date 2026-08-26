@@ -628,7 +628,7 @@ export async function fetchProducts(): Promise<Product[]> {
     return fallback;
   })();
 
-   const timeoutPromise = new Promise<Product[]>((resolve) =>
+  const timeoutPromise = new Promise<Product[]>((resolve) =>
     setTimeout(() => {
       console.warn("[products] Supabase fetch timed out, falling back to local PRODUCTS");
       resolve(

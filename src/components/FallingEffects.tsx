@@ -221,8 +221,7 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
 
       const windNoiseOctaves = isMobile ? 2 : 3;
 
-      const windNoise =
-        fbmNoise(t * 0.1, timestamp * 0.0001, 42, windNoiseOctaves) * 0.6 - 0.3;
+      const windNoise = fbmNoise(t * 0.1, timestamp * 0.0001, 42, windNoiseOctaves) * 0.6 - 0.3;
 
       const wind = windGust + windNoise;
 
@@ -243,13 +242,13 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
             };
           }
 
-           ctx.beginPath();
-           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-           ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
-           ctx.shadowBlur = 8;
-           ctx.shadowColor = `rgba(255, 255, 255, ${p.opacity * 0.6})`;
-           ctx.fill();
-           ctx.shadowBlur = 0;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = `rgba(255, 255, 255, ${p.opacity * 0.6})`;
+          ctx.fill();
+          ctx.shadowBlur = 0;
         });
       }
 
@@ -263,11 +262,16 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
 
           const swayMultiplier = isMobile ? 0.4 : 1;
           const sway =
-            Math.sin(timestamp * leaf.swaySpeed + leaf.swayPhase) * 0.8 * leaf.windInfluence * swayMultiplier;
+            Math.sin(timestamp * leaf.swaySpeed + leaf.swayPhase) *
+            0.8 *
+            leaf.windInfluence *
+            swayMultiplier;
           const windDrift = wind * leaf.windInfluence * 0.6 * swayMultiplier;
           const noiseDriftOctaves = isMobile ? 1 : 2;
           const noiseDrift =
-            fbmNoise(leaf.x * 0.003 + t, leaf.y * 0.003 + t, leaf.swayPhase, noiseDriftOctaves) * 0.4 - 0.2;
+            fbmNoise(leaf.x * 0.003 + t, leaf.y * 0.003 + t, leaf.swayPhase, noiseDriftOctaves) *
+              0.4 -
+            0.2;
           leaf.x += leaf.speedX + sway + windDrift + noiseDrift;
 
           const rotationSpeedMultiplier = isMobile ? 0.5 : 1;
@@ -282,35 +286,35 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
             leaf.opacity = Math.max(0, (window.innerHeight - leaf.y) / fadeZone);
           }
 
-           ctx.save();
-           ctx.translate(leaf.x, leaf.y);
-           ctx.rotate(leaf.rotation);
-           ctx.globalAlpha = leaf.opacity;
-           ctx.shadowBlur = 12;
-           ctx.shadowColor = `rgba(255, 255, 255, ${leaf.opacity * 0.5})`;
+          ctx.save();
+          ctx.translate(leaf.x, leaf.y);
+          ctx.rotate(leaf.rotation);
+          ctx.globalAlpha = leaf.opacity;
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = `rgba(255, 255, 255, ${leaf.opacity * 0.5})`;
 
-           const texW = leafTexture.width;
-           const texH = leafTexture.height;
-           const aspect = texW / texH;
-           let drawW = leaf.size * 0.7;
-           let drawH = drawW / aspect;
-           if (drawH > leaf.size * 0.9) {
-             drawH = leaf.size * 0.9;
-             drawW = drawH * aspect;
-           }
-           const offsetX = (leaf.size * 0.7 - drawW) / 2;
-           const offsetY = (leaf.size * 0.9 - drawH) / 2;
+          const texW = leafTexture.width;
+          const texH = leafTexture.height;
+          const aspect = texW / texH;
+          let drawW = leaf.size * 0.7;
+          let drawH = drawW / aspect;
+          if (drawH > leaf.size * 0.9) {
+            drawH = leaf.size * 0.9;
+            drawW = drawH * aspect;
+          }
+          const offsetX = (leaf.size * 0.7 - drawW) / 2;
+          const offsetY = (leaf.size * 0.9 - drawH) / 2;
 
-           ctx.drawImage(
-             leafTexture,
-             -leaf.size * 0.35 + offsetX,
-             -leaf.size * 0.45 + offsetY,
-             drawW,
-             drawH,
-           );
+          ctx.drawImage(
+            leafTexture,
+            -leaf.size * 0.35 + offsetX,
+            -leaf.size * 0.45 + offsetY,
+            drawW,
+            drawH,
+          );
 
-           ctx.shadowBlur = 0;
-           ctx.restore();
+          ctx.shadowBlur = 0;
+          ctx.restore();
 
           if (leaf.y > window.innerHeight + 20 || leaf.x < -30 || leaf.x > window.innerWidth + 30) {
             leafInstances[idx] = createLeafInstance(false);
@@ -335,10 +339,5 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
 
   if (!activeEffects.snow && !activeEffects.leaves) return null;
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-50"
-    />
-  );
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-50" />;
 }

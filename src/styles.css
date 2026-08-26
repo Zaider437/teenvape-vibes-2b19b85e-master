@@ -70,9 +70,9 @@
   --card-foreground: oklch(0.98 0 0);
   --popover: oklch(0.11 0 0);
   --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.66 0.27 355);           /* LoveVape magenta */
+  --primary: oklch(0.66 0.27 355); /* LoveVape magenta */
   --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.98 0 0);              /* pure white */
+  --secondary: oklch(0.98 0 0); /* pure white */
   --secondary-foreground: oklch(0.06 0 0);
   --muted: oklch(0.17 0 0);
   --muted-foreground: oklch(0.62 0 0);
@@ -84,16 +84,17 @@
   --input: oklch(0.14 0 0);
   --ring: oklch(0.66 0.27 355);
 
-  --gradient-hero: radial-gradient(ellipse at 30% 20%, oklch(0.66 0.27 355 / 0.55) 0%, transparent 55%),
-                   radial-gradient(ellipse at 80% 90%, oklch(0.66 0.27 355 / 0.25) 0%, transparent 60%),
-                   linear-gradient(180deg, oklch(0.08 0 0) 0%, oklch(0.04 0 0) 100%);
+  --gradient-hero:
+    radial-gradient(ellipse at 30% 20%, oklch(0.66 0.27 355 / 0.55) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 90%, oklch(0.66 0.27 355 / 0.25) 0%, transparent 60%),
+    linear-gradient(180deg, oklch(0.08 0 0) 0%, oklch(0.04 0 0) 100%);
   --gradient-card: linear-gradient(160deg, oklch(0.13 0 0) 0%, oklch(0.08 0 0) 100%);
   --glow-pink: 0 0 40px oklch(0.66 0.27 355 / 0.55);
   --glow-soft: 0 8px 40px -8px oklch(0.66 0.27 355 / 0.5);
   --shadow-brutal: 4px 4px 0 oklch(0.98 0 0);
 
-  --font-display: 'Archivo Black', 'Anton', 'Impact', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: "Archivo Black", "Anton", "Impact", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
 
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -156,11 +157,14 @@
     font-family: var(--font-body);
     background-image:
       radial-gradient(circle at 20% 0%, oklch(0.66 0.27 355 / 0.18), transparent 45%),
-      radial-gradient(circle at 100% 100%, oklch(0.66 0.27 355 / 0.10), transparent 50%);
+      radial-gradient(circle at 100% 100%, oklch(0.66 0.27 355 / 0.1), transparent 50%);
     background-attachment: fixed;
   }
 
-  h1, h2, h3, .font-display {
+  h1,
+  h2,
+  h3,
+  .font-display {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
@@ -187,5 +191,3 @@
 @utility glow-soft {
   box-shadow: var(--glow-soft);
 }
-
-
