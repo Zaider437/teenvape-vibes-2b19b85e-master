@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model products {
+  id             String   @id @default(dbgenerated("gen_random_uuid()"))
+  slug           String   @unique
+  name           String
+  brand          String
+  category       String
+  price          Float
+  flavor         String?
+  puffs          String?
+  volume         String?
+  emoji          String   @default("🔥")
+  color          String   @default("pink")
+  image_url      String?
+  in_stock       Boolean  @default(true)
+  sort_order     Int      @default(0)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  subcategory    String?
+  description    String?
+  is_active      Boolean  @default(true)
+  stock_quantity Int      @default(0)
+
+  @@map("products")
+}
+
+model orders {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()"))
+  customer_name      String
+  customer_phone     String
+  customer_address   String
+  customer_note      String?
+  items              Json
+  total_amount       Float
+  status             String    @default("new")
+  email_sent         Boolean   @default(false)
+  cancellation_token String?   @unique
+  created_at         DateTime  @default(now())
+
+  @@map("orders")
+}
+
+model user_roles {
+  id        String @id @default(dbgenerated("gen_random_uuid()"))
+  user_id   String
+  role      String
+  created_at DateTime @default(now())
+
+  @@map("user_roles")
+}
+
+model admin_telegram_users {
+  id                String   @id @default(dbgenerated("gen_random_uuid()"))
+  telegram_username String   @unique
+  telegram_id       BigInt?
+  note              String?
+  created_at        DateTime @default(now())
+
+  @@map("admin_telegram_users")
+}
