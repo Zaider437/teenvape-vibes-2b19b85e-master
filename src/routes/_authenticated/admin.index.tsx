@@ -448,7 +448,7 @@ function ProductsAdmin() {
         <button
           onClick={() => {
             setShowCustomCategoryInput(false);
-            setDraft(EMPTY);
+            setDraft({ ...EMPTY, slug: generateRandomSlug() });
           }}
           className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
         >
@@ -931,21 +931,19 @@ function DraftEditor({
     }
   }
 
-  function generateUniqueSlug(name: string): string {
-    const base = name
-      .toLowerCase()
-      .trim()
-      .replace(/[^\p{L}\p{N}]+/gu, "-")
-      .replace(/^-+|-+$/g, "")
-      .substring(0, 100);
-    if (!base) return `product-${Date.now()}`;
-    const existing = new Set(rows.map((r) => r.slug));
-    let slug = base;
-    let counter = 1;
-    while (existing.has(slug) || (draft.id && slug === draft.slug)) {
-      slug = `${base}-${counter++}`;
+  function generateRandomSlug(): string {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let slug = "product-";
+    for (let i = 0; i < 8; i++) {
+      slug += chars[Math.floor(Math.random() * chars.length)];
     }
-    return slug;
+    const existing = new Set(rows.map((r) => r.slug));
+    let counter = 1;
+    let uniqueSlug = slug;
+    while (existing.has(uniqueSlug)) {
+      uniqueSlug = `${slug}-${counter++}`;
+    }
+    return uniqueSlug;
   }
 
   const formCategories = useMemo(() => {
@@ -990,9 +988,6 @@ function DraftEditor({
           v={draft.name}
           on={(v) => {
             set("name", v);
-            if (!draft.id) {
-              set("slug", generateUniqueSlug(v));
-            }
           }}
           id="name"
           name="name"
@@ -1116,12 +1111,7 @@ function DraftEditor({
           )}
           <div className="flex gap-2">
             <label className="flex-1 cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onFileChange}
-                className="hidden"
-              />
+              <input type="file" accept="image/*" onChange={onFileChange} className="hidden" />
               <div className="w-full py-2.5 px-4 rounded-xl border-2 border-dashed border-border text-center text-sm hover:border-muted-foreground transition-colors">
                 {selectedFile ? selectedFile.name : "Выбрать файл"}
               </div>

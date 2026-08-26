@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 const supabaseUrl = "https://ueazjqvxjlppgtkhcmut.supabase.co";
-const supabaseKey = "sb_secret_LzJIRzi7EsB-b2bZaAtYUg_juFQG2YL";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlYXpqcXZ4amxwcGd0a2hjbXV0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDIwODYyOCwiZXhwIjoyMDk5Nzg0NjI4fQ.00jpKdMnw4YbC6jluVP1mvZDT574kCLHUN1Mrz0JT5o";
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

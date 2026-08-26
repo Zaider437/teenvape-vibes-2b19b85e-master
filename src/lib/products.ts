@@ -689,8 +689,18 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const fetchProductsWithImages = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
+    let supabaseAdmin: ReturnType<typeof import("@/integrations/supabase/client.server").supabaseAdmin> | null = null;
+    try {
+      const mod = await import("@/integrations/supabase/client.server");
+      supabaseAdmin = mod.supabaseAdmin;
+    } catch (e) {
+      console.warn("[products] admin client unavailable, falling back to anon client", e);
+    }
+
+    const useAdmin = !!supabaseAdmin;
+    const client = useAdmin ? supabaseAdmin : await import("@/integrations/supabase/client").then(m => m.supabase);
+
+    const { data, error } = await client
       .from("products" as any)
       .select("*")
       .order("sort_order", { ascending: true });
@@ -710,7 +720,7 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" })
         volume: p.volume,
         emoji: p.emoji,
         color: p.color,
-        image: (await getSignedImageUrl(p.image_url)) || p.image_url || null,
+        image: useAdmin ? (await getSignedImageUrl(p.image_url)) || p.image_url || null : p.image_url || null,
         is_active: p.is_active !== false,
         sort_order: p.sort_order,
         stock_quantity: p.stock_quantity ?? 0,

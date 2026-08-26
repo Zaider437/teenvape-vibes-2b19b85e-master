@@ -1,7 +1,7 @@
 import https from "https";
 
 const SUPABASE_URL = "https://ueazjqvxjlppgtkhcmut.supabase.co";
-const SUPABASE_SECRET = "sb_secret_LzJIRzi7EsB-b2bZaAtYUg_juFQG2YL";
+const SUPABASE_SECRET = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlYXpqcXZ4amxwcGd0a2hjbXV0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDIwODYyOCwiZXhwIjoyMDk5Nzg0NjI4fQ.00jpKdMnw4YbC6jluVP1mvZDT574kCLHUN1Mrz0JT5o";
 
 const updates = [
   {
