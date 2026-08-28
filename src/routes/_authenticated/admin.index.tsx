@@ -12,6 +12,7 @@ import {
   FolderInput,
   Package,
   Image,
+  Tag,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import {
@@ -23,6 +24,7 @@ import {
   adminUpdateStock,
   adminUploadProductImage,
   adminBulkUpdateImage,
+  adminBulkUpdateBrand,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
 import {
@@ -131,6 +133,9 @@ function ProductsAdmin() {
   const [bulkImageFile, setBulkImageFile] = useState<File | null>(null);
   const [bulkImagePreview, setBulkImagePreview] = useState<string | null>(null);
   const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [showBulkBrandDialog, setShowBulkBrandDialog] = useState(false);
+  const [bulkBrandValue, setBulkBrandValue] = useState("");
+  const [isBulkBrandSaving, setIsBulkBrandSaving] = useState(false);
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
   const [moveCopyTarget, setMoveCopyTarget] = useState<ProductRow | null>(null);
   const [moveCopyMode, setMoveCopyMode] = useState<"move" | "copy">("move");
@@ -524,6 +529,26 @@ function ProductsAdmin() {
     }
   }
 
+  async function handleBulkSetBrand() {
+    const brand = bulkBrandValue.trim();
+    if (!brand || selectedIds.size === 0) return;
+    setIsBulkBrandSaving(true);
+    try {
+      const ids = Array.from(selectedIds);
+      await adminBulkUpdateBrand({ data: { ids, brand } });
+      toast.success(`Бренд обновлён для ${ids.length} товаров`);
+      setShowBulkBrandDialog(false);
+      setBulkBrandValue("");
+      clearSelection();
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось обновить бренд");
+    } finally {
+      setIsBulkBrandSaving(false);
+    }
+  }
+
   function generateRandomSlug(): string {
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let slug = "product-";
@@ -592,6 +617,15 @@ function ProductsAdmin() {
             className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
           >
             <Image className="w-4 h-4" /> Установить изображение
+          </button>
+          <button
+            onClick={() => {
+              setBulkBrandValue("");
+              setShowBulkBrandDialog(true);
+            }}
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
+          >
+            <Tag className="w-4 h-4" /> Установить бренд
           </button>
           <button
             onClick={clearSelection}
@@ -999,6 +1033,44 @@ function ProductsAdmin() {
               className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
             >
               {isBulkUploading ? "Сохраняю…" : "Применить"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBulkBrandDialog} onOpenChange={setShowBulkBrandDialog}>
+        <DialogContent className="max-w-sm w-[calc(100%-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Установить бренд для {selectedIds.size} товаров</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Бренд
+            </label>
+            <input
+              type="text"
+              value={bulkBrandValue}
+              onChange={(e) => setBulkBrandValue(e.target.value)}
+              placeholder="Например: Elf Bar"
+              className="h-10 rounded-lg bg-background border-2 border-border px-3 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
+            />
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setShowBulkBrandDialog(false);
+                setBulkBrandValue("");
+              }}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleBulkSetBrand}
+              disabled={isBulkBrandSaving || !bulkBrandValue.trim()}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isBulkBrandSaving ? "Сохраняю…" : "Применить"}
             </button>
           </DialogFooter>
         </DialogContent>
