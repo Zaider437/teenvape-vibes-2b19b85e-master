@@ -161,7 +161,8 @@ export const adminListProducts = createServerFn({ method: "GET" })
       .select("*")
       .order("sort_order", { ascending: true });
     if (error) throw error;
-    const { formatImageUrl, buildDescription, getSignedImageUrl } = await import("./product-helpers");
+    const { formatImageUrl, buildDescription, getSignedImageUrl } =
+      await import("./product-helpers");
     const mapped = await Promise.all(
       (data ?? []).map(async (p: any) => ({
         ...p,
@@ -276,12 +277,10 @@ export const adminUploadProductImage = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { error } = await supabaseAdmin.storage
-      .from("product-images")
-      .upload(filePath, file, {
-        contentType: file.type,
-        upsert: false,
-      });
+    const { error } = await supabaseAdmin.storage.from("product-images").upload(filePath, file, {
+      contentType: file.type,
+      upsert: false,
+    });
 
     if (error) {
       throw new Error(`Ошибка загрузки: ${error.message}`);
@@ -403,6 +402,34 @@ export const adminUpdateStock = createServerFn({ method: "POST" })
     }
 
     return { ok: true };
+  });
+
+export const adminBulkUpdateImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ ids: z.array(z.string()).min(1), image_url: z.string().trim().max(2000) })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { error } = await supabaseAdmin
+      .from("products" as any)
+      .update({ image_url: data.image_url })
+      .in("id", data.ids);
+
+    if (error) throw error;
+
+    await logProductActivity(context, {
+      product_id: null,
+      action: "bulk_update_image",
+      details: { product_ids: data.ids, image_url: data.image_url, count: data.ids.length },
+      product_snapshot: null,
+    });
+
+    return { ok: true, updated: data.ids.length };
   });
 
 export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })

@@ -11,6 +11,7 @@ import {
   Copy,
   FolderInput,
   Package,
+  Image,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import {
@@ -21,6 +22,7 @@ import {
   adminMoveOrCopyProduct,
   adminUpdateStock,
   adminUploadProductImage,
+  adminBulkUpdateImage,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
 import {
@@ -31,6 +33,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type ProductRow = {
   id: string;
@@ -122,6 +125,12 @@ function ProductsAdmin() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editingStockId, setEditingStockId] = useState<string | null>(null);
   const [stockValue, setStockValue] = useState<string>("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkImageDialog, setShowBulkImageDialog] = useState(false);
+  const [bulkImageUrl, setBulkImageUrl] = useState("");
+  const [bulkImageFile, setBulkImageFile] = useState<File | null>(null);
+  const [bulkImagePreview, setBulkImagePreview] = useState<string | null>(null);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
   const [moveCopyTarget, setMoveCopyTarget] = useState<ProductRow | null>(null);
   const [moveCopyMode, setMoveCopyMode] = useState<"move" | "copy">("move");
@@ -440,6 +449,81 @@ function ProductsAdmin() {
     }
   }
 
+  function toggleSelection(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function selectAllVisible() {
+    setSelectedIds((prev) => {
+      if (prev.size === visible.length) {
+        return new Set();
+      }
+      return new Set(visible.map((r) => r.id));
+    });
+  }
+
+  async function handleBulkSetImage() {
+    if (selectedIds.size === 0) return;
+    let imageUrl = bulkImageUrl.trim();
+    if (!imageUrl && bulkImageFile) {
+      try {
+        const formData = new FormData();
+        formData.append("file", bulkImageFile);
+        const result = await adminUploadProductImage({ data: formData as any });
+        imageUrl = result.path;
+      } catch (e: any) {
+        toast.error(e?.message ?? "Не удалось загрузить изображение");
+        return;
+      }
+    }
+    if (!imageUrl) {
+      toast.error("Укажите изображение или загрузите файл");
+      return;
+    }
+    setIsBulkUploading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      await adminBulkUpdateImage({ data: { ids, image_url: imageUrl } });
+      toast.success(`Изображение обновлено для ${ids.length} товаров`);
+      setShowBulkImageDialog(false);
+      setBulkImageUrl("");
+      setBulkImageFile(null);
+      setBulkImagePreview(null);
+      clearSelection();
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось обновить изображения");
+    } finally {
+      setIsBulkUploading(false);
+    }
+  }
+
+  function handleBulkImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setBulkImageFile(file);
+    setBulkImageUrl("");
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setBulkImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setBulkImagePreview(null);
+    }
+  }
+
   function generateRandomSlug(): string {
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let slug = "product-";
@@ -499,6 +583,24 @@ function ProductsAdmin() {
           </button>
         )}
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2.5">
+          <span className="text-sm font-bold text-primary">Выбрано: {selectedIds.size}</span>
+          <button
+            onClick={() => setShowBulkImageDialog(true)}
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
+          >
+            <Image className="w-4 h-4" /> Установить изображение
+          </button>
+          <button
+            onClick={clearSelection}
+            className="inline-flex items-center gap-1.5 bg-muted text-foreground font-bold px-3 py-1.5 rounded-lg text-sm hover:bg-muted/80"
+          >
+            <XIcon className="w-4 h-4" /> Снять выбор
+          </button>
+        </div>
+      )}
 
       {/* categories */}
       <div className="px-3 sm:px-4 mt-2 sm:mt-3">
@@ -560,6 +662,11 @@ function ProductsAdmin() {
               key={row.id}
               className={`bg-card border rounded-xl p-3 flex items-center gap-3 ${row.is_active ? "border-border" : "border-red-500/50 bg-red-500/5"}`}
             >
+              <Checkbox
+                checked={selectedIds.has(row.id)}
+                onCheckedChange={() => toggleSelection(row.id)}
+                className="shrink-0"
+              />
               <div className="w-12 h-12 rounded-lg bg-muted grid place-items-center text-2xl shrink-0 overflow-hidden">
                 {row.image_url ? (
                   <img src={row.image_url} alt="" className="w-full h-full object-contain" />
@@ -828,6 +935,70 @@ function ProductsAdmin() {
               className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
             >
               Отмена
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBulkImageDialog} onOpenChange={setShowBulkImageDialog}>
+        <DialogContent className="max-w-sm w-[calc(100%-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Установить изображение для {selectedIds.size} товаров</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Загрузить файл
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBulkImageFileChange}
+                className="text-xs text-foreground"
+              />
+              {bulkImagePreview && (
+                <img
+                  src={bulkImagePreview}
+                  alt="Preview"
+                  className="w-full h-32 object-contain rounded-lg border border-border"
+                />
+              )}
+            </div>
+            <div className="grid gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Или вставить URL
+              </label>
+              <input
+                type="text"
+                value={bulkImageUrl}
+                onChange={(e) => {
+                  setBulkImageUrl(e.target.value);
+                  setBulkImageFile(null);
+                  setBulkImagePreview(null);
+                }}
+                placeholder="https://... или product-images/..."
+                className="h-10 rounded-lg bg-background border-2 border-border px-3 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setShowBulkImageDialog(false);
+                setBulkImageUrl("");
+                setBulkImageFile(null);
+                setBulkImagePreview(null);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleBulkSetImage}
+              disabled={isBulkUploading || (!bulkImageUrl.trim() && !bulkImageFile)}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isBulkUploading ? "Сохраняю…" : "Применить"}
             </button>
           </DialogFooter>
         </DialogContent>

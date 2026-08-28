@@ -728,5 +728,5 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" })
       })),
     );
 
-    return mapped;
+    return mapped.filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
   });
