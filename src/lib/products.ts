@@ -1,24 +1,4 @@
 import { buildDescription, formatImageUrl } from "./product-helpers";
-import silver from "@/assets/xros5mini/silver.jpg.asset.json";
-import iceBlue from "@/assets/xros5mini/ice-blue.jpg.asset.json";
-import carbon from "@/assets/xros5mini/carbon.jpg.asset.json";
-import black from "@/assets/xros5mini/black.jpg.asset.json";
-import pink from "@/assets/xros5mini/pink.jpg.asset.json";
-import sky from "@/assets/xros5mini/sky.jpg.asset.json";
-import purple from "@/assets/xros5mini/purple.jpg.asset.json";
-import pinkTextured from "@/assets/xros5mini/pink-textured.jpg.asset.json";
-import white from "@/assets/xros5mini/white.jpg.asset.json";
-import x5Purple from "@/assets/xros5/purple.jpg.asset.json";
-import x5Lilac from "@/assets/xros5/lilac.jpg.asset.json";
-import x5Mint from "@/assets/xros5/mint.jpg.asset.json";
-import x5Red from "@/assets/xros5/red.jpg.asset.json";
-import xp2Pink from "@/assets/xrospro2/pink.jpg.asset.json";
-import xp2Green from "@/assets/xrospro2/green.jpg.asset.json";
-import xp2Lilac from "@/assets/xrospro2/lilac.jpg.asset.json";
-import podBarr from "@/assets/pods/barr.jpg.asset.json";
-import podCorex06 from "@/assets/pods/corex-06.jpg.asset.json";
-import podCorex08 from "@/assets/pods/corex-08.jpg.asset.json";
-import podCorex04 from "@/assets/pods/corex-04.jpg.asset.json";
 
 export type Product = {
   id: string;
@@ -110,7 +90,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Pink",
     emoji: "⚡",
     color: "pink",
-    image: xp2Pink.url,
+    image: "xp2-pink.jpg",
     is_active: true,
     sort_order: 110,
     description: "",
@@ -125,7 +105,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Green",
     emoji: "⚡",
     color: "lime",
-    image: xp2Green.url,
+    image: "xp2-green.jpg",
     is_active: true,
     sort_order: 111,
     description: "",
@@ -140,7 +120,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Lilac",
     emoji: "⚡",
     color: "pink",
-    image: xp2Lilac.url,
+    image: "xp2-lilac.jpg",
     is_active: true,
     sort_order: 112,
     description: "",
@@ -181,7 +161,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Silver",
     emoji: "⚡",
     color: "cyan",
-    image: silver.url,
+    image: "xros5mini-silver.jpg",
     is_active: true,
     sort_order: 140,
     description: "",
@@ -196,7 +176,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Ice Blue",
     emoji: "⚡",
     color: "cyan",
-    image: iceBlue.url,
+    image: "xros5mini-ice-blue.jpg",
     is_active: true,
     sort_order: 141,
     description: "",
@@ -211,7 +191,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Carbon Black",
     emoji: "⚡",
     color: "cyan",
-    image: carbon.url,
+    image: "xros5mini-carbon.jpg",
     is_active: true,
     sort_order: 142,
     description: "",
@@ -226,7 +206,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Black Wave",
     emoji: "⚡",
     color: "cyan",
-    image: black.url,
+    image: "xros5mini-black.jpg",
     is_active: true,
     sort_order: 143,
     description: "",
@@ -241,7 +221,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Pink",
     emoji: "⚡",
     color: "pink",
-    image: "/assets/images/photo_5400171637098879579_x.jpg",
+    image: "photo_5400171637098879579_x.jpg",
     is_active: true,
     sort_order: 144,
     description: "",
@@ -256,7 +236,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Sky Blue",
     emoji: "⚡",
     color: "cyan",
-    image: sky.url,
+    image: "xros5mini-sky.jpg",
     is_active: true,
     sort_order: 145,
     description: "",
@@ -271,7 +251,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Purple",
     emoji: "⚡",
     color: "pink",
-    image: "/assets/images/photo_5400171637098879578_x.jpg",
+    image: "photo_5400171637098879578_x.jpg",
     is_active: true,
     sort_order: 146,
     description: "",
@@ -286,7 +266,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Pink Textured",
     emoji: "⚡",
     color: "pink",
-    image: pinkTextured.url,
+    image: "xros5mini-pink-textured.jpg",
     is_active: true,
     sort_order: 147,
     description: "",
@@ -301,7 +281,7 @@ export const PRODUCTS: Product[] = [
     flavor: "White",
     emoji: "⚡",
     color: "cyan",
-    image: white.url,
+    image: "xros5mini-white.jpg",
     is_active: true,
     sort_order: 148,
     description: "",
@@ -316,7 +296,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Purple",
     emoji: "⚡",
     color: "pink",
-    image: x5Purple.url,
+    image: "xros5-purple.jpg",
     is_active: true,
     sort_order: 150,
     description: "",
@@ -331,7 +311,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Lilac Textured",
     emoji: "⚡",
     color: "pink",
-    image: x5Lilac.url,
+    image: "xros5-lilac.jpg",
     is_active: true,
     sort_order: 151,
     description: "",
@@ -346,7 +326,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Mint",
     emoji: "⚡",
     color: "lime",
-    image: x5Mint.url,
+    image: "xros5-mint.jpg",
     is_active: true,
     sort_order: 152,
     description: "",
@@ -361,7 +341,7 @@ export const PRODUCTS: Product[] = [
     flavor: "Red",
     emoji: "⚡",
     color: "pink",
-    image: x5Red.url,
+    image: "xros5-red.jpg",
     is_active: true,
     sort_order: 153,
     description: "",
@@ -482,7 +462,7 @@ export const PRODUCTS: Product[] = [
     volume: "1.2 мл / 1.2Ω, 1 шт",
     emoji: "🧩",
     color: "cyan",
-    image: podBarr.url,
+    image: "barr.jpg",
     is_active: true,
     sort_order: 340,
     description: "",
@@ -498,7 +478,7 @@ export const PRODUCTS: Product[] = [
     volume: "2 мл / 0.6Ω, 1 шт",
     emoji: "🧩",
     color: "lime",
-    image: podCorex06.url,
+    image: "corex-06.jpg",
     is_active: true,
     sort_order: 341,
     description: "",
@@ -514,7 +494,7 @@ export const PRODUCTS: Product[] = [
     volume: "2 мл / 0.8Ω, 1 шт",
     emoji: "🧩",
     color: "lime",
-    image: podCorex08.url,
+    image: "corex-08.jpg",
     is_active: true,
     sort_order: 342,
     description: "",
@@ -530,7 +510,7 @@ export const PRODUCTS: Product[] = [
     volume: "3 мл / 0.4Ω, 1 шт",
     emoji: "🧩",
     color: "lime",
-    image: podCorex04.url,
+    image: "corex-04.jpg",
     is_active: true,
     sort_order: 343,
     description: "",

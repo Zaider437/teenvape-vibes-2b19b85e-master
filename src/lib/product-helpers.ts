@@ -6,10 +6,8 @@ const PUBLIC_IMAGE_CDN_BASE =
 export function formatImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith("http")) return url;
-  if (url.startsWith("/assets/")) return url;
-  const fileName = url.startsWith("/__l5e/")
-    ? url.split("/").pop()
-    : url.split("/").pop() || url.replace(/^\//, "");
+  if (url.startsWith("/assets/") || url.startsWith("/__l5e/")) return url;
+  const fileName = url.split("/").pop() || url.replace(/^\//, "");
   return `${PUBLIC_IMAGE_CDN_BASE}/${encodeURIComponent(fileName || "")}?width=400&quality=80&format=webp`;
 }
 
