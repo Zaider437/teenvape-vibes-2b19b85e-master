@@ -35,9 +35,9 @@ export async function getSignedImageUrl(
         const { data } = await supabaseAdmin.storage
           .from(BUCKET)
           .createSignedUrl(filePath, expiresIn);
-        return data?.signedUrl || url;
+        return data?.signedUrl || formatImageUrl(url) || null;
       } catch {
-        return url;
+        return formatImageUrl(url) || null;
       }
     }
     return url;
@@ -58,9 +58,9 @@ export async function getSignedImageUrl(
 
   try {
     const { data } = await supabaseAdmin.storage.from(BUCKET).createSignedUrl(filePath, expiresIn);
-    return data?.signedUrl || url;
+    return data?.signedUrl || formatImageUrl(url) || null;
   } catch {
-    return url;
+    return formatImageUrl(url) || null;
   }
 }
 
