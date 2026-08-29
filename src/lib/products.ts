@@ -700,7 +700,7 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" })
         volume: p.volume,
         emoji: p.emoji,
         color: p.color,
-        image: useAdmin ? (await getSignedImageUrl(p.image_url)) || null : formatImageUrl(p.image_url) || null,
+        image: useAdmin ? (await getSignedImageUrl(p.image_url)) || formatImageUrl(p.image_url) || null : formatImageUrl(p.image_url) || null,
         is_active: p.is_active !== false,
         sort_order: p.sort_order,
         stock_quantity: p.stock_quantity ?? 0,
