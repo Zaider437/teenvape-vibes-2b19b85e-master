@@ -129,7 +129,6 @@ function ProductsAdmin() {
   const [stockValue, setStockValue] = useState<string>("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkImageDialog, setShowBulkImageDialog] = useState(false);
-  const [bulkImageUrl, setBulkImageUrl] = useState("");
   const [bulkImageFile, setBulkImageFile] = useState<File | null>(null);
   const [bulkImagePreview, setBulkImagePreview] = useState<string | null>(null);
   const [isBulkUploading, setIsBulkUploading] = useState(false);
@@ -481,29 +480,19 @@ function ProductsAdmin() {
 
   async function handleBulkSetImage() {
     if (selectedIds.size === 0) return;
-    let imageUrl = bulkImageUrl.trim();
-    if (!imageUrl && bulkImageFile) {
-      try {
-        const formData = new FormData();
-        formData.append("file", bulkImageFile);
-        const result = await adminUploadProductImage({ data: formData as any });
-        imageUrl = result.path;
-      } catch (e: any) {
-        toast.error(e?.message ?? "Не удалось загрузить изображение");
-        return;
-      }
-    }
-    if (!imageUrl) {
-      toast.error("Укажите изображение или загрузите файл");
+    if (!bulkImageFile) {
+      toast.error("Загрузите изображение");
       return;
     }
     setIsBulkUploading(true);
     try {
+      const formData = new FormData();
+      formData.append("file", bulkImageFile);
+      const result = await adminUploadProductImage({ data: formData as any });
       const ids = Array.from(selectedIds);
-      await adminBulkUpdateImage({ data: { ids, image_url: imageUrl } });
+      await adminBulkUpdateImage({ data: { ids, image_url: result.path } });
       toast.success(`Изображение обновлено для ${ids.length} товаров`);
       setShowBulkImageDialog(false);
-      setBulkImageUrl("");
       setBulkImageFile(null);
       setBulkImagePreview(null);
       clearSelection();
@@ -519,7 +508,6 @@ function ProductsAdmin() {
   function handleBulkImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] || null;
     setBulkImageFile(file);
-    setBulkImageUrl("");
     if (file) {
       const reader = new FileReader();
       reader.onload = () => setBulkImagePreview(reader.result as string);
@@ -998,28 +986,11 @@ function ProductsAdmin() {
                 />
               )}
             </div>
-            <div className="grid gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Или вставить URL
-              </label>
-              <input
-                type="text"
-                value={bulkImageUrl}
-                onChange={(e) => {
-                  setBulkImageUrl(e.target.value);
-                  setBulkImageFile(null);
-                  setBulkImagePreview(null);
-                }}
-                placeholder="https://... или product-images/..."
-                className="h-10 rounded-lg bg-background border-2 border-border px-3 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
-              />
-            </div>
           </div>
           <DialogFooter>
             <button
               onClick={() => {
                 setShowBulkImageDialog(false);
-                setBulkImageUrl("");
                 setBulkImageFile(null);
                 setBulkImagePreview(null);
               }}
@@ -1029,7 +1000,7 @@ function ProductsAdmin() {
             </button>
             <button
               onClick={handleBulkSetImage}
-              disabled={isBulkUploading || (!bulkImageUrl.trim() && !bulkImageFile)}
+              disabled={isBulkUploading || !bulkImageFile}
               className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
             >
               {isBulkUploading ? "Сохраняю…" : "Применить"}
