@@ -36,7 +36,8 @@ export async function getSignedImageUrl(
           .from(BUCKET)
           .createSignedUrl(filePath, expiresIn);
         return data?.signedUrl || formatImageUrl(url) || null;
-      } catch {
+      } catch (e) {
+        console.warn("[getSignedImageUrl] failed for http url, fallback to public CDN", url, e);
         return formatImageUrl(url) || null;
       }
     }
@@ -59,7 +60,8 @@ export async function getSignedImageUrl(
   try {
     const { data } = await supabaseAdmin.storage.from(BUCKET).createSignedUrl(filePath, expiresIn);
     return data?.signedUrl || formatImageUrl(url) || null;
-  } catch {
+  } catch (e) {
+    console.warn("[getSignedImageUrl] createSignedUrl failed for", filePath, e);
     return formatImageUrl(url) || null;
   }
 }
