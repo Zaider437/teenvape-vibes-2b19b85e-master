@@ -261,31 +261,56 @@ export const adminUploadProductImage = createServerFn({ method: "POST" })
       throw new Error("Файл не выбран");
     }
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error("Недопустимый формат файла");
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/heic",
+      "image/heif",
+      "image/tiff",
+      "image/bmp",
+    ];
+    const originalName = file.name || `image.${Date.now()}`;
+    const ext = originalName.split(".").pop()?.toLowerCase() || "";
+    const knownImageExts = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "tiff", "bmp"]);
+    const hasKnownImageExt = knownImageExts.has(ext);
+
+    if (file.type && !allowedTypes.includes(file.type) && !hasKnownImageExt) {
+      throw new Error(
+        `Недопустимый формат файла: ${file.type || "неизвестный"}. Разрешены: JPEG, PNG, WebP, GIF, HEIC, TIFF, BMP.`,
+      );
     }
 
-    const maxSize = 5 * 1024 * 1024;
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      throw new Error("Файл слишком большой (макс. 5MB)");
+      throw new Error(`Файл слишком большой (макс. 10MB). Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)}MB.`);
     }
 
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const fileName = `${crypto.randomUUID()}.${ext}`;
+    const safeExt = knownImageExts.has(ext) ? ext : "jpg";
+    const fileName = `${crypto.randomUUID()}.${safeExt}`;
     const filePath = fileName;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    console.log("[adminUploadProductImage] uploading", {
+      fileName,
+      fileType: file.type,
+      fileSize: file.size,
+      bucket: "product-images",
+    });
+
     const { error } = await supabaseAdmin.storage.from("product-images").upload(filePath, file, {
-      contentType: file.type,
+      contentType: file.type || `image/${safeExt}`,
       upsert: false,
     });
 
     if (error) {
-      throw new Error(`Ошибка загрузки: ${error.message}`);
+      console.error("[adminUploadProductImage] upload failed", error);
+      throw new Error(`Ошибка загрузки: ${error.message || JSON.stringify(error)}`);
     }
 
+    console.log("[adminUploadProductImage] uploaded successfully", { filePath });
     return { path: filePath };
   });
 
