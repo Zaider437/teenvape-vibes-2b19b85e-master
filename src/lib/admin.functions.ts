@@ -273,7 +273,7 @@ export const adminUploadProductImage = createServerFn({ method: "POST" })
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
     const fileName = `${crypto.randomUUID()}.${ext}`;
-    const filePath = `product-images/${fileName}`;
+    const filePath = fileName;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

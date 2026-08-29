@@ -51,8 +51,10 @@ export async function getSignedImageUrl(
   // Extract the file path
   let filePath = url;
   if (url.startsWith("/__l5e/")) {
-    filePath = `${BUCKET}/${url.split("/").pop()}`;
-  } else if (!url.startsWith(`${BUCKET}/`)) {
+    filePath = url.split("/").pop() || "";
+  } else if (url.startsWith(`${BUCKET}/`)) {
+    filePath = url.split("/").pop() || "";
+  } else {
     filePath = url.split("/").pop() || url.replace(/^\//, "");
   }
 
