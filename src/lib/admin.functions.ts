@@ -282,9 +282,11 @@ export const adminUploadProductImage = createServerFn({ method: "POST" })
       );
     }
 
-    const maxSize = 10 * 1024 * 1024;
+    const maxSize = 2 * 1024 * 1024;
     if (file.size > maxSize) {
-      throw new Error(`Файл слишком большой (макс. 10MB). Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)}MB.`);
+      throw new Error(
+        `Файл слишком большой (макс. 2MB). Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)}MB.`,
+      );
     }
 
     const safeExt = knownImageExts.has(ext) ? ext : "jpg";

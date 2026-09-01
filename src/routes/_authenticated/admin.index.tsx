@@ -27,6 +27,7 @@ import {
   adminBulkUpdateBrand,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
+import { compressImageFile } from "@/lib/image-compression";
 import {
   Dialog,
   DialogContent,
@@ -486,8 +487,9 @@ function ProductsAdmin() {
     }
     setIsBulkUploading(true);
     try {
+      const file = await compressImageFile(bulkImageFile);
       const formData = new FormData();
-      formData.append("file", bulkImageFile);
+      formData.append("file", file);
       const result = await adminUploadProductImage({ data: formData as any });
       const ids = Array.from(selectedIds);
       await adminBulkUpdateImage({ data: { ids, image_url: result.path } });
@@ -1132,22 +1134,24 @@ function DraftEditor({
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] || null;
-    setSelectedFile(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setPreviewUrl(reader.result as string);
-      reader.readAsDataURL(file);
-    } else {
+    if (!file) {
+      setSelectedFile(null);
       setPreviewUrl(null);
+      return;
     }
+    setSelectedFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setPreviewUrl(reader.result as string);
+    reader.readAsDataURL(file);
   }
 
   async function onUploadClick() {
     if (!selectedFile) return;
     setUploading(true);
     try {
+      const file = await compressImageFile(selectedFile);
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      formData.append("file", file);
       const result = await uploadImage({ data: formData as any });
       set("image_url", result.path);
       setSelectedFile(null);

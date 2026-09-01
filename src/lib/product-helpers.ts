@@ -8,7 +8,7 @@ export function formatImageUrl(url: string | null | undefined): string | null {
   if (url.startsWith("http")) return url;
   if (url.startsWith("/assets/") || url.startsWith("/__l5e/")) return url;
   const fileName = url.split("/").pop() || url.replace(/^\//, "");
-  return `${PUBLIC_IMAGE_CDN_BASE}/${encodeURIComponent(fileName || "")}?width=400&quality=80&format=webp`;
+  return `${PUBLIC_IMAGE_CDN_BASE}/${encodeURIComponent(fileName || "")}?width=600&quality=75&format=webp`;
 }
 
 export async function getSignedImageUrl(
