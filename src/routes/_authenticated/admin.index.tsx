@@ -699,6 +699,15 @@ function ProductsAdmin() {
                     src={row.display_image_url || formatImageUrl(row.image_url) || ""}
                     alt=""
                     className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                      const parent = (e.target as HTMLImageElement).parentElement;
+                      if (parent && !parent.querySelector("span")) {
+                        const span = document.createElement("span");
+                        span.textContent = row.emoji;
+                        parent.appendChild(span);
+                      }
+                    }}
                   />
                 ) : (
                   <span>{row.emoji}</span>

@@ -10,7 +10,10 @@ export function formatImageUrl(url: string | null | undefined): string | null {
   if (url.startsWith("http")) return url;
   if (url.startsWith("/assets/") || url.startsWith("/__l5e/")) return url;
   const fileName = url.split("/").pop() || url.replace(/^\//, "");
-  return `${PUBLIC_IMAGE_CDN_BASE}/${encodeURIComponent(fileName || "")}?width=600&quality=75&format=webp`;
+  // Supabase storage does NOT support ?width/quality/format transform params on
+  // the /object/public/ endpoint (they return HTTP 400 -> CORB errors), so we
+  // must use the plain public object URL.
+  return `${PUBLIC_IMAGE_CDN_BASE}/${encodeURIComponent(fileName || "")}`;
 }
 
 export async function getSignedImageUrl(

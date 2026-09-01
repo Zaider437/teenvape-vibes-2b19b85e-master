@@ -97,9 +97,9 @@ describe("formatImageUrl", () => {
     expect(formatImageUrl("/assets/xros5mini/silver.jpg")).toBe("/assets/xros5mini/silver.jpg");
   });
 
-  it("returns Supabase URLs with resizing params", () => {
+  it("returns Supabase public URLs without transform params (unsupported by /object endpoint)", () => {
     expect(formatImageUrl("product-images/photo.jpg")).toBe(
-      "https://ueazjqvxjlppgtkhcmut.supabase.co/storage/v1/object/public/product-images/photo.jpg?width=600&quality=75&format=webp",
+      "https://ueazjqvxjlppgtkhcmut.supabase.co/storage/v1/object/public/product-images/photo.jpg",
     );
   });
 
