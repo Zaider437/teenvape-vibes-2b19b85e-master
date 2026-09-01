@@ -488,6 +488,9 @@ function Hero({ total }: { total: number }) {
 function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Product) => void }) {
   const { add, items } = useCart();
   const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [product.id]);
   const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
   const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
   const isOutOfStock = remainingStock <= 0;
@@ -599,6 +602,9 @@ function FloatingCartBar({ onOpen }: { onOpen: () => void }) {
 function ProductDetail({ product }: { product: Product }) {
   const { add, items } = useCart();
   const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [product.id]);
   const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
   const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
   const isOutOfStock = remainingStock <= 0;
@@ -669,6 +675,9 @@ function CartDrawer({
 }) {
   const { items, setQty, remove, total, clear } = useCart();
   const [brokenMap, setBrokenMap] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    setBrokenMap({});
+  }, [items]);
   return (
     <Sheet
       open={open}

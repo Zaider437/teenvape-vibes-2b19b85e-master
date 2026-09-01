@@ -28,6 +28,7 @@ import {
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
 import { compressImageFile } from "@/lib/image-compression";
+import { formatImageUrl } from "@/lib/product-helpers";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ type ProductRow = {
   emoji: string;
   color: string;
   image_url: string | null;
+  display_image_url?: string | null;
   description: string | null;
   is_active: boolean;
   sort_order: number;
@@ -693,7 +695,11 @@ function ProductsAdmin() {
               />
               <div className="w-12 h-12 rounded-lg bg-muted grid place-items-center text-2xl shrink-0 overflow-hidden">
                 {row.image_url ? (
-                  <img src={row.image_url} alt="" className="w-full h-full object-contain" />
+                  <img
+                    src={row.display_image_url || formatImageUrl(row.image_url) || ""}
+                    alt=""
+                    className="w-full h-full object-contain"
+                  />
                 ) : (
                   <span>{row.emoji}</span>
                 )}
@@ -1310,7 +1316,7 @@ function DraftEditor({
           {(draft.image_url || previewUrl) && (
             <div className="relative w-full h-40 rounded-xl overflow-hidden bg-muted border border-border">
               <img
-                src={previewUrl || draft.image_url}
+                src={previewUrl || formatImageUrl(draft.image_url) || ""}
                 alt=""
                 className="w-full h-full object-contain"
               />

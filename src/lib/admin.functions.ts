@@ -166,7 +166,9 @@ export const adminListProducts = createServerFn({ method: "GET" })
     const mapped = await Promise.all(
       (data ?? []).map(async (p: any) => ({
         ...p,
-        image_url: (await getSignedImageUrl(p.image_url)) || formatImageUrl(p.image_url) || null,
+        image_url: p.image_url,
+        display_image_url:
+          (await getSignedImageUrl(p.image_url)) || formatImageUrl(p.image_url) || null,
         description: buildDescription(p),
         is_active: p.is_active !== false,
       })),
