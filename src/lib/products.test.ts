@@ -99,7 +99,7 @@ describe("formatImageUrl", () => {
 
   it("returns Supabase URLs with resizing params", () => {
     expect(formatImageUrl("product-images/photo.jpg")).toBe(
-      "https://ueazjqvxjlppgtkhcmut.supabase.co/storage/v1/object/public/product-images/photo.jpg?width=400&quality=80&format=webp",
+      "https://ueazjqvxjlppgtkhcmut.supabase.co/storage/v1/object/public/product-images/photo.jpg?width=600&quality=75&format=webp",
     );
   });
 

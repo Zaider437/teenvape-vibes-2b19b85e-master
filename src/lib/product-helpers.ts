@@ -3,6 +3,8 @@ const PUBLIC_IMAGE_CDN_BASE =
   (globalThis as any).__env__?.PUBLIC_IMAGE_CDN_BASE ||
   "https://ueazjqvxjlppgtkhcmut.supabase.co/storage/v1/object/public/product-images";
 
+const signedUrlCache = new Map<string, { url: string; expires: number }>();
+
 export function formatImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith("http")) return url;
@@ -23,19 +25,28 @@ export async function getSignedImageUrl(
     "https://ueazjqvxjlppgtkhcmut.supabase.co";
   const BUCKET = "product-images";
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  // If it's already a full HTTP URL, check if it's an old Supabase public URL
   if (url.startsWith("http")) {
     if (url.includes(`${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/`)) {
       try {
         const urlObj = new URL(url);
         const pathname = urlObj.pathname;
         const filePath = pathname.replace(`/storage/v1/object/public/${BUCKET}/`, "");
+        const cached = signedUrlCache.get(filePath);
+        if (cached && cached.expires > Date.now()) {
+          return cached.url;
+        }
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data } = await supabaseAdmin.storage
           .from(BUCKET)
           .createSignedUrl(filePath, expiresIn);
-        return data?.signedUrl || formatImageUrl(url) || null;
+        const signedUrl = data?.signedUrl || formatImageUrl(url) || null;
+        if (signedUrl) {
+          signedUrlCache.set(filePath, {
+            url: signedUrl,
+            expires: Date.now() + (expiresIn - 60000) * 1000,
+          });
+        }
+        return signedUrl;
       } catch (e) {
         console.warn("[getSignedImageUrl] failed for http url, fallback to public CDN", url, e);
         return formatImageUrl(url) || null;
@@ -44,10 +55,8 @@ export async function getSignedImageUrl(
     return url;
   }
 
-  // Local assets stay as-is
   if (url.startsWith("/assets/")) return url;
 
-  // Extract the file path
   let filePath = url;
   if (url.startsWith("/__l5e/")) {
     filePath = url.split("/").pop() || "";
@@ -57,9 +66,26 @@ export async function getSignedImageUrl(
     filePath = url.split("/").pop() || url.replace(/^\//, "");
   }
 
+  if (!filePath) {
+    return formatImageUrl(url) || null;
+  }
+
+  const cached = signedUrlCache.get(filePath);
+  if (cached && cached.expires > Date.now()) {
+    return cached.url;
+  }
+
   try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin.storage.from(BUCKET).createSignedUrl(filePath, expiresIn);
-    return data?.signedUrl || formatImageUrl(url) || null;
+    const signedUrl = data?.signedUrl || formatImageUrl(url) || null;
+    if (signedUrl) {
+      signedUrlCache.set(filePath, {
+        url: signedUrl,
+        expires: Date.now() + (expiresIn - 60000) * 1000,
+      });
+    }
+    return signedUrl;
   } catch (e) {
     console.warn("[getSignedImageUrl] createSignedUrl failed for", filePath, e);
     return formatImageUrl(url) || null;

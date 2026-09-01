@@ -18,7 +18,6 @@ import {
   CATEGORIES,
   fetchProductsWithImages,
   invalidateProductsCache,
-  formatImageUrl,
   type Product,
 } from "../lib/products";
 import { createOrder, debugEnv, getMeetingTimes } from "../lib/orders.functions";
