@@ -489,7 +489,7 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
   const [broken, setBroken] = useState(false);
   useEffect(() => {
     setBroken(false);
-  }, [product.id]);
+  }, [product.id, product.image]);
   const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
   const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
   const isOutOfStock = remainingStock <= 0;
@@ -603,7 +603,7 @@ function ProductDetail({ product }: { product: Product }) {
   const [broken, setBroken] = useState(false);
   useEffect(() => {
     setBroken(false);
-  }, [product.id]);
+  }, [product.id, product.image]);
   const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
   const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
   const isOutOfStock = remainingStock <= 0;
