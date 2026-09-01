@@ -564,6 +564,8 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
                   toast.success(
                     `${product.name}${product.flavor ? ` (${product.flavor})` : ""} в корзине`,
                   );
+                } else {
+                  toast.warning("Максимум 3 шт. одного товара");
                 }
               }}
               disabled={isOutOfStock}
@@ -650,6 +652,8 @@ function ProductDetail({ product }: { product: Product }) {
               const added = add(product);
               if (added) {
                 toast.success(`${product.name} в корзине`);
+              } else {
+                toast.warning("Максимум 3 шт. одного товара");
               }
             }}
             disabled={isOutOfStock}

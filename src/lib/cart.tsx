@@ -35,8 +35,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CartCtx>(() => {
     const getMaxQty = (stockQuantity: number | undefined) => {
-      if (stockQuantity == null) return Infinity;
-      return Math.max(0, stockQuantity);
+      // Hard cap: max 3 units of any product in the cart, regardless of stock.
+      return Math.min(3, Math.max(0, stockQuantity ?? Infinity));
     };
     return {
       items,

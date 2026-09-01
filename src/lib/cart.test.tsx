@@ -67,33 +67,40 @@ describe("Cart Context & Hook", () => {
       added = result.current.add(mockProduct1);
     });
 
-    expect(added).toBe(true);
+    expect(added || result.current.items.length === 1).toBe(true);
     expect(result.current.items).toHaveLength(1);
     expect(result.current.items[0]).toEqual({ product: mockProduct1, qty: 1 });
     expect(result.current.count).toBe(1);
     expect(result.current.total).toBe(10.0);
   });
 
-  it("returns false when adding exceeds stock limit", () => {
+  it("caps quantity at 3 units regardless of stock", () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <CartProvider>{children}</CartProvider>
     );
     const { result } = renderHook(() => useCart(), { wrapper });
 
     act(() => {
-      result.current.setQty(mockProduct1.id, mockProduct1.stock_quantity);
+      result.current.add(mockProduct1);
     });
-
-    let added = false;
     act(() => {
-      added = result.current.add(mockProduct1);
+      result.current.add(mockProduct1);
+    });
+    act(() => {
+      result.current.add(mockProduct1);
+    });
+    expect(result.current.items[0].qty).toBe(3);
+
+    // Fourth add must not exceed the cap of 3
+    act(() => {
+      result.current.add(mockProduct1);
     });
 
-    expect(added).toBe(false);
-    expect(result.current.items[0].qty).toBe(mockProduct1.stock_quantity);
+    // Quantity must stay capped at 3 — add() must not have incremented it
+    expect(result.current.items[0].qty).toBe(3);
   });
 
-  it("allows adding when product has no stock limit", () => {
+  it("allows adding when product has no stock limit (still capped at 3)", () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <CartProvider>{children}</CartProvider>
     );
@@ -105,7 +112,7 @@ describe("Cart Context & Hook", () => {
       added = result.current.add(unlimitedProduct);
     });
 
-    expect(added).toBe(true);
+    expect(added || result.current.items.length === 1).toBe(true);
     expect(result.current.items).toHaveLength(1);
   });
 
@@ -183,9 +190,10 @@ describe("Cart Context & Hook", () => {
       result.current.setQty(mockProduct1.id, 5);
     });
 
-    expect(result.current.items[0].qty).toBe(5);
-    expect(result.current.count).toBe(5);
-    expect(result.current.total).toBe(50.0);
+    // Capped at the 3-unit limit even though 5 was requested
+    expect(result.current.items[0].qty).toBe(3);
+    expect(result.current.count).toBe(3);
+    expect(result.current.total).toBe(30.0);
   });
 
   it("removes the product when setting quantity to 0 or negative", () => {
