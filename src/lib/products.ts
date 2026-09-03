@@ -675,84 +675,38 @@ export type ManufacturerRow = {
   category_sort: Record<string, number>;
 };
 
-export const fetchManufacturers = createServerFn({ method: "GET" })
-  .handler(async () => {
-    let supabaseAdmin: ReturnType<typeof import("@/integrations/supabase/client.server").supabaseAdmin> | null = null;
-    try {
-      const mod = await import("@/integrations/supabase/client.server");
-      supabaseAdmin = mod.supabaseAdmin;
-    } catch {
-      // ignore
-    }
+export const fetchManufacturers = createServerFn({ method: "GET" }).handler(async () => {
+  let supabaseAdmin: ReturnType<
+    typeof import("@/integrations/supabase/client.server").supabaseAdmin
+  > | null = null;
+  try {
+    const mod = await import("@/integrations/supabase/client.server");
+    supabaseAdmin = mod.supabaseAdmin;
+  } catch {
+    // ignore
+  }
 
-    const useAdmin = !!supabaseAdmin;
-    const client = useAdmin ? supabaseAdmin : await import("@/integrations/supabase/client").then(m => m.supabase);
+  const useAdmin = !!supabaseAdmin;
+  const client = useAdmin
+    ? supabaseAdmin
+    : await import("@/integrations/supabase/client").then((m) => m.supabase);
 
-    const { data, error } = await client
-      .from("manufacturers" as any)
-      .select("id, name, slug, sort_order, is_active, category_sort")
-      .order("sort_order", { ascending: true });
+  const { data, error } = await client
+    .from("manufacturers" as any)
+    .select("id, name, slug, sort_order, is_active, category_sort")
+    .order("sort_order", { ascending: true });
 
-    if (error) throw error;
+  if (error) throw error;
 
-    return (data ?? []).map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      slug: m.slug,
-      sort_order: m.sort_order ?? 0,
-      is_active: m.is_active !== false,
-      category_sort: m.category_sort || {},
-    })) as ManufacturerRow[];
-  });
-
-import { createServerFn } from "@tanstack/react-start";
-import { getSignedImageUrl } from "./product-helpers";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-export const fetchProductsWithImages = createServerFn({ method: "GET" })
-  .handler(async () => {
-    let supabaseAdmin: ReturnType<typeof import("@/integrations/supabase/client.server").supabaseAdmin> | null = null;
-    try {
-      const mod = await import("@/integrations/supabase/client.server");
-      supabaseAdmin = mod.supabaseAdmin;
-    } catch (e) {
-      console.warn("[products] admin client unavailable, falling back to anon client", e);
-    }
-
-    const useAdmin = !!supabaseAdmin;
-    const client = useAdmin ? supabaseAdmin : await import("@/integrations/supabase/client").then(m => m.supabase);
-
-    const { data, error } = await client
-      .from("products" as any)
-      .select("*")
-      .order("sort_order", { ascending: true });
-
-    if (error) throw error;
-
-    const mapped = await Promise.all(
-      (data ?? []).map(async (p: any) => ({
-        id: p.id,
-        slug: p.slug,
-        name: p.name,
-        brand: p.brand,
-        category: p.category,
-        price: p.price,
-        flavor: p.flavor,
-        puffs: p.puffs,
-        volume: p.volume,
-        emoji: p.emoji,
-        color: p.color,
-        image: useAdmin ? (await getSignedImageUrl(p.image_url)) || formatImageUrl(p.image_url) || null : formatImageUrl(p.image_url) || null,
-        is_active: p.is_active !== false,
-        sort_order: p.sort_order,
-        stock_quantity: p.stock_quantity ?? 0,
-        description: buildDescription(p),
-        manufacturer_id: p.manufacturer_id,
-      })),
-    );
-
-    return mapped.filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
-  });
+  return (data ?? []).map((m: any) => ({
+    id: m.id,
+    name: m.name,
+    slug: m.slug,
+    sort_order: m.sort_order ?? 0,
+    is_active: m.is_active !== false,
+    category_sort: m.category_sort || {},
+  })) as ManufacturerRow[];
+});
 
 export type ProductsByManufacturerResult = {
   manufacturer: { id: string; name: string; slug: string } | null;
@@ -762,7 +716,9 @@ export type ProductsByManufacturerResult = {
 export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ slug: z.string().trim().min(1) }).parse(input))
   .handler(async ({ data }) => {
-    let supabaseAdmin: ReturnType<typeof import("@/integrations/supabase/client.server").supabaseAdmin> | null = null;
+    let supabaseAdmin: ReturnType<
+      typeof import("@/integrations/supabase/client.server").supabaseAdmin
+    > | null = null;
     try {
       const mod = await import("@/integrations/supabase/client.server");
       supabaseAdmin = mod.supabaseAdmin;
@@ -771,7 +727,9 @@ export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
     }
 
     const useAdmin = !!supabaseAdmin;
-    const client = useAdmin ? supabaseAdmin : await import("@/integrations/supabase/client").then(m => m.supabase);
+    const client = useAdmin
+      ? supabaseAdmin
+      : await import("@/integrations/supabase/client").then((m) => m.supabase);
 
     const { data: mfr, error: mfrError } = await client
       .from("manufacturers" as any)
@@ -782,7 +740,9 @@ export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
 
     if (mfrError) throw mfrError;
 
-    const manufacturer = mfr ? { id: (mfr as any).id, name: (mfr as any).name, slug: (mfr as any).slug } : null;
+    const manufacturer = mfr
+      ? { id: (mfr as any).id, name: (mfr as any).name, slug: (mfr as any).slug }
+      : null;
     if (!manufacturer) {
       return { manufacturer: null, products: [] };
     }
@@ -818,3 +778,57 @@ export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
 
     return { manufacturer, products: mapped };
   });
+
+import { createServerFn } from "@tanstack/react-start";
+import { getSignedImageUrl } from "./product-helpers";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler(async () => {
+  let supabaseAdmin: ReturnType<
+    typeof import("@/integrations/supabase/client.server").supabaseAdmin
+  > | null = null;
+  try {
+    const mod = await import("@/integrations/supabase/client.server");
+    supabaseAdmin = mod.supabaseAdmin;
+  } catch (e) {
+    console.warn("[products] admin client unavailable, falling back to anon client", e);
+  }
+
+  const useAdmin = !!supabaseAdmin;
+  const client = useAdmin
+    ? supabaseAdmin
+    : await import("@/integrations/supabase/client").then((m) => m.supabase);
+
+  const { data, error } = await client
+    .from("products" as any)
+    .select("*")
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+
+  const mapped = await Promise.all(
+    (data ?? []).map(async (p: any) => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      brand: p.brand,
+      category: p.category,
+      price: p.price,
+      flavor: p.flavor,
+      puffs: p.puffs,
+      volume: p.volume,
+      emoji: p.emoji,
+      color: p.color,
+      image: useAdmin
+        ? (await getSignedImageUrl(p.image_url)) || formatImageUrl(p.image_url) || null
+        : formatImageUrl(p.image_url) || null,
+      is_active: p.is_active !== false,
+      sort_order: p.sort_order,
+      stock_quantity: p.stock_quantity ?? 0,
+      description: buildDescription(p),
+      manufacturer_id: p.manufacturer_id,
+    })),
+  );
+
+  return mapped.filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
+});

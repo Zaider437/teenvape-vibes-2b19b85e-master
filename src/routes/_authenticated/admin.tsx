@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, Package, Users, Clock, History, Factory } from "lucide-react";
+import { LogOut, Package, Users, Clock, History } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminLayout,
@@ -51,14 +51,6 @@ function AdminLayout() {
               className="px-3 py-2 sm:py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 whitespace-nowrap min-h-[44px] sm:min-h-0 w-full sm:w-auto"
             >
               <Package className="w-4 h-4" /> Товары
-            </Link>
-            <Link
-              to="/admin/manufacturers"
-              activeProps={{ className: "bg-primary text-primary-foreground" }}
-              onClick={() => setMobileNavOpen(false)}
-              className="px-3 py-2 sm:py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 whitespace-nowrap min-h-[44px] sm:min-h-0 w-full sm:w-auto"
-            >
-              <Factory className="w-4 h-4" /> Производители
             </Link>
             <Link
               to="/admin/users"

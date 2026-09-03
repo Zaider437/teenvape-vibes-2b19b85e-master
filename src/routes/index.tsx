@@ -17,10 +17,8 @@ import { CartProvider, useCart, type CartItem } from "../lib/cart";
 import {
   CATEGORIES,
   fetchProductsWithImages,
-  fetchManufacturers,
   invalidateProductsCache,
   type Product,
-  type ManufacturerRow,
 } from "../lib/products";
 import { createOrder, debugEnv, getMeetingTimes } from "../lib/orders.functions";
 import { toast, Toaster } from "sonner";
@@ -64,10 +62,8 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   const [meetingTimes, setMeetingTimes] = useState<string[]>([]);
   const [loadingMeetingTimes, setLoadingMeetingTimes] = useState(true);
   const [hoveredBrand, setHoveredBrand] = useState<string | null>(null);
-  const [manufacturers, setManufacturers] = useState<ManufacturerRow[]>([]);
   const { items } = useCart();
   const fetchProductsServer = useServerFn(fetchProductsWithImages);
-  const fetchManufacturersServer = useServerFn(fetchManufacturers);
   const cartQtyByProduct = useMemo(() => {
     const map = new Map<string, number>();
     for (const item of items) {
@@ -107,17 +103,10 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       .finally(() => {
         if (!cancelled) setLoadingMeetingTimes(false);
       });
-    fetchManufacturersServer()
-      .then((data) => {
-        if (!cancelled) setManufacturers(data);
-      })
-      .catch((err) => {
-        console.error("[shop] load manufacturers failed", err);
-      });
     return () => {
       cancelled = true;
     };
-  }, [fetchProductsServer, fetchManufacturersServer]);
+  }, [fetchProductsServer]);
 
   const hasSubfilters =
     category === "liquid" ||

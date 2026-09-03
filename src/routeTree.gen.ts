@@ -20,7 +20,6 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminRecentActionsRouteImport } from './routes/_authenticated/admin.recent-actions'
-import { Route as AuthenticatedAdminManufacturersRouteImport } from './routes/_authenticated/admin.manufacturers'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -78,12 +77,6 @@ const AuthenticatedAdminRecentActionsRoute =
     path: '/recent-actions',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminManufacturersRoute =
-  AuthenticatedAdminManufacturersRouteImport.update({
-    id: '/manufacturers',
-    path: '/manufacturers',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -92,7 +85,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/b/$slug': typeof BSlugRoute
-  '/admin/manufacturers': typeof AuthenticatedAdminManufacturersRoute
   '/admin/recent-actions': typeof AuthenticatedAdminRecentActionsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -104,7 +96,6 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/login': typeof AdminLoginRoute
   '/b/$slug': typeof BSlugRoute
-  '/admin/manufacturers': typeof AuthenticatedAdminManufacturersRoute
   '/admin/recent-actions': typeof AuthenticatedAdminRecentActionsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -119,7 +110,6 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/b/$slug': typeof BSlugRoute
-  '/_authenticated/admin/manufacturers': typeof AuthenticatedAdminManufacturersRoute
   '/_authenticated/admin/recent-actions': typeof AuthenticatedAdminRecentActionsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -134,7 +124,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/login'
     | '/b/$slug'
-    | '/admin/manufacturers'
     | '/admin/recent-actions'
     | '/admin/settings'
     | '/admin/users'
@@ -146,7 +135,6 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin/login'
     | '/b/$slug'
-    | '/admin/manufacturers'
     | '/admin/recent-actions'
     | '/admin/settings'
     | '/admin/users'
@@ -160,7 +148,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/admin/login'
     | '/b/$slug'
-    | '/_authenticated/admin/manufacturers'
     | '/_authenticated/admin/recent-actions'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/users'
@@ -255,18 +242,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRecentActionsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/manufacturers': {
-      id: '/_authenticated/admin/manufacturers'
-      path: '/manufacturers'
-      fullPath: '/admin/manufacturers'
-      preLoaderRoute: typeof AuthenticatedAdminManufacturersRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
-  AuthenticatedAdminManufacturersRoute: typeof AuthenticatedAdminManufacturersRoute
   AuthenticatedAdminRecentActionsRoute: typeof AuthenticatedAdminRecentActionsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
@@ -274,7 +253,6 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
-  AuthenticatedAdminManufacturersRoute: AuthenticatedAdminManufacturersRoute,
   AuthenticatedAdminRecentActionsRoute: AuthenticatedAdminRecentActionsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
