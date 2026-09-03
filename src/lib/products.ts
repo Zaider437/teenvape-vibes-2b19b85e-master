@@ -666,6 +666,45 @@ export async function fetchMeetingTimes(): Promise<string[]> {
   return defaults;
 }
 
+export type ManufacturerRow = {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+  is_active: boolean;
+  category_sort: Record<string, number>;
+};
+
+export const fetchManufacturers = createServerFn({ method: "GET" })
+  .handler(async () => {
+    let supabaseAdmin: ReturnType<typeof import("@/integrations/supabase/client.server").supabaseAdmin> | null = null;
+    try {
+      const mod = await import("@/integrations/supabase/client.server");
+      supabaseAdmin = mod.supabaseAdmin;
+    } catch {
+      // ignore
+    }
+
+    const useAdmin = !!supabaseAdmin;
+    const client = useAdmin ? supabaseAdmin : await import("@/integrations/supabase/client").then(m => m.supabase);
+
+    const { data, error } = await client
+      .from("manufacturers" as any)
+      .select("id, name, slug, sort_order, is_active, category_sort")
+      .order("sort_order", { ascending: true });
+
+    if (error) throw error;
+
+    return (data ?? []).map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      slug: m.slug,
+      sort_order: m.sort_order ?? 0,
+      is_active: m.is_active !== false,
+      category_sort: m.category_sort || {},
+    })) as ManufacturerRow[];
+  });
+
 import { createServerFn } from "@tanstack/react-start";
 import { getSignedImageUrl } from "./product-helpers";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";

@@ -903,6 +903,7 @@ const manufacturerSchema = z.object({
   image_url: z.string().trim().max(2000).optional().nullable(),
   sort_order: z.number().int(),
   is_active: z.boolean(),
+  category_sort: z.record(z.number()).optional().nullable(),
 });
 
 export const adminListManufacturers = createServerFn({ method: "GET" })
@@ -914,7 +915,10 @@ export const adminListManufacturers = createServerFn({ method: "GET" })
       .select("*")
       .order("sort_order", { ascending: true });
     if (error) throw error;
-    return data ?? [];
+    return (data ?? []).map((m: any) => ({
+      ...m,
+      category_sort: m.category_sort ?? {},
+    }));
   });
 
 export const adminUpsertManufacturer = createServerFn({ method: "POST" })
@@ -931,6 +935,7 @@ export const adminUpsertManufacturer = createServerFn({ method: "POST" })
       image_url: data.image_url?.trim() || null,
       sort_order: data.sort_order,
       is_active: data.is_active,
+      category_sort: data.category_sort ?? null,
     };
 
     if (data.id && data.id.trim() !== "") {

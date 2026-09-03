@@ -20,6 +20,7 @@ expect.extend(matchers);
 vi.mock("../lib/products", () => ({
   fetchProducts: vi.fn(),
   fetchProductsWithImages: vi.fn(),
+  fetchManufacturers: vi.fn().mockResolvedValue([]),
   fetchMeetingTimes: vi.fn().mockResolvedValue([]),
   invalidateProductsCache: vi.fn(),
   formatImageUrl: vi.fn((url) => url),

@@ -29,6 +29,15 @@ type Draft = {
   image_url: string;
   sort_order: string;
   is_active: boolean;
+  category_sort: Record<string, number>;
+};
+
+const CATEGORY_MAP: Record<string, string> = {
+  disposable: "Одноразки",
+  device: "Устройства",
+  liquid: "Жидкости",
+  consumable: "Расходники",
+  snus: "Снюс",
 };
 
 const EMPTY: Draft = {
@@ -38,6 +47,7 @@ const EMPTY: Draft = {
   image_url: "",
   sort_order: "0",
   is_active: true,
+  category_sort: {},
 };
 
 export const Route = createFileRoute("/_authenticated/admin/manufacturers")({
@@ -86,6 +96,7 @@ function ManufacturersAdmin() {
       image_url: row.image_url ?? "",
       sort_order: String(row.sort_order ?? 0),
       is_active: row.is_active,
+      category_sort: (row as any).category_sort ?? {},
     });
   }
 
@@ -102,6 +113,7 @@ function ManufacturersAdmin() {
       is_active: draft.is_active,
       created_at: "",
       updated_at: "",
+      category_sort: draft.category_sort,
     };
 
     if (isEdit) {
@@ -121,6 +133,7 @@ function ManufacturersAdmin() {
           image_url: draft.image_url.trim() || null,
           sort_order: Number(draft.sort_order) || 0,
           is_active: draft.is_active,
+          category_sort: Object.keys(draft.category_sort).length > 0 ? draft.category_sort : null,
         },
       });
       toast.success(isEdit ? "Сохранено" : "Добавлено");
@@ -317,6 +330,38 @@ function ManufacturersAdmin() {
               />
               <span>Активен</span>
             </label>
+            <div className="space-y-2">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Порядок по категориям
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {Object.entries(CATEGORY_MAP).map(([id, label]) => (
+                  <label key={id} className="flex items-center gap-2 bg-background border border-border rounded-xl px-3 py-2">
+                    <span className="text-xs font-semibold flex-1">{label}</span>
+                    <input
+                      type="number"
+                      value={draft.category_sort?.[id] ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value.trim();
+                        const next: Record<string, number> = { ...(draft.category_sort || {}) };
+                        if (raw === "") {
+                          delete next[id];
+                        } else {
+                          const num = Number(raw);
+                          next[id] = Number.isFinite(num) ? num : 0;
+                        }
+                        setDraft({ ...draft, category_sort: next });
+                      }}
+                      className="w-16 h-9 rounded-lg bg-card border border-border px-2 py-1 text-sm text-right"
+                      placeholder="0"
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Меньшее число = выше в списке производителей внутри категории.
+              </p>
+            </div>
             <div className="flex gap-2 pt-2">
               <button
                 onClick={save}

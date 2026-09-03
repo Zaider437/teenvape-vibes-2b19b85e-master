@@ -103,6 +103,7 @@ export type Database = {
           slug: string;
           sort_order: number;
           updated_at: string;
+          category_sort: Json | null;
         };
         Insert: {
           created_at?: string;
@@ -114,6 +115,7 @@ export type Database = {
           slug: string;
           sort_order?: number;
           updated_at?: string;
+          category_sort?: Json | null;
         };
         Update: {
           created_at?: string;
@@ -125,6 +127,7 @@ export type Database = {
           slug?: string;
           sort_order?: number;
           updated_at?: string;
+          category_sort?: Json | null;
         };
         Relationships: [];
       };

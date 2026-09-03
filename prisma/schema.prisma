@@ -36,16 +36,17 @@ model products {
 }
 
 model manufacturers {
-  id          String    @id @default(dbgenerated("gen_random_uuid()"))
-  name        String    @unique
-  slug        String    @unique
-  description String?
-  image_url   String?
-  sort_order  Int       @default(0)
-  is_active   Boolean   @default(true)
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-  products    products[]
+  id               String    @id @default(dbgenerated("gen_random_uuid()"))
+  name             String    @unique
+  slug             String    @unique
+  description      String?
+  image_url        String?
+  sort_order       Int       @default(0)
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  category_sort    Json?
+  products         products[]
 
   @@map("manufacturers")
 }

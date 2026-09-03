@@ -17,8 +17,10 @@ import { CartProvider, useCart, type CartItem } from "../lib/cart";
 import {
   CATEGORIES,
   fetchProductsWithImages,
+  fetchManufacturers,
   invalidateProductsCache,
   type Product,
+  type ManufacturerRow,
 } from "../lib/products";
 import { createOrder, debugEnv, getMeetingTimes } from "../lib/orders.functions";
 import { toast, Toaster } from "sonner";
@@ -62,8 +64,10 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   const [meetingTimes, setMeetingTimes] = useState<string[]>([]);
   const [loadingMeetingTimes, setLoadingMeetingTimes] = useState(true);
   const [hoveredBrand, setHoveredBrand] = useState<string | null>(null);
+  const [manufacturers, setManufacturers] = useState<ManufacturerRow[]>([]);
   const { items } = useCart();
   const fetchProductsServer = useServerFn(fetchProductsWithImages);
+  const fetchManufacturersServer = useServerFn(fetchManufacturers);
   const cartQtyByProduct = useMemo(() => {
     const map = new Map<string, number>();
     for (const item of items) {
@@ -103,10 +107,17 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       .finally(() => {
         if (!cancelled) setLoadingMeetingTimes(false);
       });
+    fetchManufacturersServer()
+      .then((data) => {
+        if (!cancelled) setManufacturers(data);
+      })
+      .catch((err) => {
+        console.error("[shop] load manufacturers failed", err);
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchProductsServer, fetchManufacturersServer]);
 
   const hasSubfilters =
     category === "liquid" ||
@@ -125,8 +136,22 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
 
   const brandOptions = useMemo(() => {
     if (!hasSubfilters) return [] as string[];
-    return Array.from(new Set(inCategory.map((p) => p.brand))).sort();
-  }, [inCategory, hasSubfilters]);
+    const brands = Array.from(new Set(inCategory.map((p) => p.brand))).sort();
+    const cat = category.toLowerCase();
+    const manufacturerSortMap = new Map<string, number>();
+    for (const m of manufacturers) {
+      const sort = (m.category_sort || {})[cat];
+      if (typeof sort === "number") {
+        manufacturerSortMap.set(m.name, sort);
+      }
+    }
+    return brands.sort((a, b) => {
+      const aSort = manufacturerSortMap.get(a) ?? Number.MAX_SAFE_INTEGER;
+      const bSort = manufacturerSortMap.get(b) ?? Number.MAX_SAFE_INTEGER;
+      if (aSort !== bSort) return aSort - bSort;
+      return a.localeCompare(b);
+    });
+  }, [inCategory, hasSubfilters, manufacturers, category]);
 
   const flavorsByBrand = useMemo(() => {
     if (!hasSubfilters) return new Map<string, string[]>();
