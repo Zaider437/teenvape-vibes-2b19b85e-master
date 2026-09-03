@@ -136,22 +136,10 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
 
   const brandOptions = useMemo(() => {
     if (!hasSubfilters) return [] as string[];
-    const brands = Array.from(new Set(inCategory.map((p) => p.brand))).sort();
-    const cat = category.toLowerCase();
-    const manufacturerSortMap = new Map<string, number>();
-    for (const m of manufacturers) {
-      const sort = (m.category_sort || {})[cat];
-      if (typeof sort === "number") {
-        manufacturerSortMap.set(m.name, sort);
-      }
-    }
-    return brands.sort((a, b) => {
-      const aSort = manufacturerSortMap.get(a) ?? Number.MAX_SAFE_INTEGER;
-      const bSort = manufacturerSortMap.get(b) ?? Number.MAX_SAFE_INTEGER;
-      if (aSort !== bSort) return aSort - bSort;
-      return a.localeCompare(b, "ru");
-    });
-  }, [inCategory, hasSubfilters, manufacturers, category]);
+    return Array.from(new Set(inCategory.map((p) => p.brand))).sort((a, b) =>
+      a.localeCompare(b, "en"),
+    );
+  }, [inCategory, hasSubfilters]);
 
   const flavorsByBrand = useMemo(() => {
     if (!hasSubfilters) return new Map<string, string[]>();

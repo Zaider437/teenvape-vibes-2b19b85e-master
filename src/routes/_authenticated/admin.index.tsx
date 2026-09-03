@@ -150,7 +150,9 @@ function ProductsAdmin() {
   const [moveCopySubcategory, setMoveCopySubcategory] = useState<string>("");
   const [moveCopyCustomSubcategory, setMoveCopyCustomSubcategory] = useState(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
-  const [manufacturers, setManufacturers] = useState<{ id: string; name: string; slug: string; category_sort: Record<string, number> }[]>([]);
+  const [manufacturers, setManufacturers] = useState<
+    { id: string; name: string; slug: string; category_sort: Record<string, number> }[]
+  >([]);
 
   useEffect(() => {
     listManufacturers()
@@ -220,23 +222,10 @@ function ProductsAdmin() {
   const hasSub = filter !== "all";
   const brandOptions = useMemo(() => {
     if (!hasSub) return [] as string[];
-    const brands = Array.from(new Set(inCategory.map((r) => r.brand))).sort();
-    const cat = filter.toLowerCase();
-    const sortMap = useMemo(() => {
-      const map = new Map<string, number>();
-      for (const m of manufacturers) {
-        const sort = (m.category_sort || {})[cat];
-        if (typeof sort === "number") map.set(m.name, sort);
-      }
-      return map;
-    }, [manufacturers, cat]);
-    return brands.sort((a, b) => {
-      const aSort = sortMap.get(a) ?? Number.MAX_SAFE_INTEGER;
-      const bSort = sortMap.get(b) ?? Number.MAX_SAFE_INTEGER;
-      if (aSort !== bSort) return aSort - bSort;
-      return a.localeCompare(b, "ru");
-    });
-  }, [inCategory, hasSub, manufacturers, filter]);
+    return Array.from(new Set(inCategory.map((r) => r.brand))).sort((a, b) =>
+      a.localeCompare(b, "en"),
+    );
+  }, [inCategory, hasSub]);
   const flavorOptions = useMemo(() => {
     if (!hasSub) return [] as string[];
     const set = new Set<string>();
@@ -257,12 +246,12 @@ function ProductsAdmin() {
           r.name && r.name.includes(" - ") ? r.name.split(" - ").pop() || r.name : r.name,
         )
         .filter((s): s is string => !!s);
-      return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "ru"));
+      return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "en"));
     }
 
     return Array.from(
       new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s)),
-    ).sort((a, b) => a.localeCompare(b, "ru"));
+    ).sort((a, b) => a.localeCompare(b, "en"));
   }, [inCategory, hasSub, filter]);
   const visible = useMemo(() => {
     let list = inCategory;
