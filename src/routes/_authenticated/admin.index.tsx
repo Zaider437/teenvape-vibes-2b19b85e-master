@@ -448,7 +448,13 @@ function ProductsAdmin() {
   async function updateStockQty(row: ProductRow, newQty: number) {
     try {
       await updateStock({ data: { id: row.id, stock_quantity: newQty } });
-      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, stock_quantity: newQty } : r)));
+      const nextActive =
+        newQty === 0 ? false : row.stock_quantity === 0 && newQty > 0 ? true : row.is_active;
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === row.id ? { ...r, stock_quantity: newQty, is_active: nextActive } : r,
+        ),
+      );
       invalidateProductsCache();
       toast.success("Количество обновлено");
     } catch (e: any) {

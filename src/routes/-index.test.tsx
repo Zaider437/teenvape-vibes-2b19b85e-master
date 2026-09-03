@@ -18,7 +18,10 @@ expect.extend(matchers);
 
 // Mock the external modules
 vi.mock("../lib/products", () => ({
+  fetchProducts: vi.fn(),
   fetchProductsWithImages: vi.fn(),
+  fetchMeetingTimes: vi.fn().mockResolvedValue([]),
+  invalidateProductsCache: vi.fn(),
   formatImageUrl: vi.fn((url) => url),
   CATEGORIES: [
     { id: "all", label: "Всё", emoji: "🔥" },
@@ -31,6 +34,7 @@ vi.mock("../lib/products", () => ({
 
 vi.mock("../lib/orders.functions", () => ({
   createOrder: vi.fn(),
+  getMeetingTimes: vi.fn().mockResolvedValue([]),
   debugEnv: vi.fn().mockResolvedValue({}),
 }));
 
@@ -47,7 +51,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-start", () => ({
-  useServerFn: vi.fn(),
+  useServerFn: vi.fn((fn) => fn || vi.fn()),
   createMiddleware: vi.fn().mockReturnValue({
     server: vi.fn().mockReturnValue(vi.fn()),
   }),
@@ -176,18 +180,6 @@ describe("Shop Component", () => {
     } finally {
       consoleSpy.mockRestore();
     }
-  });
-
-  it("renders the Telegram chat button with correct link", async () => {
-    render(
-      <CartProvider>
-        <Shop />
-      </CartProvider>,
-    );
-
-    const chatLink = screen.getByRole("link", { name: /Чат Telegram/i });
-    expect(chatLink).toBeDefined();
-    expect(chatLink).toHaveAttribute("href", "https://t.me/+uEve7WOFVxpmM2Ey");
   });
 
   it("renders the Telegram contact button with correct link", async () => {

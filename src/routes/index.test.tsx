@@ -6,7 +6,7 @@
 import { describe, it, vi, beforeEach, expect } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { Shop } from "./index";
-import { fetchProducts } from "../lib/products";
+import { fetchProducts, fetchProductsWithImages } from "../lib/products";
 import { createOrder } from "../lib/orders.functions";
 import { CartProvider } from "../lib/cart";
 import React from "react";
@@ -19,6 +19,9 @@ expect.extend(matchers);
 // Mock the external modules
 vi.mock("../lib/products", () => ({
   fetchProducts: vi.fn(),
+  fetchProductsWithImages: vi.fn(),
+  fetchMeetingTimes: vi.fn().mockResolvedValue([]),
+  invalidateProductsCache: vi.fn(),
   formatImageUrl: vi.fn((url) => url),
   CATEGORIES: [
     { id: "all", label: "Всё", emoji: "🔥" },
@@ -31,6 +34,7 @@ vi.mock("../lib/products", () => ({
 
 vi.mock("../lib/orders.functions", () => ({
   createOrder: vi.fn(),
+  getMeetingTimes: vi.fn().mockResolvedValue([]),
   debugEnv: vi.fn().mockResolvedValue({}),
 }));
 
@@ -47,7 +51,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-start", () => ({
-  useServerFn: vi.fn(),
+  useServerFn: vi.fn((fn) => fn || vi.fn()),
   createMiddleware: vi.fn().mockReturnValue({
     server: vi.fn().mockReturnValue(vi.fn()),
   }),
@@ -75,6 +79,7 @@ describe("Shop Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(fetchProducts).mockResolvedValue(mockProducts);
+    vi.mocked(fetchProductsWithImages).mockResolvedValue(mockProducts);
   });
 
   it("renders the shop with products and categories", async () => {
@@ -163,6 +168,7 @@ describe("Shop Component", () => {
     try {
       const { toast } = await import("sonner");
       vi.mocked(fetchProducts).mockRejectedValueOnce(new Error("Network error"));
+      vi.mocked(fetchProductsWithImages).mockRejectedValueOnce(new Error("Network error"));
 
       render(
         <CartProvider>

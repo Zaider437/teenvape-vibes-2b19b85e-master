@@ -411,7 +411,14 @@ export const adminUpdateStock = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin
       .from("products" as any)
-      .update({ stock_quantity: data.stock_quantity })
+      .update({
+        stock_quantity: data.stock_quantity,
+        ...(data.stock_quantity === 0
+          ? { is_active: false }
+          : oldStock === 0 && data.stock_quantity > 0
+          ? { is_active: true }
+          : {}),
+      })
       .eq("id", data.id);
     if (error) throw error;
 

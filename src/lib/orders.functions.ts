@@ -105,11 +105,46 @@ export const createOrder = createServerFn({ method: "POST" })
 
     const env = ctx?.cloudflare?.env || ctx?.env || {};
     const notifyEmail = env.NOTIFY_EMAIL || getEnv("NOTIFY_EMAIL") || "375333631370moroz@gmail.com";
-    // SECURITY: never trust client-supplied prices. Recompute from the
-    // authoritative product catalog and reject unknown items.
-    const { fetchProductsWithImages } = await import("./products");
-    const dbProducts = await fetchProductsWithImages();
-    const byId = new Map(dbProducts.map((p) => [p.id, p]));
+    // Authoritative product catalog lookup by ID
+    const itemIds = data.items.map((i) => i.id).filter(Boolean);
+    let dbProducts: any[] = [];
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: prods, error: pErr } = await supabaseAdmin
+        .from("products" as any)
+        .select("*")
+        .in("id", itemIds);
+      if (!pErr && prods && prods.length > 0) {
+        dbProducts = prods;
+      }
+    } catch (e) {
+      console.warn("[createOrder] direct Supabase query failed, falling back", e);
+    }
+
+    if (dbProducts.length === 0) {
+      try {
+        const { fetchProducts } = await import("./products");
+        dbProducts = await fetchProducts();
+      } catch (e) {
+        console.warn("[createOrder] fallback fetchProducts failed", e);
+      }
+    }
+
+    const { formatImageUrl } = await import("./product-helpers");
+    const byId = new Map(
+      dbProducts.map((p) => [
+        p.id,
+        {
+          id: p.id,
+          name: p.name,
+          brand: p.brand || "",
+          price: p.price,
+          stock_quantity: p.stock_quantity ?? 0,
+          flavor: p.flavor || null,
+          image: formatImageUrl(p.image_url || p.image) || null,
+        },
+      ]),
+    );
 
     const trustedItems = data.items.map((i) => {
       const product = byId.get(i.id);
@@ -197,13 +232,12 @@ export const createOrder = createServerFn({ method: "POST" })
       console.warn("[order] Failed to persist order to Supabase, relying on in-memory cache", err);
     }
 
-    // Build cancellation link from the current request origin.
+    // Build cancellation link from the request origin or fallback
     let cancelUrl: string | undefined;
-    let clientOrigin = "https://zaider437-teenvape-vibes-2b19b85e.workers.dev";
+    let clientOrigin = "https://vape-vibe.lovable.app";
     try {
-      clientOrigin = data.origin || clientOrigin;
-      if (clientOrigin.includes("localhost") || clientOrigin.includes("127.0.0.1")) {
-        clientOrigin = "https://zaider437-teenvape-vibes-2b19b85e.workers.dev";
+      if (data.origin && !data.origin.includes("zaider437-teenvape-vibes-2b19b85e.workers.dev")) {
+        clientOrigin = data.origin;
       }
       cancelUrl = `${clientOrigin}/order-cancel?token=${cancellationToken}`;
     } catch (err) {
@@ -264,16 +298,22 @@ ${data.customer_note ? `<p>Note: ${data.customer_note}</p>` : ""}
       console.warn("[order] telegram notification skipped:", err);
     }
 
-    // Decrement stock quantities for ordered products
+    // Decrement stock quantities for ordered products and auto-deactivate when stock hits 0
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       for (const item of trustedItems) {
         const dbProduct = byId.get(item.id);
         if (dbProduct && dbProduct.stock_quantity !== undefined) {
           const newQty = Math.max(0, dbProduct.stock_quantity - item.qty);
+          const updateData: { stock_quantity: number; is_active?: boolean } = {
+            stock_quantity: newQty,
+          };
+          if (newQty === 0) {
+            updateData.is_active = false;
+          }
           await supabaseAdmin
             .from("products" as any)
-            .update({ stock_quantity: newQty })
+            .update(updateData)
             .eq("id", item.id);
         }
       }
@@ -332,7 +372,10 @@ async function sendTelegramNotification(params: {
     params.customerNote && params.customerNote.trim()
       ? params.customerNote
       : "... не определен ...";
-  const origin = params.origin || "https://zaider437-teenvape-vibes-2b19b85e.workers.dev";
+  const origin =
+    params.origin && !params.origin.includes("zaider437-teenvape-vibes-2b19b85e.workers.dev")
+      ? params.origin
+      : "https://vape-vibe.lovable.app";
 
   const itemsHtml = params.items
     .map(
@@ -357,11 +400,14 @@ async function sendTelegramNotification(params: {
     lines.push(``, `🔗 Ссылка для отмены заказа:`, params.cancelUrl);
   }
 
+  // Filter media for valid publicly accessible URLs
+  const isLocalHost = origin.includes("localhost") || origin.includes("127.0.0.1");
   const media = params.items
     .filter((i) => i.image)
     .map((i) => {
       let imageUrl = i.image!;
       if (!imageUrl.startsWith("http")) {
+        if (isLocalHost) return null;
         imageUrl = `${origin}${imageUrl}`;
       }
       const caption = `<b>${escapeHtml(i.name)}</b>\n${i.flavor ? `Вкус: ${escapeHtml(i.flavor)}\n` : ""}${i.qty} шт. × ${i.price.toFixed(2)} BYN = ${(i.price * i.qty).toFixed(2)} BYN`;
@@ -372,50 +418,80 @@ async function sendTelegramNotification(params: {
         parse_mode: "HTML" as const,
       };
     })
+    .filter((m): m is NonNullable<typeof m> => m !== null)
     .slice(0, 10);
 
+  // Send photo(s) if available (best-effort, does not block message)
   try {
-    if (media.length > 0) {
+    if (media.length === 1) {
+      const photoController = new AbortController();
+      const photoTimeout = setTimeout(() => photoController.abort(), 6000);
+      try {
+        await fetch(`https://api.telegram.org/bot${tgKey}/sendPhoto`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            photo: media[0].media,
+            caption: media[0].caption,
+            parse_mode: "HTML",
+          }),
+          signal: photoController.signal,
+        });
+      } finally {
+        clearTimeout(photoTimeout);
+      }
+    } else if (media.length >= 2) {
       const mediaController = new AbortController();
       const mediaTimeout = setTimeout(() => mediaController.abort(), 6000);
       try {
-        const mediaRes = await fetch(`https://api.telegram.org/bot${tgKey}/sendMediaGroup`, {
+        await fetch(`https://api.telegram.org/bot${tgKey}/sendMediaGroup`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: chatId,
             media: media,
           }),
           signal: mediaController.signal,
         });
+      } finally {
         clearTimeout(mediaTimeout);
-        if (!mediaRes.ok) {
-          console.warn(
-            "[order] telegram media group failed",
-            mediaRes.status,
-            await mediaRes.text(),
-          );
-        }
-      } catch (err) {
-        clearTimeout(mediaTimeout);
-        console.warn("[order] telegram media group error:", err);
       }
     }
+  } catch (err) {
+    console.warn("[order] telegram photo(s) send skipped:", err);
+  }
 
+  // Always send the main order text message
+  try {
     const textController = new AbortController();
     const textTimeout = setTimeout(() => textController.abort(), 8000);
+
+    const bodyPayload: any = {
+      chat_id: chatId,
+      text: lines.join("\n"),
+      parse_mode: "HTML",
+    };
+
+    if (params.cancelUrl) {
+      bodyPayload.reply_markup = {
+        inline_keyboard: [
+          [
+            {
+              text: "❌ Отменить заказ",
+              url: params.cancelUrl,
+            },
+          ],
+        ],
+      };
+    }
+
     const textRes = await fetch(`https://api.telegram.org/bot${tgKey}/sendMessage`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: lines.join("\n"),
-        parse_mode: "HTML",
-      }),
+      body: JSON.stringify(bodyPayload),
       signal: textController.signal,
     });
     clearTimeout(textTimeout);
@@ -426,6 +502,62 @@ async function sendTelegramNotification(params: {
     return true;
   } catch (err) {
     console.warn("[order] telegram fetch failed or timed out", err);
+    return false;
+  }
+}
+
+async function sendTelegramCancellationNotification(params: {
+  orderId: string;
+  customerName: string;
+  customerAddress: string;
+  items: Array<{ name: string; brand?: string; qty: number; price?: number; flavor?: string | null }>;
+  total?: number;
+  env?: any;
+}) {
+  const tgKey =
+    params.env?.TELEGRAM_API_KEY ||
+    getEnv("TELEGRAM_API_KEY") ||
+    "8777027201:AAFD8QYw5ita5wIzYFRJTS4LH75DF6eU1jo";
+  const chatId = (
+    params.env?.TELEGRAM_CHAT_ID ||
+    getEnv("TELEGRAM_CHAT_ID") ||
+    "-1004456309860"
+  )?.trim();
+  if (!tgKey || !chatId) return false;
+
+  const itemsHtml = (params.items || [])
+    .map(
+      (i) =>
+        `• ${escapeHtml(i.name)}${i.brand ? ` (${escapeHtml(i.brand)})` : ""}${i.flavor ? `, вкус: ${escapeHtml(i.flavor)}` : ""}; ${i.qty} шт.`,
+    )
+    .join("\n");
+
+  const lines = [
+    `❌ <b>Заказ отменён</b> #${escapeHtml(params.orderId.slice(0, 8))}`,
+    `👤 ID в Telegram: ${escapeHtml(params.customerName)}`,
+    `📍 Время встречи: ${escapeHtml(params.customerAddress)}`,
+    ``,
+    `🛒 <b>Состав отменённой заявки:</b>`,
+    itemsHtml || "• Состав не указан",
+    ``,
+    `💰 <b>Сумма отмены: ${Number(params.total || 0).toFixed(2)} BYN</b>`,
+    `♻️ <i>Товар автоматически возвращён в админку и снова доступен.</i>`,
+  ];
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${tgKey}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: lines.join("\n"),
+        parse_mode: "HTML",
+      }),
+      signal: AbortSignal.timeout(6000),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn("[cancelOrder] telegram cancel notification failed:", err);
     return false;
   }
 }
@@ -482,18 +614,7 @@ export const getOrderByToken = createServerFn({ method: "GET" })
       };
     }
 
-    return {
-      id: "mock-order-id",
-      customer_name: "@telegram_user",
-      customer_address: "18:00",
-      customer_note: "Сдача не нужна",
-      items: [
-        { name: "Тестовый товар", brand: "", qty: 1, price: 15.0, flavor: null, image: null },
-      ],
-      total_amount: 15.0,
-      status: "new",
-      created_at: new Date().toISOString(),
-    };
+    return null;
   });
 
 export const cancelOrder = createServerFn({ method: "POST" })
@@ -521,40 +642,55 @@ export const cancelOrder = createServerFn({ method: "POST" })
       orderToCancel = ordersCache.get(data.token);
     }
 
-    if (orderToCancel && orderToCancel.status !== "cancelled") {
-      const items =
-        typeof orderToCancel.items === "string"
-          ? JSON.parse(orderToCancel.items)
-          : orderToCancel.items;
-      const productIds = items.map((i: any) => i.id).filter(Boolean);
+    if (!orderToCancel) {
+      return { success: false, error: "Заказ не найден" };
+    }
 
-      if (productIds.length > 0) {
-        try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data: products } = await supabaseAdmin
-            .from("products" as any)
-            .select("id, stock_quantity")
-            .in("id", productIds);
+    if (orderToCancel.status === "cancelled") {
+      return { success: true, alreadyCancelled: true };
+    }
 
-          if (products) {
-            const updates = products.map((p: any) => ({
-              id: p.id,
-              stock_quantity: Math.max(
-                0,
-                (p.stock_quantity ?? 0) + (items.find((i: any) => i.id === p.id)?.qty ?? 0),
-              ),
-            }));
+    const items =
+      typeof orderToCancel.items === "string"
+        ? JSON.parse(orderToCancel.items)
+        : orderToCancel.items || [];
 
-            for (const update of updates) {
+    // Sum quantities per product ID
+    const qtyByProduct = new Map<string, number>();
+    for (const i of items) {
+      if (i.id) {
+        qtyByProduct.set(i.id, (qtyByProduct.get(i.id) ?? 0) + (Number(i.qty) || 1));
+      }
+    }
+
+    const productIds = Array.from(qtyByProduct.keys());
+
+    // Restore stock and reactivate product if it was zero-stock
+    if (productIds.length > 0) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: products } = await supabaseAdmin
+          .from("products" as any)
+          .select("id, stock_quantity")
+          .in("id", productIds);
+
+        if (products) {
+          for (const p of products) {
+            const returnQty = qtyByProduct.get(p.id) ?? 0;
+            if (returnQty > 0) {
+              const newStock = Math.max(0, (p.stock_quantity ?? 0) + returnQty);
               await supabaseAdmin
                 .from("products" as any)
-                .update({ stock_quantity: update.stock_quantity })
-                .eq("id", update.id);
+                .update({
+                  stock_quantity: newStock,
+                  ...(newStock > 0 ? { is_active: true } : {}),
+                })
+                .eq("id", p.id);
             }
           }
-        } catch (err) {
-          console.warn("[cancelOrder] Failed to restore stock:", err);
         }
+      } catch (err) {
+        console.warn("[cancelOrder] Failed to restore stock:", err);
       }
     }
 
@@ -567,29 +703,33 @@ export const cancelOrder = createServerFn({ method: "POST" })
 
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error } = await supabaseAdmin
+      await supabaseAdmin
         .from("orders" as any)
         .update({ status: "cancelled" })
         .eq("cancellation_token", data.token);
-
-      if (!error) {
-        const order = ordersCache.get(data.token);
-        if (order) {
-          order.status = "cancelled";
-          ordersCache.set(data.token, order);
-        }
-        return { success: true, alreadyCancelled: false };
-      }
     } catch (err) {
-      console.warn("[cancelOrder] Failed to update Supabase, falling back to cache", err);
+      console.warn("[cancelOrder] Failed to update status in Supabase:", err);
     }
 
-    const order = ordersCache.get(data.token);
-    if (order) {
-      order.status = "cancelled";
-      ordersCache.set(data.token, order);
-      return { success: true, alreadyCancelled: false };
+    const cached = ordersCache.get(data.token);
+    if (cached) {
+      cached.status = "cancelled";
+      ordersCache.set(data.token, cached);
     }
+
+    // Send Telegram cancellation notice
+    try {
+      await sendTelegramCancellationNotification({
+        orderId: orderToCancel.id,
+        customerName: orderToCancel.customer_name,
+        customerAddress: orderToCancel.customer_address,
+        items,
+        total: orderToCancel.total_amount,
+      });
+    } catch (err) {
+      console.warn("[cancelOrder] telegram cancel notification failed:", err);
+    }
+
     return { success: true, alreadyCancelled: false };
   });
 

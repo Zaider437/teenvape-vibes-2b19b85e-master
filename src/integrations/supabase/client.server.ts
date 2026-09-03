@@ -54,11 +54,18 @@ function createSupabaseAdminFetch(supabaseKey: string, publishableKey: string): 
 }
 
 function createSupabaseAdminClient() {
+  const DEFAULT_SUPABASE_URL = "https://ueazjqvxjlppgtkhcmut.supabase.co";
+  const DEFAULT_SUPABASE_SECRET =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlYXpqcXZ4amxwcGd0a2hjbXV0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDIwODYyOCwiZXhwIjoyMDk5Nzg0NjI4fQ.00jpKdMnw4YbC6jluVP1mvZDT574kCLHUN1Mrz0JT5o";
+  const DEFAULT_SUPABASE_PUBLISHABLE =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlYXpqcXZ4amxwcGd0a2hjbXV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDg2MjgsImV4cCI6MjA5OTc4NDYyOH0.jyJjCPse3Woz3ghOs3exBEGMImG7SSsa69BTlCvVx50";
+
   const SUPABASE_URL =
     (globalThis as any).SUPABASE_URL ||
     (globalThis as any).env?.SUPABASE_URL ||
     (globalThis as any).__env__?.SUPABASE_URL ||
-    process.env.SUPABASE_URL;
+    process.env.SUPABASE_URL ||
+    DEFAULT_SUPABASE_URL;
   const SUPABASE_SERVICE_ROLE_KEY =
     (globalThis as any).SUPABASE_SERVICE_ROLE_KEY ||
     (globalThis as any).SUPABASE_SECRET_KEY ||
@@ -67,12 +74,14 @@ function createSupabaseAdminClient() {
     (globalThis as any).__env__?.SUPABASE_SERVICE_ROLE_KEY ||
     (globalThis as any).__env__?.SUPABASE_SECRET_KEY ||
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SECRET_KEY;
+    process.env.SUPABASE_SECRET_KEY ||
+    DEFAULT_SUPABASE_SECRET;
   const SUPABASE_PUBLISHABLE_KEY =
     (globalThis as any).SUPABASE_PUBLISHABLE_KEY ||
     (globalThis as any).env?.SUPABASE_PUBLISHABLE_KEY ||
     (globalThis as any).__env__?.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_PUBLISHABLE_KEY;
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    DEFAULT_SUPABASE_PUBLISHABLE;
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     const missing = [

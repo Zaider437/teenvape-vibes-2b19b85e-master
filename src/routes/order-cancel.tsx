@@ -163,7 +163,11 @@ export function OrderCancelPage() {
                 {order.items.map((i, idx) => (
                   <div key={idx} className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      {i.name} ({i.brand}){i.flavor ? `, ${i.flavor}` : ""} × {i.qty}
+                      <span>
+                        {i.name}
+                        {i.brand ? ` (${i.brand})` : ""}
+                      </span>
+                      {i.flavor ? `, ${i.flavor}` : ""} × {i.qty}
                     </span>
                     <span className="font-semibold">{(i.price * i.qty).toFixed(2)} BYN</span>
                   </div>
