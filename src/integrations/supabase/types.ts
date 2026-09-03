@@ -92,6 +92,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      manufacturers: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          id: string;
+          image_url: string | null;
+          is_active: boolean;
+          name: string;
+          slug: string;
+          sort_order: number;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          image_url?: string | null;
+          is_active?: boolean;
+          name: string;
+          slug: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          image_url?: string | null;
+          is_active?: boolean;
+          name?: string;
+          slug?: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       products: {
         Row: {
           brand: string;
@@ -102,7 +138,9 @@ export type Database = {
           flavor: string | null;
           id: string;
           image_url: string | null;
+          in_stock: boolean;
           is_active: boolean;
+          manufacturer_id: string | null;
           name: string;
           price: number;
           puffs: string | null;
@@ -122,7 +160,9 @@ export type Database = {
           flavor?: string | null;
           id?: string;
           image_url?: string | null;
+          in_stock?: boolean;
           is_active?: boolean;
+          manufacturer_id?: string | null;
           name: string;
           price: number;
           puffs?: string | null;
@@ -142,7 +182,9 @@ export type Database = {
           flavor?: string | null;
           id?: string;
           image_url?: string | null;
+          in_stock?: boolean;
           is_active?: boolean;
+          manufacturer_id?: string | null;
           name?: string;
           price?: number;
           puffs?: string | null;

@@ -16,6 +16,24 @@ export const Route = createFileRoute("/sitemap.xml")({
       GET: async () => {
         const entries: SitemapEntry[] = [{ path: "/", changefreq: "weekly", priority: "1.0" }];
 
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: manufacturers } = await (supabaseAdmin
+            .from("manufacturers" as any)
+            .select("slug, updated_at")
+            .eq("is_active", true) as any);
+          for (const m of manufacturers ?? []) {
+            entries.push({
+              path: `/b/${m.slug}`,
+              lastmod: m.updated_at,
+              changefreq: "weekly",
+              priority: "0.8",
+            });
+          }
+        } catch {
+          // ignore
+        }
+
         const urls = entries.map((e) =>
           [
             `  <url>`,

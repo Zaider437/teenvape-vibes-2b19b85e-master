@@ -1,4 +1,5 @@
 import { buildDescription, formatImageUrl } from "./product-helpers";
+import { z } from "zod";
 
 export type Product = {
   id: string;
@@ -17,6 +18,7 @@ export type Product = {
   sort_order: number;
   stock_quantity?: number;
   description?: string | null;
+  manufacturer_id?: string | null;
 };
 
 export const PRODUCTS: Product[] = [
@@ -576,6 +578,7 @@ export async function fetchProducts(): Promise<Product[]> {
             sort_order: p.sort_order,
             stock_quantity: p.stock_quantity ?? 0,
             description: buildDescription(p),
+            manufacturer_id: p.manufacturer_id,
           };
         });
         const active = mapped.filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
@@ -705,8 +708,74 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" })
         sort_order: p.sort_order,
         stock_quantity: p.stock_quantity ?? 0,
         description: buildDescription(p),
+        manufacturer_id: p.manufacturer_id,
       })),
     );
 
     return mapped.filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
+  });
+
+export type ProductsByManufacturerResult = {
+  manufacturer: { id: string; name: string; slug: string } | null;
+  products: Product[];
+};
+
+export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => z.object({ slug: z.string().trim().min(1) }).parse(input))
+  .handler(async ({ data }) => {
+    let supabaseAdmin: ReturnType<typeof import("@/integrations/supabase/client.server").supabaseAdmin> | null = null;
+    try {
+      const mod = await import("@/integrations/supabase/client.server");
+      supabaseAdmin = mod.supabaseAdmin;
+    } catch {
+      // ignore
+    }
+
+    const useAdmin = !!supabaseAdmin;
+    const client = useAdmin ? supabaseAdmin : await import("@/integrations/supabase/client").then(m => m.supabase);
+
+    const { data: mfr, error: mfrError } = await client
+      .from("manufacturers" as any)
+      .select("id, name, slug")
+      .eq("slug", data.slug)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (mfrError) throw mfrError;
+
+    const manufacturer = mfr ? { id: (mfr as any).id, name: (mfr as any).name, slug: (mfr as any).slug } : null;
+    if (!manufacturer) {
+      return { manufacturer: null, products: [] };
+    }
+
+    const { data: products, error: productsError } = await client
+      .from("products" as any)
+      .select("*")
+      .eq("manufacturer_id", manufacturer.id)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+
+    if (productsError) throw productsError;
+
+    const mapped = (products ?? []).map((p: any) => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      brand: p.brand,
+      category: p.category,
+      price: p.price,
+      flavor: p.flavor,
+      puffs: p.puffs,
+      volume: p.volume,
+      emoji: p.emoji,
+      color: p.color,
+      image: formatImageUrl(p.image_url),
+      is_active: p.is_active !== false,
+      sort_order: p.sort_order,
+      stock_quantity: p.stock_quantity ?? 0,
+      description: buildDescription(p),
+      manufacturer_id: p.manufacturer_id,
+    }));
+
+    return { manufacturer, products: mapped };
   });

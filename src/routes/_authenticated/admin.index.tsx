@@ -25,6 +25,7 @@ import {
   adminUploadProductImage,
   adminBulkUpdateImage,
   adminBulkUpdateBrand,
+  adminListManufacturers,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
 import { compressImageFile } from "@/lib/image-compression";
@@ -58,6 +59,7 @@ type ProductRow = {
   sort_order: number;
   stock_quantity: number;
   subcategory?: string | null;
+  manufacturer_id?: string | null;
 };
 
 type Draft = {
@@ -78,6 +80,7 @@ type Draft = {
   sort_order: string;
   stock_quantity: string;
   subcategory?: string;
+  manufacturer_id?: string;
 };
 
 const EMPTY: Draft = {
@@ -96,6 +99,7 @@ const EMPTY: Draft = {
   is_active: true,
   sort_order: "0",
   stock_quantity: "0",
+  manufacturer_id: "",
 };
 
 export const Route = createFileRoute("/_authenticated/admin/")({
@@ -120,6 +124,7 @@ function ProductsAdmin() {
   const remove = useServerFn(adminDeleteProduct);
   const toggle = useServerFn(adminToggleActive);
   const updateStock = useServerFn(adminUpdateStock);
+  const listManufacturers = useServerFn(adminListManufacturers);
 
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,6 +150,13 @@ function ProductsAdmin() {
   const [moveCopySubcategory, setMoveCopySubcategory] = useState<string>("");
   const [moveCopyCustomSubcategory, setMoveCopyCustomSubcategory] = useState(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
+  const [manufacturers, setManufacturers] = useState<{ id: string; name: string; slug: string }[]>([]);
+
+  useEffect(() => {
+    listManufacturers()
+      .then((data) => setManufacturers(data as any))
+      .catch(() => {});
+  }, []);
 
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(rows.map((r) => r.category)));
@@ -296,6 +308,7 @@ function ProductsAdmin() {
       sort_order: String(row.sort_order),
       stock_quantity: String(row.stock_quantity ?? 0),
       subcategory: row.subcategory ?? "",
+      manufacturer_id: row.manufacturer_id ?? "",
     });
   }
 
@@ -324,6 +337,7 @@ function ProductsAdmin() {
       sort_order: Number(draft.sort_order) || 0,
       stock_quantity: Number(draft.stock_quantity) || 0,
       subcategory: draft.subcategory || null,
+      manufacturer_id: draft.manufacturer_id || null,
     };
 
     // Optimistically update local state instantly
@@ -360,6 +374,7 @@ function ProductsAdmin() {
           sort_order: Number(draft.sort_order) || 0,
           subcategory: draft.subcategory,
           stock_quantity: Number(draft.stock_quantity) || 0,
+          manufacturer_id: draft.manufacturer_id || null,
         },
       });
       toast.success(isEdit ? "Сохранено" : "Товар добавлен");
@@ -845,6 +860,7 @@ function ProductsAdmin() {
           onCancel={() => setDraft(null)}
           onSave={save}
           rows={rows}
+          manufacturers={manufacturers}
         />
       )}
 
@@ -1138,12 +1154,14 @@ function DraftEditor({
   onCancel,
   onSave,
   rows,
+  manufacturers,
 }: {
   draft: Draft;
   onChange: (d: Draft) => void;
   onCancel: () => void;
   onSave: () => void;
   rows: ProductRow[];
+  manufacturers: { id: string; name: string; slug: string }[];
 }) {
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => onChange({ ...draft, [k]: v });
@@ -1231,7 +1249,39 @@ function DraftEditor({
           id="name"
           name="name"
         />
-        <F label="Бренд" v={draft.brand} on={(v) => set("brand", v)} id="brand" name="brand" />
+        <label className="block">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Производитель
+          </span>
+          <select
+            id="manufacturer_id"
+            name="manufacturer_id"
+            value={draft.manufacturer_id || ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              set("manufacturer_id", val);
+              if (val) {
+                const m = manufacturers.find((x) => x.id === val);
+                if (m) set("brand", m.name);
+              }
+            }}
+            className="mt-1 w-full bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm"
+          >
+            <option value="">— Без производителя —</option>
+            {manufacturers.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} (/b/{m.slug})
+              </option>
+            ))}
+          </select>
+        </label>
+        <F
+          label="Бренд (текст)"
+          v={draft.brand}
+          on={(v) => set("brand", v)}
+          id="brand"
+          name="brand"
+        />
         <F
           label="Подкатегория (опционально)"
           v={draft.subcategory || ""}

@@ -81,6 +81,7 @@ const productSchema = z.object({
   is_active: z.boolean(),
   sort_order: z.number().int(),
   stock_quantity: z.number().int().nonnegative(),
+  manufacturer_id: z.string().trim().max(1000).optional().nullable(),
 });
 
 type ProductField =
@@ -99,7 +100,8 @@ type ProductField =
   | "description"
   | "is_active"
   | "sort_order"
-  | "stock_quantity";
+  | "stock_quantity"
+  | "manufacturer_id";
 
 function diffProductFields(
   oldData: Record<string, any>,
@@ -122,6 +124,7 @@ function diffProductFields(
     "is_active",
     "sort_order",
     "stock_quantity",
+    "manufacturer_id",
   ];
   const changes: { field: string; oldValue: any; newValue: any }[] = [];
   for (const f of fields) {
@@ -206,6 +209,7 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
       subcategory: data.subcategory?.trim() || null,
       image_url: data.image_url?.trim() || null,
       description: data.description?.trim() || null,
+      manufacturer_id: data.manufacturer_id?.trim() || null,
     };
 
     if (data.id && data.id.trim() !== "") {
@@ -865,6 +869,7 @@ export const adminRestoreProductFromActivity = createServerFn({ method: "POST" }
       is_active: true,
       sort_order: snapshot.sort_order ?? 0,
       stock_quantity: snapshot.stock_quantity ?? 0,
+      manufacturer_id: snapshot.manufacturer_id ?? null,
     };
 
     const { data: inserted, error: insertError } = await supabaseAdmin
@@ -888,4 +893,77 @@ export const adminRestoreProductFromActivity = createServerFn({ method: "POST" }
     });
 
     return { id: (inserted as any).id };
+  });
+
+const manufacturerSchema = z.object({
+  id: z.string().optional().nullable(),
+  name: z.string().trim().min(1).max(1000),
+  slug: z.string().trim().min(1).max(1000),
+  description: z.string().trim().max(4000).optional().nullable(),
+  image_url: z.string().trim().max(2000).optional().nullable(),
+  sort_order: z.number().int(),
+  is_active: z.boolean(),
+});
+
+export const adminListManufacturers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { data, error } = await context.supabase
+      .from("manufacturers" as any)
+      .select("*")
+      .order("sort_order", { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  });
+
+export const adminUpsertManufacturer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => manufacturerSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const row = {
+      name: data.name.trim(),
+      slug: data.slug.trim(),
+      description: data.description?.trim() || null,
+      image_url: data.image_url?.trim() || null,
+      sort_order: data.sort_order,
+      is_active: data.is_active,
+    };
+
+    if (data.id && data.id.trim() !== "") {
+      const { error } = await supabaseAdmin
+        .from("manufacturers" as any)
+        .update(row)
+        .eq("id", data.id);
+      if (error) throw error;
+      return { id: data.id };
+    }
+
+    const { data: inserted, error } = await supabaseAdmin
+      .from("manufacturers" as any)
+      .insert(row)
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    return { id: (inserted as unknown as { id: string }).id };
+  });
+
+export const adminDeleteManufacturer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { error } = await supabaseAdmin
+      .from("manufacturers" as any)
+      .delete()
+      .eq("id", data.id);
+    if (error) throw error;
+
+    return { ok: true };
   });

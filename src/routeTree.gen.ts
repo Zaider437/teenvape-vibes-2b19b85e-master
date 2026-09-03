@@ -13,12 +13,14 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as OrderCancelRouteImport } from './routes/order-cancel'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BSlugRouteImport } from './routes/b/$slug'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminRecentActionsRouteImport } from './routes/_authenticated/admin.recent-actions'
+import { Route as AuthenticatedAdminManufacturersRouteImport } from './routes/_authenticated/admin.manufacturers'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -37,6 +39,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BSlugRoute = BSlugRouteImport.update({
+  id: '/b/$slug',
+  path: '/b/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -71,6 +78,12 @@ const AuthenticatedAdminRecentActionsRoute =
     path: '/recent-actions',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminManufacturersRoute =
+  AuthenticatedAdminManufacturersRouteImport.update({
+    id: '/manufacturers',
+    path: '/manufacturers',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -78,6 +91,8 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/b/$slug': typeof BSlugRoute
+  '/admin/manufacturers': typeof AuthenticatedAdminManufacturersRoute
   '/admin/recent-actions': typeof AuthenticatedAdminRecentActionsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -88,6 +103,8 @@ export interface FileRoutesByTo {
   '/order-cancel': typeof OrderCancelRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/login': typeof AdminLoginRoute
+  '/b/$slug': typeof BSlugRoute
+  '/admin/manufacturers': typeof AuthenticatedAdminManufacturersRoute
   '/admin/recent-actions': typeof AuthenticatedAdminRecentActionsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -101,6 +118,8 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/b/$slug': typeof BSlugRoute
+  '/_authenticated/admin/manufacturers': typeof AuthenticatedAdminManufacturersRoute
   '/_authenticated/admin/recent-actions': typeof AuthenticatedAdminRecentActionsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -114,6 +133,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin'
     | '/admin/login'
+    | '/b/$slug'
+    | '/admin/manufacturers'
     | '/admin/recent-actions'
     | '/admin/settings'
     | '/admin/users'
@@ -124,6 +145,8 @@ export interface FileRouteTypes {
     | '/order-cancel'
     | '/sitemap.xml'
     | '/admin/login'
+    | '/b/$slug'
+    | '/admin/manufacturers'
     | '/admin/recent-actions'
     | '/admin/settings'
     | '/admin/users'
@@ -136,6 +159,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_authenticated/admin'
     | '/admin/login'
+    | '/b/$slug'
+    | '/_authenticated/admin/manufacturers'
     | '/_authenticated/admin/recent-actions'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/users'
@@ -148,6 +173,7 @@ export interface RootRouteChildren {
   OrderCancelRoute: typeof OrderCancelRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  BSlugRoute: typeof BSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -178,6 +204,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/b/$slug': {
+      id: '/b/$slug'
+      path: '/b/$slug'
+      fullPath: '/b/$slug'
+      preLoaderRoute: typeof BSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -222,10 +255,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRecentActionsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/manufacturers': {
+      id: '/_authenticated/admin/manufacturers'
+      path: '/manufacturers'
+      fullPath: '/admin/manufacturers'
+      preLoaderRoute: typeof AuthenticatedAdminManufacturersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminManufacturersRoute: typeof AuthenticatedAdminManufacturersRoute
   AuthenticatedAdminRecentActionsRoute: typeof AuthenticatedAdminRecentActionsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
@@ -233,6 +274,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminManufacturersRoute: AuthenticatedAdminManufacturersRoute,
   AuthenticatedAdminRecentActionsRoute: AuthenticatedAdminRecentActionsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
@@ -259,6 +301,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrderCancelRoute: OrderCancelRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminLoginRoute: AdminLoginRoute,
+  BSlugRoute: BSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

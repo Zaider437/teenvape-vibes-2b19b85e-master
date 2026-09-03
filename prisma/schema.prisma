@@ -9,28 +9,45 @@ datasource db {
 }
 
 model products {
-  id             String   @id @default(dbgenerated("gen_random_uuid()"))
-  slug           String   @unique
-  name           String
-  brand          String
-  category       String
-  price          Float
-  flavor         String?
-  puffs          String?
-  volume         String?
-  emoji          String   @default("🔥")
-  color          String   @default("pink")
-  image_url      String?
-  in_stock       Boolean  @default(true)
-  sort_order     Int      @default(0)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
-  subcategory    String?
-  description    String?
-  is_active      Boolean  @default(true)
-  stock_quantity Int      @default(0)
+  id               String    @id @default(dbgenerated("gen_random_uuid()"))
+  slug             String    @unique
+  name             String
+  brand            String
+  category         String
+  price            Float
+  flavor           String?
+  puffs            String?
+  volume           String?
+  emoji            String   @default("🔥")
+  color            String   @default("pink")
+  image_url        String?
+  in_stock         Boolean  @default(true)
+  sort_order       Int      @default(0)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  subcategory      String?
+  description      String?
+  is_active        Boolean  @default(true)
+  stock_quantity   Int      @default(0)
+  manufacturer_id  String?
+  manufacturer     manufacturers? @relation(fields: [manufacturer_id], references: [id], onDelete: SET NULL)
 
   @@map("products")
+}
+
+model manufacturers {
+  id          String    @id @default(dbgenerated("gen_random_uuid()"))
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  image_url   String?
+  sort_order  Int       @default(0)
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  products    products[]
+
+  @@map("manufacturers")
 }
 
 model orders {
