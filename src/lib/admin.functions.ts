@@ -279,7 +279,17 @@ export const adminUploadProductImage = createServerFn({ method: "POST" })
     ];
     const originalName = file.name || `image.${Date.now()}`;
     const ext = originalName.split(".").pop()?.toLowerCase() || "";
-    const knownImageExts = new Set(["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "tiff", "bmp"]);
+    const knownImageExts = new Set([
+      "jpg",
+      "jpeg",
+      "png",
+      "webp",
+      "gif",
+      "heic",
+      "heif",
+      "tiff",
+      "bmp",
+    ]);
     const hasKnownImageExt = knownImageExts.has(ext);
 
     if (file.type && !allowedTypes.includes(file.type) && !hasKnownImageExt) {
@@ -420,8 +430,8 @@ export const adminUpdateStock = createServerFn({ method: "POST" })
         ...(data.stock_quantity === 0
           ? { is_active: false }
           : oldStock === 0 && data.stock_quantity > 0
-          ? { is_active: true }
-          : {}),
+            ? { is_active: true }
+            : {}),
       })
       .eq("id", data.id);
     if (error) throw error;
@@ -555,6 +565,26 @@ export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
 
     const baseSlug = (src.slug || "").trim() || `product-${Date.now()}`;
     const newSlug = `${baseSlug}-copy-${Date.now()}`;
+
+    let newSortOrder = src.sort_order;
+    const { data: categoryProducts } = await supabaseAdmin
+      .from("products" as any)
+      .select("id, sort_order")
+      .eq("category", data.targetCategory)
+      .order("sort_order", { ascending: true });
+
+    const sourceIndex = categoryProducts.findIndex((p: any) => p.id === data.id);
+    if (sourceIndex >= 0) {
+      if (sourceIndex < (categoryProducts as any).length - 1) {
+        const nextSortOrder = (categoryProducts[sourceIndex + 1] as any).sort_order;
+        newSortOrder = (src.sort_order + nextSortOrder) / 2;
+      } else {
+        newSortOrder = src.sort_order + 1;
+      }
+    } else {
+      newSortOrder = src.sort_order + 1;
+    }
+
     const { error: insertError } = await supabaseAdmin.from("products" as any).insert({
       slug: newSlug,
       name: "Копия: " + src.name,
@@ -570,7 +600,7 @@ export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
       image_url: src.image_url,
       description: src.description,
       is_active: src.is_active,
-      sort_order: src.sort_order,
+      sort_order: newSortOrder,
     });
     if (insertError) throw insertError;
 

@@ -149,7 +149,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       const aSort = manufacturerSortMap.get(a) ?? Number.MAX_SAFE_INTEGER;
       const bSort = manufacturerSortMap.get(b) ?? Number.MAX_SAFE_INTEGER;
       if (aSort !== bSort) return aSort - bSort;
-      return a.localeCompare(b);
+      return a.localeCompare(b, "ru");
     });
   }, [inCategory, hasSubfilters, manufacturers, category]);
 
@@ -232,19 +232,23 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
     }
     const q = query.trim().toLowerCase();
     if (!q) {
-      return list.filter(
-        (p) => (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0,
-      );
+      return list
+        .filter((p) => (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0)
+        .sort(
+          (a, b) => (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name),
+        );
     }
-    return list.filter((p) => {
-      const hay = [p.name, p.brand, p.flavor, p.puffs, p.volume]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return (
-        hay.includes(q) && (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0
-      );
-    });
+    return list
+      .filter((p) => {
+        const hay = [p.name, p.brand, p.flavor, p.puffs, p.volume]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return (
+          hay.includes(q) && (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0
+        );
+      })
+      .sort((a, b) => (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name));
   }, [inCategory, hasSubfilters, brand, flavor, category, query, cartQtyByProduct]);
 
   return (

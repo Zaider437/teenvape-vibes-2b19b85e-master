@@ -234,7 +234,7 @@ function ProductsAdmin() {
       const aSort = sortMap.get(a) ?? Number.MAX_SAFE_INTEGER;
       const bSort = sortMap.get(b) ?? Number.MAX_SAFE_INTEGER;
       if (aSort !== bSort) return aSort - bSort;
-      return a.localeCompare(b);
+      return a.localeCompare(b, "ru");
     });
   }, [inCategory, hasSub, manufacturers, filter]);
   const flavorOptions = useMemo(() => {
@@ -257,13 +257,13 @@ function ProductsAdmin() {
           r.name && r.name.includes(" - ") ? r.name.split(" - ").pop() || r.name : r.name,
         )
         .filter((s): s is string => !!s);
-      return Array.from(new Set(values)).sort();
+      return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "ru"));
     }
+
     return Array.from(
       new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s)),
-    ).sort();
+    ).sort((a, b) => a.localeCompare(b, "ru"));
   }, [inCategory, hasSub, filter]);
-
   const visible = useMemo(() => {
     let list = inCategory;
     if (hasSub) {
@@ -286,14 +286,20 @@ function ProductsAdmin() {
       }
     }
     const q = query.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((r) => {
-      const hay = [r.name, r.brand, r.flavor, r.puffs, r.volume]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
-    });
+    if (!q) {
+      return list.sort(
+        (a, b) => (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name),
+      );
+    }
+    return list
+      .filter((r) => {
+        const hay = [r.name, r.brand, r.flavor, r.puffs, r.volume]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      })
+      .sort((a, b) => (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name));
   }, [inCategory, hasSub, brand, flavor, selectedSubcategory, query]);
   function selectCategory(id: string) {
     setFilter(id);
@@ -442,6 +448,26 @@ function ProductsAdmin() {
     setMoveCopyCategory("");
     setMoveCopySubcategory("");
     setMoveCopyCustomSubcategory(false);
+  }
+
+  async function quickCopy(row: ProductRow) {
+    try {
+      await adminMoveOrCopyProduct({
+        data: {
+          id: row.id,
+          targetCategory: row.category,
+          targetSubcategory: row.subcategory ?? null,
+          mode: "copy",
+        },
+      });
+      const categoryLabel = getCategoryLabel(row.category);
+      const subLabel = row.subcategory ? ` · ${row.subcategory}` : "";
+      toast.success(`Скопировано в «${categoryLabel}${subLabel}»`);
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось скопировать");
+    }
   }
 
   async function confirmMoveCopy(targetCategory: string, targetSubcategory?: string | null) {
@@ -836,8 +862,8 @@ function ProductsAdmin() {
                     <FolderInput className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => moveOrCopy(row, "copy")}
-                    title="Копировать в каталог/подкаталог"
+                    onClick={() => quickCopy(row)}
+                    title="Копировать товар"
                     className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
                   >
                     <Copy className="w-4 h-4" />
