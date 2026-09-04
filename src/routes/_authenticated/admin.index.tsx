@@ -17,6 +17,7 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  CheckSquare,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import {
@@ -687,6 +688,16 @@ function ProductsAdmin() {
             className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
           >
             <Plus className="w-4 h-4" /> Добавить
+          </button>
+          <button
+            type="button"
+            onClick={selectAllVisible}
+            className="inline-flex items-center gap-1.5 bg-card hover:bg-muted text-foreground font-semibold px-3 py-1.5 rounded-lg text-sm border border-border transition-colors"
+          >
+            <CheckSquare className="w-4 h-4" />
+            {selectedIds.size === visible.length && visible.length > 0
+              ? "Снять выбор"
+              : "Выбрать все"}
           </button>
         </div>
       </div>
