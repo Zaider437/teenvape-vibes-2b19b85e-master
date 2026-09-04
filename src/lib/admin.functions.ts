@@ -507,6 +507,39 @@ export const adminBulkUpdateBrand = createServerFn({ method: "POST" })
     return { ok: true, updated: data.ids.length };
   });
 
+export const adminBulkUpdateDescription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        ids: z.array(z.string()).min(1),
+        description: z.string().trim().max(4000).optional().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const description = (data.description || "").trim() || null;
+
+    const { error } = await supabaseAdmin
+      .from("products" as any)
+      .update({ description })
+      .in("id", data.ids);
+
+    if (error) throw error;
+
+    await logProductActivity(context, {
+      product_id: null,
+      action: "bulk_update_description",
+      details: { product_ids: data.ids, description, count: data.ids.length },
+      product_snapshot: null,
+    });
+
+    return { ok: true, updated: data.ids.length };
+  });
+
 export function calculateCopySortOrder(
   srcSortOrder: number | null | undefined,
   catProducts: Array<{ id: string; sort_order: number }> | null | undefined,

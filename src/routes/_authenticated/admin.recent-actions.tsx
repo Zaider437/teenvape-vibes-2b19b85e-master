@@ -56,6 +56,18 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
     label: "Товар скопирован",
     color: "bg-purple-500/10 text-purple-500 border-purple-500/30",
   },
+  bulk_update_image: {
+    label: "Массовое фото",
+    color: "bg-teal-500/10 text-teal-500 border-teal-500/30",
+  },
+  bulk_update_brand: {
+    label: "Массовый бренд",
+    color: "bg-orange-500/10 text-orange-500 border-orange-500/30",
+  },
+  bulk_update_description: {
+    label: "Массовое описание",
+    color: "bg-amber-500/10 text-amber-500 border-amber-500/30",
+  },
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -160,6 +172,15 @@ function RecentActionsPage() {
     }
     if (row.action === "restore") {
       return `${meta.label}: «${details.name || "Без названия"}»`;
+    }
+    if (row.action === "bulk_update_description") {
+      return `${meta.label}: товаров обновлено: ${details.count ?? "?"}`;
+    }
+    if (row.action === "bulk_update_brand") {
+      return `${meta.label}: «${details.brand || "—"}» (${details.count ?? "?"} шт.)`;
+    }
+    if (row.action === "bulk_update_image") {
+      return `${meta.label}: товаров обновлено: ${details.count ?? "?"}`;
     }
     if (details.name) return `${meta.label}: «${details.name}»`;
     return meta.label;

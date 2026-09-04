@@ -13,6 +13,7 @@ import {
   Package,
   Image,
   Tag,
+  FileText,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import {
@@ -25,6 +26,7 @@ import {
   adminUploadProductImage,
   adminBulkUpdateImage,
   adminBulkUpdateBrand,
+  adminBulkUpdateDescription,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
 import { compressImageFile } from "@/lib/image-compression";
@@ -138,6 +140,9 @@ function ProductsAdmin() {
   const [showBulkBrandDialog, setShowBulkBrandDialog] = useState(false);
   const [bulkBrandValue, setBulkBrandValue] = useState("");
   const [isBulkBrandSaving, setIsBulkBrandSaving] = useState(false);
+  const [showBulkDescriptionDialog, setShowBulkDescriptionDialog] = useState(false);
+  const [bulkDescriptionValue, setBulkDescriptionValue] = useState("");
+  const [isBulkDescriptionSaving, setIsBulkDescriptionSaving] = useState(false);
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
   const [moveCopyTarget, setMoveCopyTarget] = useState<ProductRow | null>(null);
   const [moveCopyMode, setMoveCopyMode] = useState<"move" | "copy">("move");
@@ -575,6 +580,26 @@ function ProductsAdmin() {
     }
   }
 
+  async function handleBulkSetDescription() {
+    if (selectedIds.size === 0) return;
+    setIsBulkDescriptionSaving(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const description = bulkDescriptionValue.trim();
+      await adminBulkUpdateDescription({ data: { ids, description } });
+      toast.success(`Описание обновлено для ${ids.length} товаров`);
+      setShowBulkDescriptionDialog(false);
+      setBulkDescriptionValue("");
+      clearSelection();
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось обновить описание");
+    } finally {
+      setIsBulkDescriptionSaving(false);
+    }
+  }
+
   function generateRandomSlug(): string {
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let slug = "product-";
@@ -636,7 +661,7 @@ function ProductsAdmin() {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl p-2.5 sm:px-4 sm:py-2.5">
           <span className="text-sm font-bold text-primary">Выбрано: {selectedIds.size}</span>
           <button
             onClick={() => setShowBulkImageDialog(true)}
@@ -652,6 +677,15 @@ function ProductsAdmin() {
             className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
           >
             <Tag className="w-4 h-4" /> Установить бренд
+          </button>
+          <button
+            onClick={() => {
+              setBulkDescriptionValue("");
+              setShowBulkDescriptionDialog(true);
+            }}
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
+          >
+            <FileText className="w-4 h-4" /> Установить описание
           </button>
           <button
             onClick={clearSelection}
@@ -1093,6 +1127,47 @@ function ProductsAdmin() {
               className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
             >
               {isBulkBrandSaving ? "Сохраняю…" : "Применить"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBulkDescriptionDialog} onOpenChange={setShowBulkDescriptionDialog}>
+        <DialogContent className="max-w-md w-[calc(100%-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Установить описание для {selectedIds.size} товаров</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Описание товара
+            </label>
+            <Textarea
+              value={bulkDescriptionValue}
+              onChange={(e) => setBulkDescriptionValue(e.target.value)}
+              placeholder="Введите описание, которое будет установлено для всех выбранных товаров…"
+              rows={5}
+              className="bg-background border-2 border-border rounded-xl px-3 py-2 text-sm"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Указанное описание применится ко всем {selectedIds.size} выбранным товарам.
+            </p>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setShowBulkDescriptionDialog(false);
+                setBulkDescriptionValue("");
+              }}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleBulkSetDescription}
+              disabled={isBulkDescriptionSaving}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isBulkDescriptionSaving ? "Сохраняю…" : "Применить"}
             </button>
           </DialogFooter>
         </DialogContent>
