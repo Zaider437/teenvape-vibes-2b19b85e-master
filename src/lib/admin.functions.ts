@@ -159,7 +159,8 @@ export const adminListProducts = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("products" as any)
       .select("*")
-      .order("sort_order", { ascending: true });
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
     if (error) throw error;
     const { formatImageUrl, buildDescription, getSignedImageUrl } =
       await import("./product-helpers");
@@ -506,6 +507,47 @@ export const adminBulkUpdateBrand = createServerFn({ method: "POST" })
     return { ok: true, updated: data.ids.length };
   });
 
+export function calculateCopySortOrder(
+  srcSortOrder: number | null | undefined,
+  catProducts: Array<{ id: string; sort_order: number }> | null | undefined,
+  sourceId: string,
+): number {
+  const normalizedSrcSort =
+    typeof srcSortOrder === "number" && !isNaN(srcSortOrder)
+      ? Math.round(srcSortOrder)
+      : 0;
+
+  const productsList = catProducts || [];
+  const sourceIndex = productsList.findIndex((p: any) => p.id === sourceId);
+
+  let newSortOrder: number;
+  if (sourceIndex >= 0) {
+    if (sourceIndex < productsList.length - 1) {
+      const nextSortOrder = Math.round(
+        Number(productsList[sourceIndex + 1]?.sort_order) || 0,
+      );
+      if (nextSortOrder > normalizedSrcSort + 1) {
+        newSortOrder = Math.floor((normalizedSrcSort + nextSortOrder) / 2);
+      } else {
+        newSortOrder = normalizedSrcSort;
+      }
+    } else {
+      newSortOrder = normalizedSrcSort + 1;
+    }
+  } else {
+    if (productsList.length > 0) {
+      const maxSort = Math.round(
+        Number(productsList[productsList.length - 1]?.sort_order) || 0,
+      );
+      newSortOrder = maxSort + 1;
+    } else {
+      newSortOrder = normalizedSrcSort;
+    }
+  }
+
+  return Math.round(newSortOrder);
+}
+
 export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -562,24 +604,17 @@ export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
     const baseSlug = (src.slug || "").trim() || `product-${Date.now()}`;
     const newSlug = `${baseSlug}-copy-${Date.now()}`;
 
-    let newSortOrder = src.sort_order;
     const { data: categoryProducts } = await supabaseAdmin
       .from("products" as any)
       .select("id, sort_order")
       .eq("category", data.targetCategory)
       .order("sort_order", { ascending: true });
 
-    const sourceIndex = categoryProducts.findIndex((p: any) => p.id === data.id);
-    if (sourceIndex >= 0) {
-      if (sourceIndex < (categoryProducts as any).length - 1) {
-        const nextSortOrder = (categoryProducts[sourceIndex + 1] as any).sort_order;
-        newSortOrder = (src.sort_order + nextSortOrder) / 2;
-      } else {
-        newSortOrder = src.sort_order + 1;
-      }
-    } else {
-      newSortOrder = src.sort_order + 1;
-    }
+    const newSortOrder = calculateCopySortOrder(
+      src.sort_order,
+      categoryProducts as any,
+      data.id,
+    );
 
     const { error: insertError } = await supabaseAdmin.from("products" as any).insert({
       slug: newSlug,
@@ -597,6 +632,11 @@ export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
       description: src.description,
       is_active: src.is_active,
       sort_order: newSortOrder,
+      stock_quantity:
+        typeof src.stock_quantity === "number" && !isNaN(src.stock_quantity)
+          ? Math.round(src.stock_quantity)
+          : 0,
+      manufacturer_id: src.manufacturer_id ?? null,
     });
     if (insertError) throw insertError;
 

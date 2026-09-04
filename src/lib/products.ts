@@ -556,7 +556,8 @@ export async function fetchProducts(): Promise<Product[]> {
       const { data, error } = await supabase
         .from("products" as any)
         .select("*")
-        .order("sort_order", { ascending: true });
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
       if (data && data.length > 0) {
@@ -752,7 +753,8 @@ export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
       .select("*")
       .eq("manufacturer_id", manufacturer.id)
       .eq("is_active", true)
-      .order("sort_order", { ascending: true });
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
 
     if (productsError) throw productsError;
 
@@ -802,7 +804,8 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler
   const { data, error } = await client
     .from("products" as any)
     .select("*")
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
 
   if (error) throw error;
 
