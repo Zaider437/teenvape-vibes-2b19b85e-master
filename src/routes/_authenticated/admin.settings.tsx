@@ -16,6 +16,7 @@ import {
 import { invalidateProductsCache } from "@/lib/products";
 
 const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
+  all: { label: "Всё", emoji: "🔥" },
   disposable: { label: "Одноразки", emoji: "💨" },
   device: { label: "Устройства", emoji: "⚡" },
   liquid: { label: "Жидкости", emoji: "🧪" },
@@ -64,8 +65,10 @@ function AdminSettings() {
       ]);
       setTimes(timesData);
 
+      const hasAll = (savedOrder ?? []).includes("all");
+      const baseList = hasAll ? (savedOrder ?? []) : ["all", ...(savedOrder ?? [])];
       const allKnown = new Set([
-        ...(savedOrder ?? []),
+        ...baseList,
         ...DEFAULT_CATEGORY_ORDER,
         ...((productsData as any[]) ?? []).map((p: any) => p.category).filter(Boolean),
       ]);

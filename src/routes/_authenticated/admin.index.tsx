@@ -111,6 +111,7 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 });
 
 const CATEGORY_MAP: Record<string, string> = {
+  all: "Все",
   disposable: "Одноразки",
   device: "Устройства",
   liquid: "Жидкости",
@@ -164,18 +165,25 @@ function ProductsAdmin() {
 
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(rows.map((r) => r.category)));
-    const sorted = [...uniqueCategories].sort((a, b) => {
-      const idxA = categoryOrder.indexOf(a);
-      const idxB = categoryOrder.indexOf(b);
-      const posA = idxA === -1 ? 9999 : idxA;
-      const posB = idxB === -1 ? 9999 : idxB;
+    const hasAll = categoryOrder.includes("all");
+    const orderToUse = hasAll ? categoryOrder : ["all", ...categoryOrder];
+
+    const allCategories = Array.from(new Set([...orderToUse, "all", ...uniqueCategories])).filter(
+      (id) => id === "all" || uniqueCategories.includes(id),
+    );
+
+    const sorted = [...allCategories].sort((a, b) => {
+      const idxA = orderToUse.indexOf(a);
+      const idxB = orderToUse.indexOf(b);
+      const posA = idxA === -1 ? (a === "all" ? 0 : 9999) : idxA;
+      const posB = idxB === -1 ? (b === "all" ? 0 : 9999) : idxB;
       return posA - posB;
     });
-    const list = sorted.map((id) => ({
+
+    return sorted.map((id) => ({
       id,
       label: getCategoryLabel(id),
     }));
-    return [{ id: "all", label: "Все" }, ...list];
   }, [rows, categoryOrder]);
 
   const formCategories = useMemo(() => {
@@ -216,8 +224,10 @@ function ProductsAdmin() {
         getCatOrder().catch(() => DEFAULT_CATEGORY_ORDER),
       ]);
       setRows(data);
+      const hasAll = (savedOrder ?? []).includes("all");
+      const baseList = hasAll ? (savedOrder ?? []) : ["all", ...(savedOrder ?? [])];
       const allKnown = new Set([
-        ...(savedOrder ?? []),
+        ...baseList,
         ...DEFAULT_CATEGORY_ORDER,
         ...data.map((r) => r.category).filter(Boolean),
       ]);

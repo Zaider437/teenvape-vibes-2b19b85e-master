@@ -4,6 +4,7 @@ import { calculateCopySortOrder, DEFAULT_CATEGORY_ORDER } from "./admin.function
 describe("DEFAULT_CATEGORY_ORDER", () => {
   it("contains the standard default categories", () => {
     expect(DEFAULT_CATEGORY_ORDER).toEqual([
+      "all",
       "disposable",
       "device",
       "liquid",

@@ -172,6 +172,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(availableProducts.map((p) => p.category)));
     const CATEGORY_MAP: Record<string, { label: string; emoji: string }> = {
+      all: { label: "Всё", emoji: "🔥" },
       disposable: { label: "Одноразки", emoji: "💨" },
       device: { label: "Устройства", emoji: "⚡" },
       liquid: { label: "Жидкости", emoji: "🧪" },
@@ -179,15 +180,22 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       snus: { label: "Снюс", emoji: "🍃" },
     };
 
-    const sortedCategories = [...uniqueCategories].sort((a, b) => {
-      const idxA = categoryOrder.indexOf(a);
-      const idxB = categoryOrder.indexOf(b);
-      const posA = idxA === -1 ? 9999 : idxA;
-      const posB = idxB === -1 ? 9999 : idxB;
+    const hasAll = categoryOrder.includes("all");
+    const orderToUse = hasAll ? categoryOrder : ["all", ...categoryOrder];
+
+    const allCategories = Array.from(new Set([...orderToUse, "all", ...uniqueCategories])).filter(
+      (id) => id === "all" || uniqueCategories.includes(id),
+    );
+
+    const sortedCategories = [...allCategories].sort((a, b) => {
+      const idxA = orderToUse.indexOf(a);
+      const idxB = orderToUse.indexOf(b);
+      const posA = idxA === -1 ? (a === "all" ? 0 : 9999) : idxA;
+      const posB = idxB === -1 ? (b === "all" ? 0 : 9999) : idxB;
       return posA - posB;
     });
 
-    const list = sortedCategories.map((id) => {
+    return sortedCategories.map((id) => {
       const mapped = CATEGORY_MAP[id];
       if (mapped) {
         return { id, label: mapped.label, emoji: mapped.emoji };
@@ -195,7 +203,6 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       const label = id.charAt(0).toUpperCase() + id.slice(1);
       return { id, label, emoji: "📦" };
     });
-    return [{ id: "all", label: "Всё", emoji: "🔥" }, ...list];
   }, [availableProducts, categoryOrder]);
 
   function selectCategory(id: string) {

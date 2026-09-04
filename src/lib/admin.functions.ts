@@ -743,12 +743,20 @@ export const adminRemoveTelegramUser = createServerFn({ method: "POST" })
   });
 
 export const DEFAULT_CATEGORY_ORDER = [
+  "all",
   "disposable",
   "device",
   "liquid",
   "consumable",
   "snus",
 ];
+
+function ensureAllIncluded(arr: string[]): string[] {
+  if (!arr.includes("all")) {
+    return ["all", ...arr];
+  }
+  return arr;
+}
 
 export const adminGetCategoryOrder = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -764,7 +772,7 @@ export const adminGetCategoryOrder = createServerFn({ method: "GET" })
         .maybeSingle() as any);
 
       if (!error && data && data.value && Array.isArray(data.value)) {
-        return data.value as string[];
+        return ensureAllIncluded(data.value as string[]);
       }
     } catch {
       // fallback
@@ -780,7 +788,7 @@ export const adminGetCategoryOrder = createServerFn({ method: "GET" })
       if (!error && data && data.note) {
         const parsed = JSON.parse(data.note);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed as string[];
+          return ensureAllIncluded(parsed as string[]);
         }
       }
     } catch {
@@ -844,7 +852,7 @@ export const getCategoryOrder = createServerFn({ method: "GET" }).handler(async 
         .maybeSingle() as any);
 
       if (!error && data && data.value && Array.isArray(data.value)) {
-        return data.value as string[];
+        return ensureAllIncluded(data.value as string[]);
       }
     } catch {
       // fallback
@@ -860,7 +868,7 @@ export const getCategoryOrder = createServerFn({ method: "GET" }).handler(async 
       if (!error && data && data.note) {
         const parsed = JSON.parse(data.note);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed as string[];
+          return ensureAllIncluded(parsed as string[]);
         }
       }
     } catch {
