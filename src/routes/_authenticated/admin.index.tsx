@@ -14,6 +14,9 @@ import {
   Image,
   Tag,
   FileText,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import {
@@ -27,6 +30,9 @@ import {
   adminBulkUpdateImage,
   adminBulkUpdateBrand,
   adminBulkUpdateDescription,
+  adminGetCategoryOrder,
+  adminUpdateCategoryOrder,
+  DEFAULT_CATEGORY_ORDER,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
 import { compressImageFile } from "@/lib/image-compression";
@@ -122,6 +128,8 @@ function ProductsAdmin() {
   const remove = useServerFn(adminDeleteProduct);
   const toggle = useServerFn(adminToggleActive);
   const updateStock = useServerFn(adminUpdateStock);
+  const getCatOrder = useServerFn(adminGetCategoryOrder);
+  const updateCatOrder = useServerFn(adminUpdateCategoryOrder);
 
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,6 +151,9 @@ function ProductsAdmin() {
   const [showBulkDescriptionDialog, setShowBulkDescriptionDialog] = useState(false);
   const [bulkDescriptionValue, setBulkDescriptionValue] = useState("");
   const [isBulkDescriptionSaving, setIsBulkDescriptionSaving] = useState(false);
+  const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
+  const [showCategoryOrderDialog, setShowCategoryOrderDialog] = useState(false);
+  const [isSavingCategoryOrder, setIsSavingCategoryOrder] = useState(false);
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
   const [moveCopyTarget, setMoveCopyTarget] = useState<ProductRow | null>(null);
   const [moveCopyMode, setMoveCopyMode] = useState<"move" | "copy">("move");
@@ -153,12 +164,19 @@ function ProductsAdmin() {
 
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(rows.map((r) => r.category)));
-    const list = uniqueCategories.map((id) => ({
+    const sorted = [...uniqueCategories].sort((a, b) => {
+      const idxA = categoryOrder.indexOf(a);
+      const idxB = categoryOrder.indexOf(b);
+      const posA = idxA === -1 ? 9999 : idxA;
+      const posB = idxB === -1 ? 9999 : idxB;
+      return posA - posB;
+    });
+    const list = sorted.map((id) => ({
       id,
       label: getCategoryLabel(id),
     }));
     return [{ id: "all", label: "Все" }, ...list];
-  }, [rows]);
+  }, [rows, categoryOrder]);
 
   const formCategories = useMemo(() => {
     const defaults = [
@@ -193,8 +211,17 @@ function ProductsAdmin() {
   async function reload(silent = false) {
     if (!silent) setLoading(true);
     try {
-      const data = (await list()) as unknown as ProductRow[];
+      const [data, savedOrder] = await Promise.all([
+        (list()) as unknown as ProductRow[],
+        getCatOrder().catch(() => DEFAULT_CATEGORY_ORDER),
+      ]);
       setRows(data);
+      const allKnown = new Set([
+        ...(savedOrder ?? []),
+        ...DEFAULT_CATEGORY_ORDER,
+        ...data.map((r) => r.category).filter(Boolean),
+      ]);
+      setCategoryOrder(Array.from(allKnown));
     } catch (e: any) {
       toast.error(e?.message ?? "Ошибка загрузки");
     } finally {
@@ -600,6 +627,20 @@ function ProductsAdmin() {
     }
   }
 
+  async function handleSaveCategoryOrder() {
+    setIsSavingCategoryOrder(true);
+    try {
+      await updateCatOrder({ data: { categories: categoryOrder } });
+      toast.success("Порядок каталогов сохранён");
+      setShowCategoryOrderDialog(false);
+      invalidateProductsCache();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось сохранить порядок каталогов");
+    } finally {
+      setIsSavingCategoryOrder(false);
+    }
+  }
+
   function generateRandomSlug(): string {
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let slug = "product-";
@@ -620,15 +661,24 @@ function ProductsAdmin() {
       <Toaster position="top-center" theme="dark" richColors />
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-2xl">Товары</h1>
-        <button
-          onClick={() => {
-            setShowCustomCategoryInput(false);
-            setDraft({ ...EMPTY, slug: generateRandomSlug() });
-          }}
-          className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
-        >
-          <Plus className="w-4 h-4" /> Добавить
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCategoryOrderDialog(true)}
+            className="inline-flex items-center gap-1.5 bg-card hover:bg-muted text-foreground font-semibold px-3 py-1.5 rounded-lg text-sm border border-border transition-colors"
+            title="Настроить порядок каталогов на сайте"
+          >
+            <ArrowUpDown className="w-4 h-4" /> Порядок каталогов
+          </button>
+          <button
+            onClick={() => {
+              setShowCustomCategoryInput(false);
+              setDraft({ ...EMPTY, slug: generateRandomSlug() });
+            }}
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
+          >
+            <Plus className="w-4 h-4" /> Добавить
+          </button>
+        </div>
       </div>
 
       {/* search */}
@@ -1168,6 +1218,84 @@ function ProductsAdmin() {
               className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
             >
               {isBulkDescriptionSaving ? "Сохраняю…" : "Применить"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCategoryOrderDialog} onOpenChange={setShowCategoryOrderDialog}>
+        <DialogContent className="max-w-md w-[calc(100%-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Порядок каталогов на сайте</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-1">
+            Настройте расположение категорий в каталоге. Товары и кнопки категорий будут отображаться в указанном порядке.
+          </p>
+          <div className="divide-y divide-border rounded-xl border border-border bg-background/50 overflow-hidden max-h-[60vh] overflow-y-auto">
+            {categoryOrder.map((catId, idx) => (
+              <div
+                key={catId}
+                className="flex items-center justify-between gap-3 px-3.5 py-2.5"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-5 text-xs font-bold text-muted-foreground tabular-nums">
+                    {idx + 1}.
+                  </span>
+                  <span className="text-sm font-semibold truncate">{getCategoryLabel(catId)}</span>
+                  <span className="text-[11px] text-muted-foreground font-mono bg-muted/60 px-1.5 py-0.5 rounded">
+                    {catId}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (idx === 0) return;
+                      const copy = [...categoryOrder];
+                      const temp = copy[idx];
+                      copy[idx] = copy[idx - 1];
+                      copy[idx - 1] = temp;
+                      setCategoryOrder(copy);
+                    }}
+                    disabled={idx === 0}
+                    className="w-8 h-8 rounded-lg bg-muted grid place-items-center disabled:opacity-30 hover:bg-muted/80 transition-colors"
+                    title="Выше"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (idx === categoryOrder.length - 1) return;
+                      const copy = [...categoryOrder];
+                      const temp = copy[idx];
+                      copy[idx] = copy[idx + 1];
+                      copy[idx + 1] = temp;
+                      setCategoryOrder(copy);
+                    }}
+                    disabled={idx === categoryOrder.length - 1}
+                    className="w-8 h-8 rounded-lg bg-muted grid place-items-center disabled:opacity-30 hover:bg-muted/80 transition-colors"
+                    title="Ниже"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setShowCategoryOrderDialog(false)}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleSaveCategoryOrder}
+              disabled={isSavingCategoryOrder}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isSavingCategoryOrder ? "Сохраняю…" : "Сохранить порядок"}
             </button>
           </DialogFooter>
         </DialogContent>

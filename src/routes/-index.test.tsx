@@ -36,6 +36,7 @@ vi.mock("../lib/products", () => ({
 vi.mock("../lib/orders.functions", () => ({
   createOrder: vi.fn(),
   getMeetingTimes: vi.fn().mockResolvedValue([]),
+  getCategoryOrder: vi.fn().mockResolvedValue([]),
   debugEnv: vi.fn().mockResolvedValue({}),
 }));
 

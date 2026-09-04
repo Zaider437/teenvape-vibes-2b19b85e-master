@@ -8,7 +8,20 @@ import {
   adminUpdateMeetingTimes,
   getAnimationSettings,
   adminUpdateAnimationSettings,
+  adminGetCategoryOrder,
+  adminUpdateCategoryOrder,
+  adminListProducts,
+  DEFAULT_CATEGORY_ORDER,
 } from "@/lib/admin.functions";
+import { invalidateProductsCache } from "@/lib/products";
+
+const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
+  disposable: { label: "Одноразки", emoji: "💨" },
+  device: { label: "Устройства", emoji: "⚡" },
+  liquid: { label: "Жидкости", emoji: "🧪" },
+  consumable: { label: "Расходники", emoji: "🧩" },
+  snus: { label: "Снюс", emoji: "🍃" },
+};
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: AdminSettings,
@@ -19,7 +32,11 @@ function AdminSettings() {
   const updateTimes = useServerFn(adminUpdateMeetingTimes);
   const getAnim = useServerFn(getAnimationSettings);
   const updateAnim = useServerFn(adminUpdateAnimationSettings);
+  const getCatOrder = useServerFn(adminGetCategoryOrder);
+  const updateCatOrder = useServerFn(adminUpdateCategoryOrder);
+  const listProducts = useServerFn(adminListProducts);
 
+  const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [times, setTimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,8 +56,20 @@ function AdminSettings() {
   async function load() {
     setLoading(true);
     try {
-      const [timesData, animData] = await Promise.all([getTimes(), getAnim()]);
+      const [savedOrder, timesData, animData, productsData] = await Promise.all([
+        getCatOrder(),
+        getTimes(),
+        getAnim(),
+        listProducts().catch(() => []),
+      ]);
       setTimes(timesData);
+
+      const allKnown = new Set([
+        ...(savedOrder ?? []),
+        ...DEFAULT_CATEGORY_ORDER,
+        ...((productsData as any[]) ?? []).map((p: any) => p.category).filter(Boolean),
+      ]);
+      setCategoryOrder(Array.from(allKnown));
 
       if (animData) {
         setLeavesEnabled(animData.leaves.enabled);
@@ -68,6 +97,7 @@ function AdminSettings() {
     try {
       await Promise.all([
         updateTimes({ data: { times } }),
+        updateCatOrder({ data: { categories: categoryOrder } }),
         updateAnim({
           data: {
             leaves: {
@@ -85,6 +115,7 @@ function AdminSettings() {
           },
         }),
       ]);
+      invalidateProductsCache();
       toast.success("Настройки сохранены");
     } catch (e: any) {
       toast.error(e?.message ?? "Не удалось сохранить");
@@ -106,6 +137,16 @@ function AdminSettings() {
 
   function removeTime(index: number) {
     setTimes(times.filter((_, i) => i !== index));
+  }
+
+  function moveCategory(index: number, direction: "up" | "down") {
+    const nextIndex = direction === "up" ? index - 1 : index + 1;
+    if (nextIndex < 0 || nextIndex >= categoryOrder.length) return;
+    const copy = [...categoryOrder];
+    const temp = copy[index];
+    copy[index] = copy[nextIndex];
+    copy[nextIndex] = temp;
+    setCategoryOrder(copy);
   }
 
   function move(index: number, direction: "up" | "down") {
@@ -301,6 +342,68 @@ function AdminSettings() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Category Order Section */}
+          <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+            <div>
+              <div className="text-sm font-bold text-foreground">Порядок каталогов на сайте</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Определяет порядок кнопок в меню каталога и очерёдность товаров при просмотре «Всё». Используйте стрелки ↑ и ↓, затем нажмите «Сохранить».
+              </div>
+            </div>
+
+            {categoryOrder.length === 0 ? (
+              <div className="text-center text-xs text-muted-foreground py-4">
+                Категории не найдены
+              </div>
+            ) : (
+              <div className="divide-y divide-border rounded-xl border border-border bg-background/50 overflow-hidden">
+                {categoryOrder.map((catId, idx) => {
+                  const meta = CATEGORY_META[catId] || {
+                    label: catId.charAt(0).toUpperCase() + catId.slice(1),
+                    emoji: "📦",
+                  };
+                  return (
+                    <div
+                      key={catId}
+                      className="flex items-center justify-between gap-3 px-3.5 py-2.5"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-5 text-xs font-bold text-muted-foreground tabular-nums">
+                          {idx + 1}.
+                        </span>
+                        <span className="text-base">{meta.emoji}</span>
+                        <span className="text-sm font-semibold truncate">{meta.label}</span>
+                        <span className="text-[11px] text-muted-foreground font-mono bg-muted/60 px-1.5 py-0.5 rounded">
+                          {catId}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => moveCategory(idx, "up")}
+                          disabled={idx === 0}
+                          className="w-8 h-8 rounded-lg bg-muted grid place-items-center disabled:opacity-30 hover:bg-muted/80 transition-colors"
+                          title="Переместить выше"
+                        >
+                          <ArrowUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveCategory(idx, "down")}
+                          disabled={idx === categoryOrder.length - 1}
+                          className="w-8 h-8 rounded-lg bg-muted grid place-items-center disabled:opacity-30 hover:bg-muted/80 transition-colors"
+                          title="Переместить ниже"
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Meeting Times Section */}

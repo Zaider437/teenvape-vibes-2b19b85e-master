@@ -20,7 +20,7 @@ import {
   invalidateProductsCache,
   type Product,
 } from "../lib/products";
-import { createOrder, debugEnv, getMeetingTimes } from "../lib/orders.functions";
+import { createOrder, debugEnv, getMeetingTimes, getCategoryOrder } from "../lib/orders.functions";
 import { toast, Toaster } from "sonner";
 import { FallingEffects } from "../components/FallingEffects";
 import { LoveVapeLogo } from "../components/LoveVapeLogo";
@@ -61,6 +61,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [meetingTimes, setMeetingTimes] = useState<string[]>([]);
   const [loadingMeetingTimes, setLoadingMeetingTimes] = useState(true);
+  const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [hoveredBrand, setHoveredBrand] = useState<string | null>(null);
   const { items } = useCart();
   const fetchProductsServer = useServerFn(fetchProductsWithImages);
@@ -102,6 +103,13 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       })
       .finally(() => {
         if (!cancelled) setLoadingMeetingTimes(false);
+      });
+    getCategoryOrder()
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setCategoryOrder(data);
+      })
+      .catch((err) => {
+        console.error("[shop] load category order failed", err);
       });
     return () => {
       cancelled = true;
@@ -170,7 +178,16 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       consumable: { label: "Расходники", emoji: "🧩" },
       snus: { label: "Снюс", emoji: "🍃" },
     };
-    const list = uniqueCategories.map((id) => {
+
+    const sortedCategories = [...uniqueCategories].sort((a, b) => {
+      const idxA = categoryOrder.indexOf(a);
+      const idxB = categoryOrder.indexOf(b);
+      const posA = idxA === -1 ? 9999 : idxA;
+      const posB = idxB === -1 ? 9999 : idxB;
+      return posA - posB;
+    });
+
+    const list = sortedCategories.map((id) => {
       const mapped = CATEGORY_MAP[id];
       if (mapped) {
         return { id, label: mapped.label, emoji: mapped.emoji };
@@ -179,7 +196,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
       return { id, label, emoji: "📦" };
     });
     return [{ id: "all", label: "Всё", emoji: "🔥" }, ...list];
-  }, [availableProducts]);
+  }, [availableProducts, categoryOrder]);
 
   function selectCategory(id: string) {
     setCategory(id);
@@ -207,13 +224,23 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
         }
       }
     }
+
+    const sortProducts = (a: Product, b: Product) => {
+      if (category === "all" && categoryOrder.length > 0) {
+        const idxA = categoryOrder.indexOf(a.category);
+        const idxB = categoryOrder.indexOf(b.category);
+        const posA = idxA === -1 ? 9999 : idxA;
+        const posB = idxB === -1 ? 9999 : idxB;
+        if (posA !== posB) return posA - posB;
+      }
+      return (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name);
+    };
+
     const q = query.trim().toLowerCase();
     if (!q) {
       return list
         .filter((p) => (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0)
-        .sort(
-          (a, b) => (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name),
-        );
+        .sort(sortProducts);
     }
     return list
       .filter((p) => {
@@ -225,8 +252,8 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
           hay.includes(q) && (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0
         );
       })
-      .sort((a, b) => (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name));
-  }, [inCategory, hasSubfilters, brand, flavor, category, query, cartQtyByProduct]);
+      .sort(sortProducts);
+  }, [inCategory, hasSubfilters, brand, flavor, category, query, cartQtyByProduct, categoryOrder]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-32">

@@ -1,5 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { calculateCopySortOrder } from "./admin.functions";
+import { calculateCopySortOrder, DEFAULT_CATEGORY_ORDER } from "./admin.functions";
+
+describe("DEFAULT_CATEGORY_ORDER", () => {
+  it("contains the standard default categories", () => {
+    expect(DEFAULT_CATEGORY_ORDER).toEqual([
+      "disposable",
+      "device",
+      "liquid",
+      "consumable",
+      "snus",
+    ]);
+  });
+});
 
 describe("calculateCopySortOrder", () => {
   it("never produces a fractional sort_order when adjacent products have consecutive numbers (e.g. 1128 and 1129)", () => {

@@ -742,6 +742,137 @@ export const adminRemoveTelegramUser = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const DEFAULT_CATEGORY_ORDER = [
+  "disposable",
+  "device",
+  "liquid",
+  "consumable",
+  "snus",
+];
+
+export const adminGetCategoryOrder = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    try {
+      const { data, error } = await (supabaseAdmin
+        .from("app_settings" as any)
+        .select("value")
+        .eq("key", "category_order")
+        .maybeSingle() as any);
+
+      if (!error && data && data.value && Array.isArray(data.value)) {
+        return data.value as string[];
+      }
+    } catch {
+      // fallback
+    }
+
+    try {
+      const { data, error } = await (supabaseAdmin
+        .from("admin_telegram_users" as any)
+        .select("note")
+        .eq("telegram_username", "__category_order__")
+        .maybeSingle() as any);
+
+      if (!error && data && data.note) {
+        const parsed = JSON.parse(data.note);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed as string[];
+        }
+      }
+    } catch {
+      // fallback
+    }
+
+    return DEFAULT_CATEGORY_ORDER;
+  });
+
+export const adminUpdateCategoryOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ categories: z.array(z.string().trim().min(1)) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    try {
+      await supabaseAdmin
+        .from("app_settings" as any)
+        .upsert({ key: "category_order", value: data.categories });
+    } catch (e) {
+      console.warn("[categoryOrder] Failed to save to app_settings:", e);
+    }
+
+    try {
+      const { data: existing } = await (supabaseAdmin
+        .from("admin_telegram_users" as any)
+        .select("id")
+        .eq("telegram_username", "__category_order__")
+        .maybeSingle() as any);
+
+      if (existing) {
+        await supabaseAdmin
+          .from("admin_telegram_users" as any)
+          .update({ note: JSON.stringify(data.categories) })
+          .eq("telegram_username", "__category_order__");
+      } else {
+        await supabaseAdmin.from("admin_telegram_users" as any).insert({
+          telegram_username: "__category_order__",
+          note: JSON.stringify(data.categories),
+        });
+      }
+    } catch (e) {
+      console.warn("[categoryOrder] Failed to backup to admin_telegram_users:", e);
+    }
+
+    return { ok: true };
+  });
+
+export const getCategoryOrder = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    try {
+      const { data, error } = await (supabaseAdmin
+        .from("app_settings" as any)
+        .select("value")
+        .eq("key", "category_order")
+        .maybeSingle() as any);
+
+      if (!error && data && data.value && Array.isArray(data.value)) {
+        return data.value as string[];
+      }
+    } catch {
+      // fallback
+    }
+
+    try {
+      const { data, error } = await (supabaseAdmin
+        .from("admin_telegram_users" as any)
+        .select("note")
+        .eq("telegram_username", "__category_order__")
+        .maybeSingle() as any);
+
+      if (!error && data && data.note) {
+        const parsed = JSON.parse(data.note);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed as string[];
+        }
+      }
+    } catch {
+      // fallback
+    }
+  } catch (err) {
+    console.warn("[categoryOrder] Failed to fetch category order, using defaults", err);
+  }
+
+  return DEFAULT_CATEGORY_ORDER;
+});
+
 export const adminGetMeetingTimes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
