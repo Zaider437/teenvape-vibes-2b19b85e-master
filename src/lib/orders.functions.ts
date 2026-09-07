@@ -130,7 +130,6 @@ export const createOrder = createServerFn({ method: "POST" })
       }
     }
 
-    const { formatImageUrl } = await import("./product-helpers");
     const byId = new Map(
       dbProducts.map((p) => [
         p.id,
@@ -138,10 +137,10 @@ export const createOrder = createServerFn({ method: "POST" })
           id: p.id,
           name: p.name,
           brand: p.brand || "",
+          category: p.category || "",
           price: p.price,
           stock_quantity: p.stock_quantity ?? 0,
           flavor: p.flavor || null,
-          image: formatImageUrl(p.image_url || p.image) || null,
         },
       ]),
     );
@@ -154,20 +153,20 @@ export const createOrder = createServerFn({ method: "POST" })
           id: i.id,
           name: i.name,
           brand: "",
+          category: "",
           price: i.price,
           qty: i.qty,
           flavor: i.flavor || null,
-          image: null,
         };
       }
       return {
         id: product.id,
         name: product.name,
         brand: product.brand,
+        category: product.category,
         price: product.price,
         qty: i.qty,
         flavor: product.flavor || null,
-        image: product.image || null,
       };
     });
     const trustedTotal = Number(
@@ -199,10 +198,10 @@ export const createOrder = createServerFn({ method: "POST" })
         id: i.id,
         name: i.name,
         brand: i.brand,
+        category: i.category,
         qty: i.qty,
         price: i.price,
         flavor: i.flavor,
-        image: i.image,
       })),
       total_amount: trustedTotal,
       status: "new" as const,
@@ -341,10 +340,10 @@ async function sendTelegramNotification(params: {
   items: Array<{
     name: string;
     brand: string;
+    category: string;
     qty: number;
     price: number;
     flavor?: string | null;
-    image?: string | null;
   }>;
   total: number;
   cancelUrl?: string;
@@ -372,15 +371,10 @@ async function sendTelegramNotification(params: {
     params.customerNote && params.customerNote.trim()
       ? params.customerNote
       : "... не определен ...";
-  const origin =
-    params.origin && !params.origin.includes("zaider437-teenvape-vibes-2b19b85e.workers.dev")
-      ? params.origin
-      : "https://vape-vibe.lovable.app";
-
   const itemsHtml = params.items
     .map(
       (i) =>
-        `• Товар: ${escapeHtml(i.name)} (${escapeHtml(i.brand)})${i.flavor ? `, вкус: ${escapeHtml(i.flavor)}` : ""}; ${i.qty} шт. по ${i.price.toFixed(2)} BYN — ${(i.price * i.qty).toFixed(2)} BYN`,
+        `• ${categoryLabel(i.category)}: ${escapeHtml(i.name)} (${escapeHtml(i.brand)})${i.flavor ? `, вкус: ${escapeHtml(i.flavor)}` : ""}; ${i.qty} шт. по ${i.price.toFixed(2)} BYN — ${(i.price * i.qty).toFixed(2)} BYN`,
     )
     .join("\n");
 
@@ -396,71 +390,8 @@ async function sendTelegramNotification(params: {
     `💰 <b>Итого: ${params.total.toFixed(2)} BYN</b>`,
   ];
 
-  if (params.cancelUrl) {
-    lines.push(``, `🔗 Ссылка для отмены заказа:`, params.cancelUrl);
-  }
-
-  // Filter media for valid publicly accessible URLs
-  const isLocalHost = origin.includes("localhost") || origin.includes("127.0.0.1");
-  const media = params.items
-    .filter((i) => i.image)
-    .map((i) => {
-      let imageUrl = i.image!;
-      if (!imageUrl.startsWith("http")) {
-        if (isLocalHost) return null;
-        imageUrl = `${origin}${imageUrl}`;
-      }
-      const caption = `<b>${escapeHtml(i.name)}</b>\n${i.flavor ? `Вкус: ${escapeHtml(i.flavor)}\n` : ""}${i.qty} шт. × ${i.price.toFixed(2)} BYN = ${(i.price * i.qty).toFixed(2)} BYN`;
-      return {
-        type: "photo" as const,
-        media: imageUrl,
-        caption,
-        parse_mode: "HTML" as const,
-      };
-    })
-    .filter((m): m is NonNullable<typeof m> => m !== null)
-    .slice(0, 10);
-
-  // Send photo(s) if available (best-effort, does not block message)
-  try {
-    if (media.length === 1) {
-      const photoController = new AbortController();
-      const photoTimeout = setTimeout(() => photoController.abort(), 6000);
-      try {
-        await fetch(`https://api.telegram.org/bot${tgKey}/sendPhoto`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: chatId,
-            photo: media[0].media,
-            caption: media[0].caption,
-            parse_mode: "HTML",
-          }),
-          signal: photoController.signal,
-        });
-      } finally {
-        clearTimeout(photoTimeout);
-      }
-    } else if (media.length >= 2) {
-      const mediaController = new AbortController();
-      const mediaTimeout = setTimeout(() => mediaController.abort(), 6000);
-      try {
-        await fetch(`https://api.telegram.org/bot${tgKey}/sendMediaGroup`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: chatId,
-            media: media,
-          }),
-          signal: mediaController.signal,
-        });
-      } finally {
-        clearTimeout(mediaTimeout);
-      }
-    }
-  } catch (err) {
-    console.warn("[order] telegram photo(s) send skipped:", err);
-  }
+  // Отмена доступна только через кнопку Telegram ниже; ссылку в тексте заказа не показываем.
+  // Фото товаров в уведомлениях Telegram не отправляем.
 
   // Always send the main order text message
   try {
@@ -510,7 +441,14 @@ async function sendTelegramCancellationNotification(params: {
   orderId: string;
   customerName: string;
   customerAddress: string;
-  items: Array<{ name: string; brand?: string; qty: number; price?: number; flavor?: string | null }>;
+  items: Array<{
+    name: string;
+    brand?: string;
+    category?: string;
+    qty: number;
+    price?: number;
+    flavor?: string | null;
+  }>;
   total?: number;
   env?: any;
 }) {
@@ -528,7 +466,7 @@ async function sendTelegramCancellationNotification(params: {
   const itemsHtml = (params.items || [])
     .map(
       (i) =>
-        `• ${escapeHtml(i.name)}${i.brand ? ` (${escapeHtml(i.brand)})` : ""}${i.flavor ? `, вкус: ${escapeHtml(i.flavor)}` : ""}; ${i.qty} шт.`,
+        `• ${categoryLabel(i.category)}: ${escapeHtml(i.name)}${i.brand ? ` (${escapeHtml(i.brand)})` : ""}${i.flavor ? `, вкус: ${escapeHtml(i.flavor)}` : ""}; ${i.qty} шт.`,
     )
     .join("\n");
 
@@ -559,6 +497,23 @@ async function sendTelegramCancellationNotification(params: {
   } catch (err) {
     console.warn("[cancelOrder] telegram cancel notification failed:", err);
     return false;
+  }
+}
+
+function categoryLabel(category?: string | null): string {
+  switch ((category || "").toLowerCase()) {
+    case "disposable":
+      return "Одноразка";
+    case "liquid":
+      return "Жидкость";
+    case "device":
+      return "Устройство";
+    case "consumable":
+      return "Расходник";
+    case "snus":
+      return "Снюс";
+    default:
+      return category?.trim() || "Товар";
   }
 }
 
