@@ -87,7 +87,7 @@ export function NewsCarousel() {
                       alt={item.title}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-contain p-2 sm:p-3"
+                      className="w-full h-full object-contain p-1 sm:p-2"
                     />
                   ) : (
                     <div className="flex flex-col items-center gap-1 text-muted-foreground">
