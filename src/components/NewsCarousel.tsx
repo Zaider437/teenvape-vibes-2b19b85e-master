@@ -100,7 +100,7 @@ export function NewsCarousel() {
                   <h3 className="font-display text-sm sm:text-base leading-snug text-foreground line-clamp-2">
                     {item.title}
                   </h3>
-                  <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 flex-1">
+                  <p className="mt-1.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed line-clamp-2 flex-1">
                     {item.text}
                   </p>
                 </div>
