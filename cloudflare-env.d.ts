@@ -16,4 +16,7 @@ interface Env {
   ADMIN_PASSWORD_SEED: string;
   EMAIL_API_URL: string;
   PUBLIC_IMAGE_CDN_BASE: string;
+  CLOUDINARY_CLOUD_NAME: string;
+  CLOUDINARY_API_KEY: string;
+  CLOUDINARY_API_SECRET: string;
 }

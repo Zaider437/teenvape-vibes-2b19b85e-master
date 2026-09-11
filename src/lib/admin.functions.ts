@@ -217,6 +217,18 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
         .eq("id", id);
       if (error) throw error;
 
+      if (previousSnapshot?.image_url && previousSnapshot.image_url !== row.image_url) {
+        const { getCloudinaryPublicId, deleteCloudinaryImage } = await import("./cloudinary.server");
+        const oldPublicId = getCloudinaryPublicId(previousSnapshot.image_url);
+        if (oldPublicId) {
+          try {
+            await deleteCloudinaryImage(oldPublicId);
+          } catch (imageError) {
+            console.warn("[adminUpsertProduct] old image cleanup failed", imageError);
+          }
+        }
+      }
+
       if (changes.length > 0) {
         await logProductActivity(context, {
           product_id: id,
@@ -302,31 +314,15 @@ export const adminUploadProductImage = createServerFn({ method: "POST" })
       );
     }
 
-    const safeExt = knownImageExts.has(ext) ? ext : "jpg";
-    const fileName = `${crypto.randomUUID()}.${safeExt}`;
-    const filePath = fileName;
+    const { uploadCloudinaryImage } = await import("./cloudinary.server");
+    const uploaded = await uploadCloudinaryImage(file);
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    console.log("[adminUploadProductImage] uploading", {
-      fileName,
+    console.log("[adminUploadProductImage] uploaded successfully", {
+      publicId: uploaded.publicId,
       fileType: file.type,
       fileSize: file.size,
-      bucket: "product-images",
     });
-
-    const { error } = await supabaseAdmin.storage.from("product-images").upload(filePath, file, {
-      contentType: file.type || `image/${safeExt}`,
-      upsert: false,
-    });
-
-    if (error) {
-      console.error("[adminUploadProductImage] upload failed", error);
-      throw new Error(`Ошибка загрузки: ${error.message || JSON.stringify(error)}`);
-    }
-
-    console.log("[adminUploadProductImage] uploaded successfully", { filePath });
-    return { path: filePath };
+    return { path: uploaded.url };
   });
 
 export const adminDeleteProduct = createServerFn({ method: "POST" })
@@ -351,6 +347,16 @@ export const adminDeleteProduct = createServerFn({ method: "POST" })
     if (error) throw error;
 
     if (existing) {
+      const { getCloudinaryPublicId, deleteCloudinaryImage } = await import("./cloudinary.server");
+      const publicId = getCloudinaryPublicId((existing as any).image_url);
+      if (publicId) {
+        try {
+          await deleteCloudinaryImage(publicId);
+        } catch (imageError) {
+          console.warn("[adminDeleteProduct] image cleanup failed", imageError);
+        }
+      }
+
       await logProductActivity(context, {
         product_id: (existing as any).id,
         action: "delete",
