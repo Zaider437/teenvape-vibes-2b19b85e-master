@@ -46,13 +46,22 @@ export async function uploadCloudinaryImage(file: File, folder = "products") {
     method: "POST",
     body,
   });
-  const result = (await response.json()) as {
-    secure_url?: string;
-    public_id?: string;
-    error?: { message?: string };
-  };
+  const raw = await response.text();
+  let result: Record<string, any> = {};
+  try {
+    result = JSON.parse(raw);
+  } catch {
+    result = { raw };
+  }
   if (!response.ok || !result.secure_url || !result.public_id) {
-    throw new Error(`Ошибка загрузки в Cloudinary: ${result.error?.message || response.statusText}`);
+    console.error("[cloudinary] upload failed", {
+      status: response.status,
+      statusText: response.statusText,
+      result,
+    });
+    throw new Error(
+      `Ошибка загрузки в Cloudinary: ${(result.error?.message as string) || response.statusText || "Unknown"}`
+    );
   }
   return { url: result.secure_url, publicId: result.public_id };
 }
