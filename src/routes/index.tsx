@@ -1072,7 +1072,7 @@ function Footer() {
           <span className="text-primary">Love</span>
           <span className="text-foreground">Vape</span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">Встреча по городу · Оплата на месте</p>
+
       </div>
     </footer>
   );
