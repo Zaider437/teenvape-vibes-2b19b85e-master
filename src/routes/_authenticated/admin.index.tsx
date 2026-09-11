@@ -1204,7 +1204,7 @@ function ProductsAdmin() {
       </Dialog>
 
       <Dialog open={showBulkDescriptionDialog} onOpenChange={setShowBulkDescriptionDialog}>
-        <DialogContent className="max-w-md w-[calc(100%-2rem)]">
+        <DialogContent className="max-w-4xl w-[calc(100%-2rem)]">
           <DialogHeader>
             <DialogTitle>Установить описание для {selectedIds.size} товаров</DialogTitle>
           </DialogHeader>
@@ -1216,8 +1216,8 @@ function ProductsAdmin() {
               value={bulkDescriptionValue}
               onChange={(e) => setBulkDescriptionValue(e.target.value)}
               placeholder="Введите описание, которое будет установлено для всех выбранных товаров…"
-              rows={5}
-              className="bg-background border-2 border-border rounded-xl px-3 py-2 text-sm"
+              rows={14}
+              className="bg-background border-2 border-border rounded-xl px-3 py-2 text-sm min-h-[360px]"
             />
             <p className="text-[11px] text-muted-foreground">
               Указанное описание применится ко всем {selectedIds.size} выбранным товарам.
