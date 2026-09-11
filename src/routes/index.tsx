@@ -24,7 +24,7 @@ import { createOrder, debugEnv, getMeetingTimes, getCategoryOrder } from "../lib
 import { toast, Toaster } from "sonner";
 import { FallingEffects } from "../components/FallingEffects";
 import { LoveVapeLogo } from "../components/LoveVapeLogo";
-import { NewsCarousel } from "../components/NewsCarousel";
+import { NewsCarousel, type NewsItem } from "../components/NewsCarousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet";
 
@@ -57,6 +57,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -266,7 +267,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   return (
     <div className="min-h-screen bg-background text-foreground pb-32">
       <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} />
-      <NewsCarousel />
+      <NewsCarousel onOpenNews={(item) => setSelectedNews(item)} />
       <div id="catalog" className="mt-4 sm:mt-6 flex items-baseline justify-between">
         <h2 className="font-display text-2xl sm:text-3xl text-foreground">
           Каталог<span className="text-primary">.</span>
@@ -433,6 +434,36 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
             <DialogTitle className="font-display text-lg pr-8">{selectedProduct?.name}</DialogTitle>
           </DialogHeader>
           {selectedProduct && <ProductDetail product={selectedProduct} />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!selectedNews}
+        onOpenChange={(open) => {
+          if (!open) setSelectedNews(null);
+        }}
+      >
+        <DialogContent className="max-w-sm sm:max-w-md max-h-[85vh] overflow-y-auto p-4 sm:p-5 gap-3">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg pr-8">{selectedNews?.title}</DialogTitle>
+          </DialogHeader>
+          {selectedNews && (
+            <div className="space-y-2">
+              {selectedNews.image_url && (
+                <div className="aspect-video grid place-items-center bg-primary/5 rounded-lg overflow-hidden">
+                  <img
+                    src={selectedNews.image_url}
+                    alt={selectedNews.title}
+                    decoding="async"
+                    className="w-full h-full object-contain p-1.5 sm:p-2"
+                  />
+                </div>
+              )}
+              <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-line">
+                {selectedNews.text}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

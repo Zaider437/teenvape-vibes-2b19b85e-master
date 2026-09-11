@@ -19,7 +19,7 @@ type NewsItem = {
   is_active: boolean;
 };
 
-export function NewsCarousel() {
+export function NewsCarousel({ onOpenNews }: { onOpenNews?: (item: NewsItem) => void } = {}) {
   const getNewsFn = useServerFn(getNews);
   const [items, setItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +104,15 @@ export function NewsCarousel() {
                     {item.text}
                   </p>
                 </div>
+                {onOpenNews && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenNews(item)}
+                    className="mt-auto w-full text-left px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-primary hover:underline"
+                  >
+                    Читать полностью
+                  </button>
+                )}
               </div>
             </CarouselItem>
           ))}
