@@ -59,6 +59,10 @@ export function NewsCarousel() {
         <h2 className="font-display text-xl sm:text-2xl text-foreground">
           Новости<span className="text-primary">.</span>
         </h2>
+        <span className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">
+          {items.length}{" "}
+          {items.length === 1 ? "новость" : items.length < 5 ? "новости" : "новостей"}
+        </span>
       </div>
       <Carousel
         opts={{
