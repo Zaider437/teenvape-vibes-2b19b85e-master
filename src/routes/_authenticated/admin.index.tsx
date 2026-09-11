@@ -1457,7 +1457,7 @@ function DraftEditor({
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl p-4 w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3">
+      <div className="bg-card border border-border rounded-2xl p-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-3">
         <div className="flex justify-between items-center">
           <h3 className="font-display text-xl">{draft.id ? "Редактировать" : "Новый товар"}</h3>
           <button
@@ -1632,8 +1632,8 @@ function DraftEditor({
             name="description"
             value={draft.description}
             onChange={(e) => set("description", e.target.value)}
-            rows={3}
-            className="mt-1 bg-background border-2 border-border rounded-xl px-3 py-2 text-sm"
+            rows={8}
+            className="mt-1 bg-background border-2 border-border rounded-xl px-3 py-2 text-sm min-h-[180px]"
             placeholder="Описание товара (опционально)"
           />
         </label>
