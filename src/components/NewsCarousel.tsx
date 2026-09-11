@@ -80,14 +80,14 @@ export function NewsCarousel() {
               className="pl-2 sm:pl-4 basis-[85%] sm:basis-[60%] md:basis-[45%] lg:basis-[38%]"
             >
               <div className="bg-card border border-border rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col h-full transition-all hover:border-primary/60 hover:-translate-y-0.5">
-                <div className="aspect-[4/3] sm:aspect-video bg-primary/5 border-b border-border/60 relative overflow-hidden grid place-items-center">
+                <div className="bg-primary/5 border-b border-border/60 relative overflow-hidden grid place-items-center">
                   {item.image_url ? (
                     <img
                       src={item.image_url}
                       alt={item.title}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   ) : (
                     <div className="flex flex-col items-center gap-1 text-muted-foreground">
