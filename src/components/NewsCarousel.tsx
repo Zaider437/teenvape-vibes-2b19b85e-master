@@ -80,18 +80,18 @@ export function NewsCarousel() {
               className="pl-2 sm:pl-4 basis-[85%] sm:basis-[60%] md:basis-[45%] lg:basis-[38%]"
             >
               <div className="bg-card border border-border rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full transition-all hover:border-primary/60 hover:-translate-y-0.5">
-                <div className="bg-primary/5 border-b border-border/60 relative overflow-hidden grid place-items-center max-h-[120px] sm:max-h-[160px]">
+                <div className="aspect-[4/5] sm:aspect-[3/4] bg-primary/5 border-b border-border/60 relative overflow-hidden grid place-items-center">
                   {item.image_url ? (
                     <img
                       src={item.image_url}
                       alt={item.title}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain p-1.5 sm:p-2.5"
                     />
                   ) : (
-                    <div className="flex flex-col items-center gap-1 text-muted-foreground p-3">
-                      <ImageOff className="w-6 h-6 sm:w-7 sm:h-7" />
+                    <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                      <ImageOff className="w-8 h-8 sm:w-10 sm:h-10" />
                       <span className="text-[10px] sm:text-xs font-semibold">Нет фото</span>
                     </div>
                   )}
