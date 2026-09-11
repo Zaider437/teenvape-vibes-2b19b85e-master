@@ -79,7 +79,7 @@ export function NewsCarousel() {
               key={item.id}
               className="pl-2 sm:pl-4 basis-[85%] sm:basis-[60%] md:basis-[45%] lg:basis-[38%]"
             >
-              <div className="bg-card border border-border rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full transition-all hover:border-primary/60 hover:-translate-y-0.5">
+              <div className="bg-card border border-border rounded-xl sm:rounded-2xl overflow-hidden flex flex-col transition-all hover:border-primary/60 hover:-translate-y-0.5">
                 <div className="bg-primary/5 border-b border-border/60 relative grid place-items-center">
                   {item.image_url ? (
                     <img
