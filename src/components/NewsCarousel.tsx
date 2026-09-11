@@ -79,28 +79,28 @@ export function NewsCarousel({ onOpenNews }: { onOpenNews?: (item: NewsItem) => 
               key={item.id}
               className="pl-2 sm:pl-4 basis-[85%] sm:basis-[60%] md:basis-[45%] lg:basis-[38%]"
             >
-              <div className="bg-card border border-border rounded-xl sm:rounded-2xl overflow-hidden flex flex-col transition-all hover:border-primary/60 hover:-translate-y-0.5">
-                <div className="bg-primary/5 border-b border-border/60 relative grid place-items-center">
+              <div className="bg-card border border-border rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full transition-all hover:border-primary/60 hover:-translate-y-0.5">
+                <div className="aspect-[16/10] bg-primary/5 border-b border-border/60 relative overflow-hidden grid place-items-center">
                   {item.image_url ? (
                     <img
                       src={item.image_url}
                       alt={item.title}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-auto object-contain p-1 sm:p-2"
+                      className="w-full h-full object-contain p-1 sm:p-2"
                     />
                   ) : (
-                    <div className="flex flex-col items-center gap-1 text-muted-foreground p-4">
+                    <div className="flex flex-col items-center gap-1 text-muted-foreground">
                       <ImageOff className="w-7 h-7 sm:w-8 sm:h-8" />
                       <span className="text-[10px] sm:text-xs font-semibold">Нет фото</span>
                     </div>
                   )}
                 </div>
-                <div className="p-1.5 sm:p-3 flex flex-col">
+                <div className="p-1.5 sm:p-3 flex-1 flex flex-col">
                   <h3 className="text-[11px] sm:text-xs font-display leading-snug text-foreground line-clamp-2">
                     {item.title}
                   </h3>
-                  <p className="mt-0.5 text-[9px] sm:text-[11px] text-muted-foreground leading-relaxed line-clamp-3">
+                  <p className="mt-0.5 text-[9px] sm:text-[11px] text-muted-foreground leading-relaxed line-clamp-3 flex-1">
                     {item.text}
                   </p>
                 </div>
@@ -108,7 +108,7 @@ export function NewsCarousel({ onOpenNews }: { onOpenNews?: (item: NewsItem) => 
                   <button
                     type="button"
                     onClick={() => onOpenNews(item)}
-                    className="mt-auto w-full text-left px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-primary hover:underline"
+                    className="w-full text-left px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-primary hover:underline"
                   >
                     Читать полностью
                   </button>

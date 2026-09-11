@@ -450,12 +450,12 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
           {selectedNews && (
             <div className="space-y-2">
               {selectedNews.image_url && (
-                <div className="aspect-video grid place-items-center bg-primary/5 rounded-lg overflow-hidden">
+                <div className="bg-primary/5 rounded-lg overflow-hidden">
                   <img
                     src={selectedNews.image_url}
                     alt={selectedNews.title}
                     decoding="async"
-                    className="w-full h-full object-contain p-1.5 sm:p-2"
+                    className="w-full h-auto object-contain"
                   />
                 </div>
               )}
