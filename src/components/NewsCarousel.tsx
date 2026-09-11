@@ -80,7 +80,7 @@ export function NewsCarousel() {
               className="pl-2 sm:pl-4 basis-[85%] sm:basis-[60%] md:basis-[45%] lg:basis-[38%]"
             >
               <div className="bg-card border border-border rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col h-full transition-all hover:border-primary/60 hover:-translate-y-0.5">
-                <div className="aspect-video bg-primary/5 border-b border-border/60 relative overflow-hidden grid place-items-center">
+                <div className="aspect-[4/3] sm:aspect-video bg-primary/5 border-b border-border/60 relative overflow-hidden grid place-items-center">
                   {item.image_url ? (
                     <img
                       src={item.image_url}
@@ -96,11 +96,11 @@ export function NewsCarousel() {
                     </div>
                   )}
                 </div>
-                <div className="p-3 sm:p-4 flex-1 flex flex-col">
-                  <h3 className="font-display text-sm sm:text-base leading-snug text-foreground line-clamp-2">
+                <div className="p-2.5 sm:p-4 flex-1 flex flex-col">
+                  <h3 className="text-[13px] sm:text-sm font-display leading-snug text-foreground line-clamp-2">
                     {item.title}
                   </h3>
-                  <p className="mt-1.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed line-clamp-2 flex-1">
+                  <p className="mt-1 text-[10px] sm:text-xs text-muted-foreground leading-relaxed line-clamp-3 flex-1">
                     {item.text}
                   </p>
                 </div>
