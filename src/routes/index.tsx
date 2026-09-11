@@ -290,8 +290,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
               className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-muted grid place-items-center text-muted-foreground hover:text-foreground"
               aria-label="Очистить"
             >
-              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <X className="w-4 h-4" />
+               <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           )}
         </div>
