@@ -347,26 +347,22 @@ function AdminNews() {
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="news-image"
-                className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-              >
-                Фото новости
-              </label>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Рекомендуемый размер: 1200×675 px (соотношение 16:9) для десктопа, 800×600 px (4:3)
-                для мобильных.
-              </p>
-              <input
-                ref={fileInputRef}
-                id="news-image"
-                name="news-image"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="mt-1.5 text-xs text-foreground"
-              />
+              <div>
+                <label
+                  htmlFor="news-image"
+                  className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+                >
+                  Фото новости
+                </label>
+                <input
+                  ref={fileInputRef}
+                  id="news-image"
+                  name="news-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="mt-1.5 text-xs text-foreground"
+                />
               {imagePreview && (
                 <div className="mt-2 relative inline-block">
                   <img

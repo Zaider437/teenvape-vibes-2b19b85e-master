@@ -47,8 +47,24 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
               `[assertAdmin] Bypassed role check for whitelisted Telegram user: @${username}`,
             );
             isAuthorized = true;
+          } else {
+            console.warn("[assertAdmin] Telegram whitelist denied", {
+              userId: context.userId,
+              username,
+              allowed,
+              whitelistErr,
+            });
           }
+        } else {
+          console.warn("[assertAdmin] No telegram_username in user_metadata", {
+            userId: context.userId,
+          });
         }
+      } else {
+        console.warn("[assertAdmin] getUserById failed", {
+          userId: context.userId,
+          userErr,
+        });
       }
     } catch (e) {
       console.warn("[assertAdmin] Telegram whitelist fallback failed", e);
@@ -1223,44 +1239,6 @@ export const adminUploadNewsImage = createServerFn({ method: "POST" })
     const file = formData.get("file");
     if (!file || !(file instanceof File)) {
       throw new Error("Файл не выбран");
-    }
-
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-      "image/heic",
-      "image/heif",
-      "image/tiff",
-      "image/bmp",
-    ];
-    const originalName = file.name || `image.${Date.now()}`;
-    const ext = originalName.split(".").pop()?.toLowerCase() || "";
-    const knownImageExts = new Set([
-      "jpg",
-      "jpeg",
-      "png",
-      "webp",
-      "gif",
-      "heic",
-      "heif",
-      "tiff",
-      "bmp",
-    ]);
-    const hasKnownImageExt = knownImageExts.has(ext);
-
-    if (file.type && !allowedTypes.includes(file.type) && !hasKnownImageExt) {
-      throw new Error(
-        `Недопустимый формат файла: ${file.type || "неизвестный"}. Разрешены: JPEG, PNG, WebP, GIF, HEIC, TIFF, BMP.`,
-      );
-    }
-
-    const maxSize = 2 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new Error(
-        `Файл слишком большой (макс. 2MB). Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)}MB.`,
-      );
     }
 
     const { uploadCloudinaryImage } = await import("./cloudinary.server");
