@@ -29,11 +29,10 @@ function sign(params: Record<string, string>, apiSecret: string): string {
   return createHash("sha1").update(`${serialized}${apiSecret}`).digest("hex");
 }
 
-export async function uploadCloudinaryImage(file: File) {
+export async function uploadCloudinaryImage(file: File, folder = "products") {
   const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const publicId = crypto.randomUUID();
-  const folder = "products";
   const signature = sign({ folder, public_id: publicId, timestamp }, apiSecret);
   const body = new FormData();
   body.append("file", file);

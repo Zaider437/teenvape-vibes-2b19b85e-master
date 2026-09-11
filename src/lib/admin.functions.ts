@@ -1137,3 +1137,156 @@ export const adminRestoreProductFromActivity = createServerFn({ method: "POST" }
 
     return { id: (inserted as any).id };
   });
+
+// ---- News management ----
+
+const newsSchema = z.object({
+  id: z.string().optional().nullable(),
+  title: z.string().trim().min(1).max(1000),
+  text: z.string().trim().min(1).max(4000),
+  image_url: z.string().trim().max(2000).optional().nullable(),
+  sort_order: z.number().int(),
+  is_active: z.boolean(),
+});
+
+export const adminListNews = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { data, error } = await context.supabase
+      .from("news" as any)
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  });
+
+export const adminUpsertNews = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => newsSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const row = {
+      title: data.title.trim(),
+      text: data.text.trim(),
+      image_url: data.image_url?.trim() || null,
+      sort_order: Math.round(data.sort_order) || 0,
+      is_active: data.is_active,
+    };
+
+    if (data.id && data.id.trim() !== "") {
+      const { error } = await supabaseAdmin
+        .from("news" as any)
+        .update(row)
+        .eq("id", data.id);
+      if (error) throw error;
+      return { id: data.id };
+    }
+
+    const { data: inserted, error } = await supabaseAdmin
+      .from("news" as any)
+      .insert(row)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return { id: (inserted as any).id };
+  });
+
+export const adminDeleteNews = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { error } = await supabaseAdmin
+      .from("news" as any)
+      .delete()
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const adminUploadNewsImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+
+    const formData = data as FormData | undefined;
+    if (!(formData instanceof FormData)) {
+      throw new Error("Ожидается FormData");
+    }
+
+    const file = formData.get("file");
+    if (!file || !(file instanceof File)) {
+      throw new Error("Файл не выбран");
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/heic",
+      "image/heif",
+      "image/tiff",
+      "image/bmp",
+    ];
+    const originalName = file.name || `image.${Date.now()}`;
+    const ext = originalName.split(".").pop()?.toLowerCase() || "";
+    const knownImageExts = new Set([
+      "jpg",
+      "jpeg",
+      "png",
+      "webp",
+      "gif",
+      "heic",
+      "heif",
+      "tiff",
+      "bmp",
+    ]);
+    const hasKnownImageExt = knownImageExts.has(ext);
+
+    if (file.type && !allowedTypes.includes(file.type) && !hasKnownImageExt) {
+      throw new Error(
+        `Недопустимый формат файла: ${file.type || "неизвестный"}. Разрешены: JPEG, PNG, WebP, GIF, HEIC, TIFF, BMP.`,
+      );
+    }
+
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new Error(
+        `Файл слишком большой (макс. 2MB). Ваш файл: ${(file.size / 1024 / 1024).toFixed(1)}MB.`,
+      );
+    }
+
+    const { uploadCloudinaryImage } = await import("./cloudinary.server");
+    const uploaded = await uploadCloudinaryImage(file, "news");
+
+    console.log("[adminUploadNewsImage] uploaded successfully", {
+      publicId: uploaded.publicId,
+      fileType: file.type,
+      fileSize: file.size,
+    });
+    return { path: uploaded.url };
+  });
+
+export const getNews = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("news" as any)
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  } catch (err) {
+    console.warn("[getNews] Failed to fetch news", err);
+    return [];
+  }
+});

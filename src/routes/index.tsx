@@ -24,6 +24,7 @@ import { createOrder, debugEnv, getMeetingTimes, getCategoryOrder } from "../lib
 import { toast, Toaster } from "sonner";
 import { FallingEffects } from "../components/FallingEffects";
 import { LoveVapeLogo } from "../components/LoveVapeLogo";
+import { NewsCarousel } from "../components/NewsCarousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet";
 
@@ -265,7 +266,7 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   return (
     <div className="min-h-screen bg-background text-foreground pb-32">
       <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} />
-      <Hero total={availableProducts.length} />
+      <NewsCarousel />
 
       {/* search */}
       <div className="px-3 sm:px-4 mt-3 sm:mt-4">
