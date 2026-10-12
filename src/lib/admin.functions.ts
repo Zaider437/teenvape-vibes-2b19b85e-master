@@ -180,6 +180,8 @@ export const adminListProducts = createServerFn({ method: "GET" })
     if (error) throw error;
     const { formatImageUrl, buildDescription, getSignedImageUrl } =
       await import("./product-helpers");
+    const { readProductDiscounts } = await import("./discounts");
+    const discounts = await readProductDiscounts();
     const mapped = await Promise.all(
       (data ?? []).map(async (p: any) => ({
         ...p,
@@ -188,9 +190,43 @@ export const adminListProducts = createServerFn({ method: "GET" })
           (await getSignedImageUrl(p.image_url)) || formatImageUrl(p.image_url) || null,
         description: buildDescription(p),
         is_active: p.is_active !== false,
+        discount_price: discounts[p.id] ?? null,
       })),
     );
     return mapped;
+  });
+
+/** Установить/снять скидку на товар (цена со скидкой в BYN, null — убрать). */
+export const adminSetProductDiscount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().trim().min(1),
+        discountPrice: z.number().nonnegative().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { PRODUCT_DISCOUNTS_KEY, readProductDiscounts, invalidateDiscountsCache } =
+      await import("./discounts");
+
+    const map = { ...(await readProductDiscounts()) };
+    if (data.discountPrice === null || data.discountPrice <= 0) {
+      delete map[data.id];
+    } else {
+      map[data.id] = data.discountPrice;
+    }
+
+    const { error } = await supabaseAdmin
+      .from("app_settings" as any)
+      .upsert({ key: PRODUCT_DISCOUNTS_KEY, value: map });
+    if (error) throw error;
+
+    invalidateDiscountsCache();
+    return { ok: true };
   });
 
 export const adminUpsertProduct = createServerFn({ method: "POST" })

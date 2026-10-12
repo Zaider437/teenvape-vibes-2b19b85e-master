@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Search, X, ShoppingBag, Plus, Minus, Trash2 } from "lucide-react";
+import { ArrowLeft, Search, X, ShoppingBag, Plus, Minus, Trash2, ClipboardList } from "lucide-react";
 import { CartProvider, useCart, type CartItem } from "@/lib/cart";
 import { fetchProductsByManufacturerSlug, type Product } from "@/lib/products";
 import { createOrder, getMeetingTimes } from "@/lib/orders.functions";
@@ -276,33 +276,59 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
         {product.volume && (
           <div className="text-[9px] sm:text-[10px] text-primary mt-0.5">{product.volume}</div>
         )}
-        <div className="mt-1.5 sm:mt-2 flex items-center justify-between gap-2">
-          <div className="font-display text-lg sm:text-xl">
-            {product.price}{" "}
-            <span className="text-[10px] sm:text-xs text-muted-foreground">BYN</span>
+        <div className="mt-1.5 sm:mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+          <div>
+            {product.discount_percent != null && (
+              <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-primary leading-none mb-1">
+                −{product.discount_percent}%
+              </div>
+            )}
+            <div className="font-display text-lg sm:text-xl flex items-baseline gap-1.5 leading-none">
+              {product.old_price != null && (
+                <span className="text-xs sm:text-sm text-muted-foreground line-through">
+                  {product.old_price}
+                </span>
+              )}
+              <span className={product.old_price != null ? "text-primary" : undefined}>
+                {product.price}
+              </span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">BYN</span>
+            </div>
           </div>
-          {isOutOfStock ? (
-            <span className="text-[10px] sm:text-xs text-red-500 font-bold uppercase tracking-wider">
-              Нет в наличии
-            </span>
-          ) : (
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {isOutOfStock && (
+              <span className="text-[9px] sm:text-[10px] text-red-500 font-bold uppercase tracking-wider">
+                Нет в наличии
+              </span>
+            )}
             <button
-              onClick={() => {
-                const added = add(product);
-                if (added) {
-                  toast.success(
-                    `${product.name}${product.flavor ? ` (${product.flavor})` : ""} в корзине`,
-                  );
-                } else {
-                  toast.warning("Максимум 3 шт. одного товара");
-                }
-              }}
-              disabled={isOutOfStock}
-              className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-primary text-primary-foreground glow-soft active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => onOpen(product)}
+              className="w-9 h-9 rounded-lg grid place-items-center bg-muted text-foreground border border-border hover:border-primary/60 hover:text-primary active:translate-y-0.5 transition-colors"
+              aria-label={`Описание: ${product.name}`}
+              title="Описание"
             >
-              <Plus className="w-3.5 h-3.5 sm:w-4 h-4" strokeWidth={3} />
+              <ClipboardList className="w-4 h-4 sm:w-4 sm:h-4" />
             </button>
-          )}
+            {!isOutOfStock && (
+              <button
+                onClick={() => {
+                  const added = add(product);
+                  if (added) {
+                    toast.success(
+                      `${product.name}${product.flavor ? ` (${product.flavor})` : ""} в корзине`,
+                    );
+                  } else {
+                    toast.warning("Максимум 3 шт. одного товара");
+                  }
+                }}
+                disabled={isOutOfStock}
+                className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-primary text-primary-foreground glow-soft active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Добавить"
+              >
+                <Plus className="w-3.5 h-3.5 sm:w-4 h-4" strokeWidth={3} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -341,8 +367,20 @@ function ProductDetail({ product }: { product: Product }) {
         </div>
         {product.puffs && <div className="text-xs sm:text-sm text-primary">{product.puffs}</div>}
         {product.volume && <div className="text-xs sm:text-sm text-primary">{product.volume}</div>}
-        <div className="font-display text-lg sm:text-xl">
-          {product.price} <span className="text-xs sm:text-sm text-muted-foreground">BYN</span>
+        {product.discount_percent != null && (
+          <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary">
+            Скидка {product.discount_percent}%
+          </div>
+        )}
+        <div className="font-display text-lg sm:text-xl flex items-baseline flex-wrap gap-x-2">
+          {product.old_price != null && (
+            <span className="text-sm text-muted-foreground line-through">
+              {product.old_price} <span className="text-xs">BYN</span>
+            </span>
+          )}
+          <span className={product.old_price != null ? "text-primary" : undefined}>
+            {product.price} <span className="text-xs sm:text-sm text-muted-foreground">BYN</span>
+          </span>
         </div>
         {product.description && (
           <div className="text-xs sm:text-sm text-foreground whitespace-pre-line border-t border-border pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
@@ -431,14 +469,14 @@ function CartSheet({
                 )}
               </div>
               <div className="min-w-0">
-                <div className="text-xs sm:text-sm font-bold truncate leading-tight">
+                <div className="text-xs sm:text-sm font-bold leading-tight break-words">
                   {i.product.name}
                 </div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground truncate leading-tight">
+                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight break-words">
                   {i.product.brand}
                 </div>
                 {i.product.flavor && (
-                  <div className="text-[10px] sm:text-xs text-muted-foreground truncate leading-tight">
+                  <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight break-words">
                     {i.product.flavor}
                   </div>
                 )}
@@ -613,7 +651,7 @@ function CheckoutSheet({
                 name="change"
                 value={change}
                 onChange={(e) => setChange(e.target.value)}
-                placeholder="Например: сдача с 50"
+                placeholder="Например: сдача с 50, адрес в случае доставки"
                 rows={2}
                 className="mt-1 w-full bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm resize-none"
               />
@@ -647,8 +685,8 @@ function CheckoutSheet({
                 Заказ
               </div>
               {items.map((i) => (
-                <div key={i.product.id} className="flex justify-between text-sm py-0.5">
-                  <span className="truncate mr-2">
+                <div key={i.product.id} className="flex justify-between gap-2 text-sm py-0.5">
+                  <span className="min-w-0 break-words mr-2">
                     {i.product.brand} — {i.product.name}
                     {i.product.flavor ? `, ${i.product.flavor}` : ""} × {i.qty}
                   </span>

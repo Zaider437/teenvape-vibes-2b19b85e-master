@@ -19,6 +19,8 @@ export type Product = {
   stock_quantity?: number;
   description?: string | null;
   manufacturer_id?: string | null;
+  old_price?: number | null;
+  discount_percent?: number | null;
 };
 
 export const PRODUCTS: Product[] = [
@@ -584,9 +586,12 @@ export async function fetchProducts(): Promise<Product[]> {
         });
         const active = mapped.filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
         if (active.length > 0) {
-          cachedProducts = active;
+          const { getProductDiscounts, applyDiscounts } = await import("./discounts");
+          const discounts = await getProductDiscounts();
+          const withDiscounts = applyDiscounts(active, discounts);
+          cachedProducts = withDiscounts;
           cachedProductsExpiry = Date.now() + 30 * 1000;
-          return active;
+          return withDiscounts;
         }
       }
       const fallback = PRODUCTS.map((p) => ({
@@ -778,7 +783,13 @@ export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
       manufacturer_id: p.manufacturer_id,
     }));
 
-    return { manufacturer, products: mapped };
+    const { readProductDiscounts, applyDiscounts } = await import("./discounts");
+    const discounts = await readProductDiscounts();
+
+    return {
+      manufacturer,
+      products: applyDiscounts(mapped, discounts),
+    };
   });
 
 import { createServerFn } from "@tanstack/react-start";
@@ -833,5 +844,10 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler
     })),
   );
 
-  return mapped.filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
+  const { readProductDiscounts, applyDiscounts } = await import("./discounts");
+  const discounts = await readProductDiscounts();
+
+  return applyDiscounts(mapped, discounts).filter(
+    (p) => p.is_active && (p.stock_quantity ?? 0) > 0,
+  );
 });

@@ -33,6 +33,7 @@ import {
   adminBulkUpdateDescription,
   adminGetCategoryOrder,
   adminUpdateCategoryOrder,
+  adminSetProductDiscount,
   DEFAULT_CATEGORY_ORDER,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
@@ -67,6 +68,7 @@ type ProductRow = {
   sort_order: number;
   stock_quantity: number;
   subcategory?: string | null;
+  discount_price?: number | null;
 };
 
 type Draft = {
@@ -76,6 +78,7 @@ type Draft = {
   brand: string;
   category: string;
   price: string;
+  discount_price: string;
   flavor: string;
   puffs: string;
   volume: string;
@@ -95,6 +98,7 @@ const EMPTY: Draft = {
   brand: "",
   category: "disposable",
   price: "0",
+  discount_price: "",
   flavor: "",
   puffs: "",
   volume: "",
@@ -132,6 +136,7 @@ function ProductsAdmin() {
   const updateStock = useServerFn(adminUpdateStock);
   const getCatOrder = useServerFn(adminGetCategoryOrder);
   const updateCatOrder = useServerFn(adminUpdateCategoryOrder);
+  const setDiscount = useServerFn(adminSetProductDiscount);
 
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -336,6 +341,7 @@ function ProductsAdmin() {
       brand: row.brand,
       category: row.category ?? "disposable",
       price: String(row.price),
+      discount_price: row.discount_price != null ? String(row.discount_price) : "",
       flavor: row.flavor ?? "",
       puffs: row.puffs ?? "",
       volume: row.volume ?? "",
@@ -353,6 +359,21 @@ function ProductsAdmin() {
   async function save() {
     if (!draft) return;
     const isEdit = !!draft.id;
+    const discountValue =
+      draft.discount_price.trim() === "" ? null : Number(draft.discount_price);
+    const priceValue = Number(draft.price) || 0;
+
+    if (discountValue !== null) {
+      if (!Number.isFinite(discountValue) || discountValue <= 0) {
+        toast.error("Скидка должна быть больше 0");
+        return;
+      }
+      if (discountValue >= priceValue) {
+        toast.error("Цена со скидкой должна быть меньше обычной цены");
+        return;
+      }
+    }
+
     const savedProduct: ProductRow = {
       id:
         draft.id ||
@@ -363,7 +384,8 @@ function ProductsAdmin() {
       name: draft.name.trim(),
       brand: draft.brand.trim(),
       category: draft.category,
-      price: Number(draft.price) || 0,
+      price: priceValue,
+      discount_price: discountValue,
       flavor: draft.flavor || null,
       puffs: draft.puffs || null,
       volume: draft.volume || null,
@@ -399,7 +421,7 @@ function ProductsAdmin() {
           name: draft.name.trim(),
           brand: draft.brand.trim(),
           category: draft.category,
-          price: Number(draft.price) || 0,
+          price: priceValue,
           flavor: draft.flavor,
           puffs: draft.puffs,
           volume: draft.volume,
@@ -412,6 +434,9 @@ function ProductsAdmin() {
           subcategory: draft.subcategory,
           stock_quantity: Number(draft.stock_quantity) || 0,
         },
+      });
+      await setDiscount({
+        data: { id: savedProduct.id, discountPrice: discountValue },
       });
       toast.success(isEdit ? "Сохранено" : "Товар добавлен");
       invalidateProductsCache();
@@ -1545,6 +1570,34 @@ function DraftEditor({
           name="price"
         />
         <F
+          label="Скидка — новая цена (BYN)"
+          v={draft.discount_price}
+          on={(v) => set("discount_price", v)}
+          type="number"
+          id="discount_price"
+          name="discount_price"
+          placeholder="пусто — без скидки"
+        />
+        {(() => {
+          const priceNum = Number(draft.price) || 0;
+          const discRaw = draft.discount_price.trim();
+          const discNum = discRaw === "" ? null : Number(discRaw);
+          if (discNum === null || !Number.isFinite(discNum) || discNum <= 0) return null;
+          if (priceNum <= 0 || discNum >= priceNum) {
+            return (
+              <p className="text-[11px] text-destructive font-semibold -mt-1">
+                Цена со скидкой должна быть меньше обычной цены
+              </p>
+            );
+          }
+          const percent = Math.round((1 - discNum / priceNum) * 100);
+          return (
+            <p className="text-[11px] text-primary font-semibold -mt-1">
+              На сайте: зачёркнутые {priceNum} BYN → {discNum} BYN (−{percent}%)
+            </p>
+          );
+        })()}
+        <F
           label="Вкус / вариант"
           v={draft.flavor}
           on={(v) => set("flavor", v)}
@@ -1678,6 +1731,7 @@ function F({
   type = "text",
   id,
   name,
+  placeholder,
 }: {
   label: string;
   v: string;
@@ -1685,6 +1739,7 @@ function F({
   type?: string;
   id?: string;
   name?: string;
+  placeholder?: string;
 }) {
   return (
     <label className="block">
@@ -1697,6 +1752,7 @@ function F({
         type={type}
         value={v}
         onChange={(e) => on(e.target.value)}
+        placeholder={placeholder}
         className="mt-1 w-full bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm"
       />
     </label>

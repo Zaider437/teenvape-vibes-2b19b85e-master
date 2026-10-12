@@ -77,7 +77,7 @@ export function NewsCarousel() {
           {items.map((item) => (
             <CarouselItem
               key={item.id}
-              className="pl-2 sm:pl-4 basis-[85%] sm:basis-[60%] md:basis-[45%] lg:basis-[38%]"
+              className="pl-2 sm:pl-4 basis-[95%] sm:basis-[60%] md:basis-[45%] lg:basis-[38%]"
             >
               <div className="bg-card border border-border rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full transition-all hover:border-primary/60 hover:-translate-y-0.5">
                 <div className="aspect-[16/10] bg-primary/5 border-b border-border/60 relative overflow-hidden grid place-items-center">
@@ -96,11 +96,11 @@ export function NewsCarousel() {
                     </div>
                   )}
                 </div>
-                <div className="p-1.5 sm:p-3 flex-1 flex flex-col">
-                  <h3 className="text-[11px] sm:text-xs font-display leading-snug text-foreground line-clamp-2">
+                <div className="p-2 sm:p-3 flex-1 flex flex-col">
+                  <h3 className="text-[11px] sm:text-xs font-display leading-snug text-foreground">
                     {item.title}
                   </h3>
-                  <p className="mt-0.5 text-[9px] sm:text-[11px] text-muted-foreground leading-relaxed line-clamp-3 flex-1">
+                  <p className="mt-0.5 text-[10px] sm:text-[11px] text-muted-foreground leading-relaxed flex-1">
                     {item.text}
                   </p>
                 </div>
