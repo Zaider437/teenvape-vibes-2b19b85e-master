@@ -130,19 +130,39 @@ export const createOrder = createServerFn({ method: "POST" })
       }
     }
 
+    let discounts: Record<string, number> = {};
+    let discountsMod: any = null;
+    try {
+      discountsMod = await import("./discounts");
+      discounts = await discountsMod.readProductDiscounts();
+    } catch (e) {
+      console.warn("[createOrder] failed to read discounts", e);
+    }
+
     const byId = new Map(
-      dbProducts.map((p) => [
-        p.id,
-        {
-          id: p.id,
-          name: p.name,
-          brand: p.brand || "",
-          category: p.category || "",
-          price: p.price,
-          stock_quantity: p.stock_quantity ?? 0,
-          flavor: p.flavor || null,
-        },
-      ]),
+      dbProducts.map((p) => {
+        const base =
+          p.old_price != null ? Number(p.old_price) : Number(p.price);
+        const discCandidate =
+          p.old_price != null ? Number(p.price) : (discounts[p.id] ?? null);
+        const eff = discountsMod
+          ? discountsMod.getEffectivePrice(base, discCandidate)
+          : { price: base, oldPrice: null, discountPercent: null };
+        return [
+          p.id,
+          {
+            id: p.id,
+            name: p.name,
+            brand: p.brand || "",
+            category: p.category || "",
+            price: eff.price,
+            old_price: eff.oldPrice,
+            discount_percent: eff.discountPercent,
+            stock_quantity: p.stock_quantity ?? 0,
+            flavor: p.flavor || null,
+          },
+        ];
+      }),
     );
 
     const trustedItems = data.items.map((i) => {
@@ -155,6 +175,8 @@ export const createOrder = createServerFn({ method: "POST" })
           brand: "",
           category: "",
           price: i.price,
+          old_price: null,
+          discount_percent: null,
           qty: i.qty,
           flavor: i.flavor || null,
         };
@@ -165,6 +187,8 @@ export const createOrder = createServerFn({ method: "POST" })
         brand: product.brand,
         category: product.category,
         price: product.price,
+        old_price: product.old_price,
+        discount_percent: product.discount_percent,
         qty: i.qty,
         flavor: product.flavor || null,
       };
@@ -201,6 +225,8 @@ export const createOrder = createServerFn({ method: "POST" })
         category: i.category,
         qty: i.qty,
         price: i.price,
+        old_price: i.old_price ?? null,
+        discount_percent: i.discount_percent ?? null,
         flavor: i.flavor,
       })),
       total_amount: trustedTotal,
@@ -343,6 +369,8 @@ async function sendTelegramNotification(params: {
     category: string;
     qty: number;
     price: number;
+    old_price?: number | null;
+    discount_percent?: number | null;
     flavor?: string | null;
   }>;
   total: number;
@@ -371,12 +399,17 @@ async function sendTelegramNotification(params: {
     params.customerNote && params.customerNote.trim()
       ? params.customerNote
       : "... не определен ...";
-  const itemsHtml = params.items
-    .map(
-      (i) =>
-        `• ${categoryLabel(i.category)}: ${escapeHtml(i.name)} (${escapeHtml(i.brand)})${i.flavor ? `, вкус: ${escapeHtml(i.flavor)}` : ""}; ${i.qty} шт. по ${i.price.toFixed(2)} BYN — ${(i.price * i.qty).toFixed(2)} BYN`,
-    )
-    .join("\n");
+   const itemsHtml = params.items
+     .map(
+       (i) => {
+         const discountNote =
+           i.old_price != null && i.old_price > i.price
+             ? ` (скидка, было ${i.old_price.toFixed(2)} BYN)`
+             : "";
+         return `• ${categoryLabel(i.category)}: ${escapeHtml(i.name)} (${escapeHtml(i.brand)})${i.flavor ? `, вкус: ${escapeHtml(i.flavor)}` : ""}; ${i.qty} шт. по ${i.price.toFixed(2)} BYN${discountNote} — ${(i.price * i.qty).toFixed(2)} BYN`;
+       },
+     )
+     .join("\n");
 
   const lines = [
     `🔥 <b>Новый заказ</b> #${escapeHtml(params.orderId.slice(0, 8))}`,
