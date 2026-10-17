@@ -40,6 +40,11 @@ vi.mock("../lib/orders.functions", () => ({
   debugEnv: vi.fn().mockResolvedValue({}),
 }));
 
+vi.mock("../lib/admin.functions", () => ({
+  getNews: vi.fn().mockResolvedValue([]),
+  getEventSettings: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock("../integrations/supabase/client", () => ({
   supabase: {
     from: vi.fn(),

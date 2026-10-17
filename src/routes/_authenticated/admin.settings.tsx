@@ -15,13 +15,13 @@ import {
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
 
-const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
-  all: { label: "Всё", emoji: "🔥" },
-  disposable: { label: "Одноразки", emoji: "💨" },
-  device: { label: "Устройства", emoji: "⚡" },
-  liquid: { label: "Жидкости", emoji: "🧪" },
-  consumable: { label: "Расходники", emoji: "🧩" },
-  snus: { label: "Снюс", emoji: "🍃" },
+const CATEGORY_META: Record<string, { label: string; emoji?: string; image?: string }> = {
+  all: { label: "Всё", image: "/assets/images/01a14a5f-7a7f-7843-9509-464d90a7f0ca.png" },
+  disposable: { label: "Одноразки", image: "/assets/images/photo_5350826908158993580_y.png" },
+  device: { label: "Устройства", image: "/assets/images/photo_5350826908158993578_y.png" },
+  liquid: { label: "Жидкости", image: "/assets/images/photo_5350826908158993581_y.png" },
+  consumable: { label: "Расходники", image: "/assets/images/photo_5350826908158993582_y.png" },
+  snus: { label: "Снюс", image: "/assets/images/photo_5350826908158993579_y.png" },
 };
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
@@ -376,7 +376,15 @@ function AdminSettings() {
                         <span className="w-5 text-xs font-bold text-muted-foreground tabular-nums">
                           {idx + 1}.
                         </span>
-                        <span className="text-base">{meta.emoji}</span>
+                        {meta.image ? (
+                          <img
+                            src={meta.image}
+                            alt=""
+                            className="h-9 w-9 inline-block object-contain align-middle drop-shadow-sm bg-white/10 rounded-md p-0.5"
+                          />
+                        ) : (
+                          <span className="text-base">{meta.emoji}</span>
+                        )}
                         <span className="text-sm font-semibold truncate">{meta.label}</span>
                         <span className="text-[11px] text-muted-foreground font-mono bg-muted/60 px-1.5 py-0.5 rounded">
                           {catId}

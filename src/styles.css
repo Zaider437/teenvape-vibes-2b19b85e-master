@@ -197,3 +197,166 @@
 @utility glow-soft {
   box-shadow: var(--glow-soft);
 }
+
+.event-ambient {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(200, 90, 0, 0.16), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(90, 0, 180, 0.18), transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(120, 40, 200, 0.12), transparent 55%),
+    radial-gradient(circle at 10% 90%, rgba(100, 0, 170, 0.14), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(140, 60, 210, 0.13), transparent 50%),
+    radial-gradient(circle at 40% 60%, rgba(70, 0, 150, 0.1), transparent 55%),
+    radial-gradient(circle at 70% 30%, rgba(160, 90, 220, 0.09), transparent 50%);
+  animation: event-ambient 12s ease-in-out infinite;
+}
+
+@keyframes event-ambient {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.pumpkin-float {
+  display: inline-block;
+  will-change: transform;
+  animation: pumpkin-float 3s ease-in-out infinite;
+}
+
+.pumpkin-float-delay {
+  animation-delay: 1.5s;
+}
+
+@keyframes pumpkin-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* horizontal pumpkin movement */
+.pumpkin-float-x {
+  display: inline-block;
+  will-change: transform;
+  animation: pumpkin-float-x 8s linear infinite;
+}
+
+.pumpkin-float-x-reverse {
+  animation: pumpkin-float-x 8s linear infinite reverse;
+}
+
+@keyframes pumpkin-float-x {
+  0% {
+    transform: translateX(-10vw) translateY(0);
+  }
+  50% {
+    transform: translateX(50vw) translateY(-10px);
+  }
+  100% {
+    transform: translateX(110vw) translateY(0);
+  }
+} /* extra flying pumpkins and skeletons */
+.pumpkin-semicircle {
+  display: inline-block;
+  will-change: transform;
+  animation: pumpkin-semicircle 9s linear infinite;
+}
+@keyframes pumpkin-semicircle {
+  0% {
+    transform: translate(-12vw, 15vh);
+  }
+  25% {
+    transform: translate(20vw, -25vh);
+  }
+  50% {
+    transform: translate(50vw, -35vh);
+  }
+  75% {
+    transform: translate(80vw, -25vh);
+  }
+  100% {
+    transform: translate(112vw, 15vh);
+  }
+}
+.pumpkin-semicircle-reverse {
+  animation: pumpkin-semicircle 9s linear infinite reverse;
+}
+.skeleton-float {
+  display: inline-block;
+  will-change: transform;
+  animation: skeleton-float 4s ease-in-out infinite;
+}
+@keyframes skeleton-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(5deg);
+  }
+}
+.skeleton-drift {
+  display: inline-block;
+  will-change: transform;
+  animation: skeleton-drift 12s linear infinite;
+}
+@keyframes skeleton-drift {
+  0% {
+    transform: translateX(-10vw) translateY(0);
+  }
+  50% {
+    transform: translateX(50vw) translateY(-20px);
+  }
+  100% {
+    transform: translateX(110vw) translateY(0);
+  }
+}
+
+.skeleton-drift-reverse {
+  animation: skeleton-drift 12s linear infinite reverse;
+}
+
+/* bats */
+.bat-fly {
+  display: inline-block;
+  will-change: transform;
+  animation: bat-fly 9s linear infinite;
+}
+
+.bat-fly-reverse {
+  animation: bat-fly 9s linear infinite reverse;
+}
+
+@keyframes bat-fly {
+  0% {
+    transform: translateX(-12vw) translateY(0) scaleX(1);
+  }
+  25% {
+    transform: translateX(20vw) translateY(-18vh) scaleX(1);
+  }
+  50% {
+    transform: translateX(50vw) translateY(-30vh) scaleX(-1);
+  }
+  75% {
+    transform: translateX(80vw) translateY(-18vh) scaleX(-1);
+  }
+  100% {
+    transform: translateX(112vw) translateY(0) scaleX(-1);
+  }
+}
+
+/* cobwebs stay fixed in corners */
+.cobweb {
+  position: fixed;
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+  font-size: 5rem;
+  line-height: 1;
+}

@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as OrderCancelRouteImport } from './routes/order-cancel'
+import { Route as EventRouteImport } from './routes/event'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BSlugRouteImport } from './routes/b/$slug'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
@@ -30,6 +32,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const OrderCancelRoute = OrderCancelRouteImport.update({
   id: '/order-cancel',
   path: '/order-cancel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventRoute = EventRouteImport.update({
+  id: '/event',
+  path: '/event',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -50,6 +57,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedEventsRoute = AuthenticatedEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
@@ -86,9 +98,11 @@ const AuthenticatedAdminNewsRoute = AuthenticatedAdminNewsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/event': typeof EventRoute
   '/order-cancel': typeof OrderCancelRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/events': typeof AuthenticatedEventsRoute
   '/admin/login': typeof AdminLoginRoute
   '/b/$slug': typeof BSlugRoute
   '/admin/news': typeof AuthenticatedAdminNewsRoute
@@ -99,8 +113,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/event': typeof EventRoute
   '/order-cancel': typeof OrderCancelRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/events': typeof AuthenticatedEventsRoute
   '/admin/login': typeof AdminLoginRoute
   '/b/$slug': typeof BSlugRoute
   '/admin/news': typeof AuthenticatedAdminNewsRoute
@@ -113,9 +129,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/event': typeof EventRoute
   '/order-cancel': typeof OrderCancelRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/events': typeof AuthenticatedEventsRoute
   '/admin/login': typeof AdminLoginRoute
   '/b/$slug': typeof BSlugRoute
   '/_authenticated/admin/news': typeof AuthenticatedAdminNewsRoute
@@ -128,9 +146,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/event'
     | '/order-cancel'
     | '/sitemap.xml'
     | '/admin'
+    | '/events'
     | '/admin/login'
     | '/b/$slug'
     | '/admin/news'
@@ -141,8 +161,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/event'
     | '/order-cancel'
     | '/sitemap.xml'
+    | '/events'
     | '/admin/login'
     | '/b/$slug'
     | '/admin/news'
@@ -154,9 +176,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/event'
     | '/order-cancel'
     | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/_authenticated/events'
     | '/admin/login'
     | '/b/$slug'
     | '/_authenticated/admin/news'
@@ -169,6 +193,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  EventRoute: typeof EventRoute
   OrderCancelRoute: typeof OrderCancelRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminLoginRoute: typeof AdminLoginRoute
@@ -189,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/order-cancel'
       fullPath: '/order-cancel'
       preLoaderRoute: typeof OrderCancelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/event': {
+      id: '/event'
+      path: '/event'
+      fullPath: '/event'
+      preLoaderRoute: typeof EventRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -218,6 +250,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/events': {
+      id: '/_authenticated/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof AuthenticatedEventsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
@@ -285,10 +324,12 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedEventsRoute: typeof AuthenticatedEventsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedEventsRoute: AuthenticatedEventsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -297,6 +338,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  EventRoute: EventRoute,
   OrderCancelRoute: OrderCancelRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminLoginRoute: AdminLoginRoute,

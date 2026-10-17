@@ -1,18 +1,30 @@
-import { useState, useEffect } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { useState, useEffect } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getEventSettings,
   adminUpdateEventSettings,
+  requireAdminAccess,
   type EventSettings,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/admin/events")({
-  component: AdminEvents,
+export const Route = createFileRoute("/_authenticated/events")({
+  beforeLoad: async () => {
+    try {
+      await requireAdminAccess();
+    } catch {
+      throw redirect({ to: "/" });
+    }
+  },
+  component: EventsPage,
 });
 
-function AdminEvents() {
+export function AdminEvents() {
+  return <EventsPage />;
+}
+
+export function EventsPage() {
   const getEvt = useServerFn(getEventSettings);
   const updateEvt = useServerFn(adminUpdateEventSettings);
   const [enabled, setEnabled] = useState(false);
@@ -43,11 +55,17 @@ function AdminEvents() {
         data: {
           enabled,
           name: name.trim(),
-          start_at: new Date(startAt).toISOString(),
-          end_at: new Date(endAt).toISOString(),
+          start_at: startAt,
+          end_at: endAt,
           theme: theme.trim(),
         },
       });
+      const fresh = await getEvt();
+      setEnabled(!!fresh.enabled);
+      setName(fresh.name || "Halloween");
+      setStartAt((fresh.start_at || "").slice(0, 16));
+      setEndAt((fresh.end_at || "").slice(0, 16));
+      setTheme(fresh.theme || "halloween");
       toast.success("Сохранено");
     } catch (e) {
       console.error(e);
@@ -57,10 +75,7 @@ function AdminEvents() {
     }
   }
 
-  const previewUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/?eventPreview=1`
-      : "/?eventPreview=1";
+  const previewUrl = typeof window !== "undefined" ? `${window.location.origin}/event` : "/event";
 
   if (loading) return <div className="text-muted-foreground">Загрузка...</div>;
 
@@ -90,7 +105,9 @@ function AdminEvents() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-muted-foreground">Начало (таймер до этого момента)</label>
+            <label className="text-sm text-muted-foreground">
+              Начало (таймер до этого момента)
+            </label>
             <input
               type="datetime-local"
               className="w-full mt-1 rounded-lg bg-background border border-border px-3 py-2"

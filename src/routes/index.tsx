@@ -29,11 +29,9 @@ import { LoveVapeLogo } from "../components/LoveVapeLogo";
 import { NewsCarousel } from "../components/NewsCarousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet";
+import { Skeleton } from "../components/ui/skeleton";
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    eventPreview: search.eventPreview === "1" || search.eventPreview === true,
-  }),
   head: () => ({
     meta: [
       { title: "LoveVape — вейпы, жижи и расходники в Гродно" },
@@ -44,19 +42,24 @@ export const Route = createFileRoute("/")({
     ],
   }),
   component: () => {
-    const search = Route.useSearch();
     const [snowActive, setSnowActive] = useState<boolean | undefined>(undefined);
     return (
       <CartProvider>
         <FallingEffects onSnowChange={setSnowActive} />
-        <Shop snowActive={snowActive} eventPreview={!!search.eventPreview} />
+        <Shop snowActive={snowActive} />
         <Toaster position="top-center" theme="dark" richColors />
       </CartProvider>
     );
   },
 });
 
-export function Shop({ snowActive, eventPreview }: { snowActive?: boolean; eventPreview?: boolean }) {
+export function Shop({
+  snowActive,
+  eventPreview,
+}: {
+  snowActive?: boolean;
+  eventPreview?: boolean;
+}) {
   const [category, setCategory] = useState<string>("all");
   const [eventSettings, setEventSettings] = useState<any>(null);
   const getEvt = useServerFn(getEventSettings);
@@ -73,8 +76,7 @@ export function Shop({ snowActive, eventPreview }: { snowActive?: boolean; event
   const eventThemeActive =
     eventPreview ||
     (eventEnabled && eventStart > 0 && now >= eventStart && (eventEnd === 0 || now <= eventEnd));
-  const eventTimerVisible =
-    eventEnabled && !eventPreview && eventStart > 0 && now < eventStart;
+  const eventTimerVisible = eventEnabled && !eventPreview && eventStart > 0 && now < eventStart;
   const [brand, setBrand] = useState<string>("all");
   const [flavor, setFlavor] = useState<string>("all");
   const [cartOpen, setCartOpen] = useState(false);
@@ -195,13 +197,13 @@ export function Shop({ snowActive, eventPreview }: { snowActive?: boolean; event
 
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(availableProducts.map((p) => p.category)));
-    const CATEGORY_MAP: Record<string, { label: string; emoji: string }> = {
-      all: { label: "Всё", emoji: "🔥" },
-      disposable: { label: "Одноразки", emoji: "💨" },
-      device: { label: "Устройства", emoji: "⚡" },
-      liquid: { label: "Жидкости", emoji: "🧪" },
-      consumable: { label: "Расходники", emoji: "🧩" },
-      snus: { label: "Снюс", emoji: "🍃" },
+    const CATEGORY_MAP: Record<string, { label: string; emoji?: string; image?: string }> = {
+      all: { label: "Всё", image: "/assets/images/01a14a5f-7a7f-7843-9509-464d90a7f0ca.png" },
+      disposable: { label: "Одноразки", image: "/assets/images/photo_5350826908158993580_y.png" },
+      device: { label: "Устройства", image: "/assets/images/photo_5350826908158993578_y.png" },
+      liquid: { label: "Жидкости", image: "/assets/images/photo_5350826908158993581_y.png" },
+      consumable: { label: "Расходники", image: "/assets/images/photo_5350826908158993582_y.png" },
+      snus: { label: "Снюс", image: "/assets/images/photo_5350826908158993579_y.png" },
     };
 
     const hasAll = categoryOrder.includes("all");
@@ -222,7 +224,7 @@ export function Shop({ snowActive, eventPreview }: { snowActive?: boolean; event
     return sortedCategories.map((id) => {
       const mapped = CATEGORY_MAP[id];
       if (mapped) {
-        return { id, label: mapped.label, emoji: mapped.emoji };
+        return { id, label: mapped.label, emoji: mapped.emoji, image: mapped.image };
       }
       const label = id.charAt(0).toUpperCase() + id.slice(1);
       return { id, label, emoji: "📦" };
@@ -290,15 +292,55 @@ export function Shop({ snowActive, eventPreview }: { snowActive?: boolean; event
     <div className="min-h-screen bg-background text-foreground pb-32">
       <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} />
       {eventThemeActive && (
-        <div className="fixed inset-0 pointer-events-none z-40">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,140,0,0.25),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(255,100,0,0.18),transparent_55%)] animate-pulse" />
-          <div className="absolute top-10 left-6 text-3xl">🎃</div>
-          <div className="absolute top-24 right-10 text-3xl">💀</div>
-          <div className="absolute bottom-24 left-12 text-2xl">🎃</div>
-          <div className="absolute bottom-16 right-16 text-2xl">💀</div>
+        <div className="fixed inset-0 pointer-events-none z-[45] overflow-hidden">
+          <div className="absolute inset-0 event-ambient" />
+          <div className="absolute top-10 left-6 text-3xl pumpkin-float">🎃</div>
+          <div className="absolute bottom-24 left-0 text-2xl pumpkin-float-x pumpkin-float-x-reverse">
+            🎃
+          </div>
+          <div className="absolute top-20 right-10 text-3xl skeleton-float">💀</div>
+          <div className="absolute bottom-16 left-0 text-2xl skeleton-drift skeleton-drift-reverse">
+            💀
+          </div>
+          <div className="absolute bottom-8 left-4 text-2xl skeleton-float">💀</div>
+          <div className="absolute bottom-8 right-4 text-3xl pumpkin-float">🎃</div>
+          <div className="absolute bottom-8 left-0 text-3xl pumpkin-float-x">🎃</div>
+          <div className="absolute top-1/4 left-0 text-2xl bat-fly">🦇</div>
+          <div className="absolute top-2/3 left-0 text-2xl bat-fly bat-fly-reverse">🦇</div>
+          <div className="absolute top-1/2 left-1/4 text-xl bat-fly">🦇</div>
+          <div className="absolute top-1/3 right-1/4 text-xl bat-fly bat-fly-reverse">🦇</div>
+          <div className="absolute bottom-1/3 left-1/3 text-lg bat-fly">🦇</div>
+          <div className="cobweb top-0 left-0 -translate-x-1/4 -translate-y-1/4 rotate-12">🕸️</div>
+          <div className="cobweb top-0 right-0 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1]">
+            🕸️
+          </div>
+          <div className="cobweb bottom-0 left-0 -translate-x-1/4 translate-y-1/4 -rotate-12 scale-y-[-1]">
+            🕸️
+          </div>
+          <div className="cobweb top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45">
+            🕸️
+          </div>
+          <div className="cobweb bottom-0 right-0 translate-x-1/4 translate-y-1/4 rotate-12 scale-x-[-1] scale-y-[-1]">
+            🕸️
+          </div>
+          <div className="cobweb top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 rotate-90">
+            🕸️
+          </div>
         </div>
       )}
-      {eventTimerVisible && <EventCountdown target={eventStart} />}
+       {eventTimerVisible && <EventCountdown target={eventStart} />}
+       {eventThemeActive && (
+         <div className="max-w-5xl mx-auto px-4 mt-4">
+           <div className="relative rounded-xl border border-purple-500/40 bg-gradient-to-r from-orange-500/10 via-purple-500/10 to-orange-500/10 px-4 py-3 text-center overflow-hidden">
+             <span className="absolute top-0 left-0 text-3xl opacity-30 -translate-x-1/4 -translate-y-1/4 rotate-12 pointer-events-none select-none">🕸️</span>
+             <span className="absolute top-0 right-0 text-3xl opacity-30 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1] pointer-events-none select-none">🕸️</span>
+             <span className="absolute bottom-0 left-1/2 text-2xl opacity-25 -translate-x-1/2 translate-y-1/4 rotate-45 pointer-events-none select-none">🕸️</span>
+             <div className="font-display text-2xl sm:text-3xl text-orange-300 drop-shadow-[0_0_12px_rgba(255,140,0,0.6)]">
+               🎃 Happy Halloween 🎃
+             </div>
+           </div>
+         </div>
+       )}
       <NewsCarousel />
       <div id="catalog" className="mt-4 sm:mt-6 flex items-baseline justify-between">
         <h2 className="font-display text-2xl sm:text-3xl text-foreground">
@@ -332,7 +374,7 @@ export function Shop({ snowActive, eventPreview }: { snowActive?: boolean; event
               className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-muted grid place-items-center text-muted-foreground hover:text-foreground"
               aria-label="Очистить"
             >
-               <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           )}
         </div>
@@ -341,20 +383,35 @@ export function Shop({ snowActive, eventPreview }: { snowActive?: boolean; event
       {/* categories */}
       <div className="px-3 sm:px-4 mt-2 sm:mt-3">
         <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 sm:pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 snap-x">
-          {dynamicCategories.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => selectCategory(c.id)}
-              className={`snap-start shrink-0 px-4 sm:px-4 py-2 sm:py-2 rounded-full border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
-                category === c.id
-                  ? "bg-primary text-primary-foreground border-primary glow-pink"
-                  : "bg-card text-foreground border-border hover:border-primary/60"
-              }`}
-            >
-              <span className="mr-1">{c.emoji}</span>
-              {c.label}
-            </button>
-          ))}
+          {loadingProducts
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton
+                  key={i}
+                  className="snap-start shrink-0 h-9 sm:h-10 w-24 sm:w-28 rounded-full"
+                />
+              ))
+            : dynamicCategories.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => selectCategory(c.id)}
+                  className={`snap-start shrink-0 px-4 sm:px-4 py-2 sm:py-2 rounded-full border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
+                    category === c.id
+                      ? "bg-primary text-primary-foreground border-primary glow-pink"
+                      : "bg-card text-foreground border-border hover:border-primary/60"
+                  }`}
+                >
+                  {c.image ? (
+                    <img
+                      src={c.image}
+                      alt=""
+                      className="h-9 w-9 mr-1 inline-block object-contain align-middle drop-shadow-sm bg-white/10 rounded-md p-0.5"
+                    />
+                  ) : (
+                    <span className="mr-1">{c.emoji}</span>
+                  )}
+                  {c.label}
+                </button>
+              ))}
         </div>
       </div>
 
@@ -1150,7 +1207,6 @@ function Footer() {
           <span className="text-primary">Love</span>
           <span className="text-foreground">Vape</span>
         </div>
-
       </div>
     </footer>
   );
@@ -1169,9 +1225,11 @@ export function EventCountdown({ target }: { target: number }) {
   return (
     <div className="max-w-5xl mx-auto px-4 mt-4">
       <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-center">
-        <div className="text-sm uppercase tracking-widest text-orange-400 font-bold">�� ������ ������</div>
+        <div className="text-sm uppercase tracking-widest text-orange-400 font-bold">
+          До начала ивента
+        </div>
         <div className="font-display text-2xl text-orange-300 mt-1">
-          {days}� {hours}� {mins}� {secs}�
+          {days}д {hours}ч {mins}м {secs}с
         </div>
       </div>
     </div>

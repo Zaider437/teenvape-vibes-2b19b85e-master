@@ -270,7 +270,8 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
       if (error) throw error;
 
       if (previousSnapshot?.image_url && previousSnapshot.image_url !== row.image_url) {
-        const { getCloudinaryPublicId, deleteCloudinaryImage } = await import("./cloudinary.server");
+        const { getCloudinaryPublicId, deleteCloudinaryImage } =
+          await import("./cloudinary.server");
         const oldPublicId = getCloudinaryPublicId(previousSnapshot.image_url);
         if (oldPublicId) {
           try {
@@ -604,9 +605,7 @@ export function calculateCopySortOrder(
   sourceId: string,
 ): number {
   const normalizedSrcSort =
-    typeof srcSortOrder === "number" && !isNaN(srcSortOrder)
-      ? Math.round(srcSortOrder)
-      : 0;
+    typeof srcSortOrder === "number" && !isNaN(srcSortOrder) ? Math.round(srcSortOrder) : 0;
 
   const productsList = catProducts || [];
   const sourceIndex = productsList.findIndex((p: any) => p.id === sourceId);
@@ -614,9 +613,7 @@ export function calculateCopySortOrder(
   let newSortOrder: number;
   if (sourceIndex >= 0) {
     if (sourceIndex < productsList.length - 1) {
-      const nextSortOrder = Math.round(
-        Number(productsList[sourceIndex + 1]?.sort_order) || 0,
-      );
+      const nextSortOrder = Math.round(Number(productsList[sourceIndex + 1]?.sort_order) || 0);
       if (nextSortOrder > normalizedSrcSort + 1) {
         newSortOrder = Math.floor((normalizedSrcSort + nextSortOrder) / 2);
       } else {
@@ -627,9 +624,7 @@ export function calculateCopySortOrder(
     }
   } else {
     if (productsList.length > 0) {
-      const maxSort = Math.round(
-        Number(productsList[productsList.length - 1]?.sort_order) || 0,
-      );
+      const maxSort = Math.round(Number(productsList[productsList.length - 1]?.sort_order) || 0);
       newSortOrder = maxSort + 1;
     } else {
       newSortOrder = normalizedSrcSort;
@@ -701,11 +696,7 @@ export const adminMoveOrCopyProduct = createServerFn({ method: "POST" })
       .eq("category", data.targetCategory)
       .order("sort_order", { ascending: true });
 
-    const newSortOrder = calculateCopySortOrder(
-      src.sort_order,
-      categoryProducts as any,
-      data.id,
-    );
+    const newSortOrder = calculateCopySortOrder(src.sort_order, categoryProducts as any, data.id);
 
     const { error: insertError } = await supabaseAdmin.from("products" as any).insert({
       slug: newSlug,
@@ -1354,7 +1345,14 @@ export const adminUpdateEventSettings = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("app_settings" as any)
-      .upsert({ key: "event_settings", value: data });
+      .upsert({ key: "event_settings", value: data }, { onConflict: "key" });
     if (error) throw error;
+    return { ok: true };
+  });
+
+export const requireAdminAccess = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
     return { ok: true };
   });

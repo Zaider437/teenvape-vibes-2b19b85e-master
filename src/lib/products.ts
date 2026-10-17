@@ -522,12 +522,12 @@ export const PRODUCTS: Product[] = [
 ];
 
 export const CATEGORIES = [
-  { id: "all", label: "Всё", emoji: "🔥" },
-  { id: "disposable", label: "Одноразки", emoji: "💨" },
-  { id: "device", label: "Устройства", emoji: "⚡" },
-  { id: "liquid", label: "Жидкости", emoji: "🧪" },
-  { id: "consumable", label: "Расходники", emoji: "🧩" },
-  { id: "snus", label: "Снюс", emoji: "🍃" },
+  { id: "all", label: "Всё", emoji: "🔥", image: "/assets/images/01a14a5f-7a7f-7843-9509-464d90a7f0ca.png" },
+  { id: "disposable", label: "Одноразки", emoji: "💨", image: "/assets/images/photo_5350826908158993580_y.png" },
+  { id: "device", label: "Устройства", emoji: "⚡", image: "/assets/images/photo_5350826908158993578_y.png" },
+  { id: "liquid", label: "Жидкости", emoji: "🧪", image: "/assets/images/photo_5350826908158993581_y.png" },
+  { id: "consumable", label: "Расходники", emoji: "🧩", image: "/assets/images/photo_5350826908158993582_y.png" },
+  { id: "snus", label: "Снюс", emoji: "🍃", image: "/assets/images/photo_5350826908158993579_y.png" },
 ] as const;
 
 let cachedProducts: Product[] | null = null;
