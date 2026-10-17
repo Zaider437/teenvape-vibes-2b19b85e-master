@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getEventSettings } from "@/lib/admin.functions";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -30,6 +31,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    eventPreview: search.eventPreview === "1" || search.eventPreview === true,
+  }),
   head: () => ({
     meta: [
       { title: "LoveVape â€” Ð²ÐµÐ¹Ð¿Ñ‹, Ð¶Ð¸Ð¶Ð¸ Ð¸ Ñ€Ð°ÑÑ…Ð¾Ð´Ð½Ð¸ÐºÐ¸ Ð² Ð“Ñ€Ð¾Ð´Ð½Ð¾" },
@@ -40,19 +44,37 @@ export const Route = createFileRoute("/")({
     ],
   }),
   component: () => {
+    const search = Route.useSearch();
     const [snowActive, setSnowActive] = useState<boolean | undefined>(undefined);
     return (
       <CartProvider>
         <FallingEffects onSnowChange={setSnowActive} />
-        <Shop snowActive={snowActive} />
+        <Shop snowActive={snowActive} eventPreview={!!search.eventPreview} />
         <Toaster position="top-center" theme="dark" richColors />
       </CartProvider>
     );
   },
 });
 
-export function Shop({ snowActive }: { snowActive?: boolean }) {
+export function Shop({ snowActive, eventPreview }: { snowActive?: boolean; eventPreview?: boolean }) {
   const [category, setCategory] = useState<string>("all");
+  const [eventSettings, setEventSettings] = useState<any>(null);
+  const getEvt = useServerFn(getEventSettings);
+  useEffect(() => {
+    getEvt()
+      .then((s) => setEventSettings(s))
+      .catch(() => setEventSettings(null));
+  }, [getEvt]);
+
+  const eventEnabled = !!eventSettings?.enabled || !!eventPreview;
+  const eventStart = eventSettings ? new Date(eventSettings.start_at).getTime() : 0;
+  const eventEnd = eventSettings ? new Date(eventSettings.end_at).getTime() : 0;
+  const now = Date.now();
+  const eventThemeActive =
+    eventPreview ||
+    (eventEnabled && eventStart > 0 && now >= eventStart && (eventEnd === 0 || now <= eventEnd));
+  const eventTimerVisible =
+    eventEnabled && !eventPreview && eventStart > 0 && now < eventStart;
   const [brand, setBrand] = useState<string>("all");
   const [flavor, setFlavor] = useState<string>("all");
   const [cartOpen, setCartOpen] = useState(false);
@@ -267,6 +289,16 @@ export function Shop({ snowActive }: { snowActive?: boolean }) {
   return (
     <div className="min-h-screen bg-background text-foreground pb-32">
       <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} />
+      {eventThemeActive && (
+        <div className="fixed inset-0 pointer-events-none z-40">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,140,0,0.25),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(255,100,0,0.18),transparent_55%)] animate-pulse" />
+          <div className="absolute top-10 left-6 text-3xl">ðŸŽƒ</div>
+          <div className="absolute top-24 right-10 text-3xl">ðŸ’€</div>
+          <div className="absolute bottom-24 left-12 text-2xl">ðŸŽƒ</div>
+          <div className="absolute bottom-16 right-16 text-2xl">ðŸ’€</div>
+        </div>
+      )}
+      {eventTimerVisible && <EventCountdown target={eventStart} />}
       <NewsCarousel />
       <div id="catalog" className="mt-4 sm:mt-6 flex items-baseline justify-between">
         <h2 className="font-display text-2xl sm:text-3xl text-foreground">
@@ -1121,5 +1153,27 @@ function Footer() {
 
       </div>
     </footer>
+  );
+}
+export function EventCountdown({ target }: { target: number }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const diff = Math.max(0, target - now);
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  return (
+    <div className="max-w-5xl mx-auto px-4 mt-4">
+      <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-center">
+        <div className="text-sm uppercase tracking-widest text-orange-400 font-bold">Äî íà÷àëà èâåíòà</div>
+        <div className="font-display text-2xl text-orange-300 mt-1">
+          {days}ä {hours}÷ {mins}ì {secs}ñ
+        </div>
+      </div>
+    </div>
   );
 }

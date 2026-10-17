@@ -1304,3 +1304,57 @@ export const getNews = createServerFn({ method: "GET" }).handler(async () => {
     return [];
   }
 });
+export type EventSettings = {
+  enabled: boolean;
+  name: string;
+  start_at: string;
+  end_at: string;
+  theme: string;
+};
+
+export const getEventSettings = createServerFn({ method: "GET" }).handler(async () => {
+  const defaults: EventSettings = {
+    enabled: false,
+    name: "Halloween",
+    start_at: "2026-10-31T00:00:00",
+    end_at: "2026-11-02T00:00:00",
+    theme: "halloween",
+  };
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin
+      .from("app_settings" as any)
+      .select("value")
+      .eq("key", "event_settings")
+      .maybeSingle() as any);
+    if (!error && data && data.value) {
+      return { ...defaults, ...(data.value as any) } as EventSettings;
+    }
+  } catch {
+    // ignore
+  }
+  return defaults;
+});
+
+export const adminUpdateEventSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        enabled: z.boolean(),
+        name: z.string().trim().min(1).max(100),
+        start_at: z.string().trim().min(1),
+        end_at: z.string().trim().min(1),
+        theme: z.string().trim().min(1).max(50),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_settings" as any)
+      .upsert({ key: "event_settings", value: data });
+    if (error) throw error;
+    return { ok: true };
+  });
