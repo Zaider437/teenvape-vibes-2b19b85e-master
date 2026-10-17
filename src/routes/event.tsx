@@ -19,7 +19,7 @@ export const Route = createFileRoute("/event")({
     const [snowActive, setSnowActive] = useState<boolean | undefined>(undefined);
     return (
       <CartProvider>
-        <FallingEffects onSnowChange={setSnowActive} />
+        <FallingEffects onSnowChange={setSnowActive} disabled />
         <Shop snowActive={snowActive} eventPreview />
         <Toaster position="top-center" theme="dark" richColors />
       </CartProvider>
