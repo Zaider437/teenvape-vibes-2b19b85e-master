@@ -294,36 +294,36 @@ export function Shop({
       {eventThemeActive && (
         <div className="fixed inset-0 pointer-events-none z-[45] overflow-hidden">
           <div className="absolute inset-0 event-ambient" />
-          <div className="absolute top-10 left-6 text-3xl pumpkin-float">🎃</div>
-          <div className="absolute bottom-24 left-0 text-2xl pumpkin-float-x pumpkin-float-x-reverse">
+          <div className="absolute top-10 left-6 text-2xl sm:text-3xl pumpkin-float">🎃</div>
+          <div className="absolute bottom-24 left-0 text-xl sm:text-2xl pumpkin-float-x pumpkin-float-x-reverse" style={{ animationDelay: "0s" }}>
             🎃
           </div>
-          <div className="absolute top-20 right-10 text-3xl skeleton-float">💀</div>
-          <div className="absolute bottom-16 left-0 text-2xl skeleton-drift skeleton-drift-reverse">
+          <div className="absolute top-20 right-10 text-2xl sm:text-3xl skeleton-float">💀</div>
+          <div className="absolute bottom-16 left-0 text-xl sm:text-2xl skeleton-drift skeleton-drift-reverse" style={{ animationDelay: "3s" }}>
             💀
           </div>
-          <div className="absolute bottom-8 left-4 text-2xl skeleton-float">💀</div>
-          <div className="absolute bottom-8 right-4 text-3xl pumpkin-float">🎃</div>
-          <div className="absolute bottom-8 left-0 text-3xl pumpkin-float-x">🎃</div>
-          <div className="absolute top-1/4 left-0 text-2xl bat-fly">🦇</div>
-          <div className="absolute top-2/3 left-0 text-2xl bat-fly bat-fly-reverse">🦇</div>
-          <div className="absolute top-1/2 left-1/4 text-xl bat-fly">🦇</div>
-          <div className="absolute top-1/3 right-1/4 text-xl bat-fly bat-fly-reverse">🦇</div>
-          <div className="absolute bottom-1/3 left-1/3 text-lg bat-fly">🦇</div>
+          <div className="hidden sm:block absolute bottom-8 left-4 text-2xl skeleton-float">💀</div>
+          <div className="hidden sm:block absolute bottom-8 right-4 text-2xl sm:text-3xl pumpkin-float">🎃</div>
+          <div className="hidden sm:block absolute bottom-8 left-0 text-2xl sm:text-3xl pumpkin-float-x" style={{ animationDelay: "4s" }}>🎃</div>
+          <div className="absolute top-1/4 left-0 text-xl sm:text-2xl bat-fly">🦇</div>
+          <div className="hidden sm:block absolute top-2/3 left-0 text-xl sm:text-2xl bat-fly bat-fly-reverse">🦇</div>
+          <div className="hidden sm:block absolute top-1/2 left-1/4 text-lg sm:text-xl bat-fly">🦇</div>
+          <div className="hidden sm:block absolute top-1/3 right-1/4 text-lg sm:text-xl bat-fly bat-fly-reverse">🦇</div>
+          <div className="hidden sm:block absolute bottom-1/3 left-1/3 text-base sm:text-lg bat-fly">🦇</div>
           <div className="cobweb top-0 left-0 -translate-x-1/4 -translate-y-1/4 rotate-12">🕸️</div>
           <div className="cobweb top-0 right-0 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1]">
             🕸️
           </div>
-          <div className="cobweb bottom-0 left-0 -translate-x-1/4 translate-y-1/4 -rotate-12 scale-y-[-1]">
+          <div className="hidden sm:block cobweb bottom-0 left-0 -translate-x-1/4 translate-y-1/4 -rotate-12 scale-y-[-1]">
             🕸️
           </div>
-          <div className="cobweb top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45">
+          <div className="hidden sm:block cobweb top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45">
             🕸️
           </div>
-          <div className="cobweb bottom-0 right-0 translate-x-1/4 translate-y-1/4 rotate-12 scale-x-[-1] scale-y-[-1]">
+          <div className="hidden sm:block cobweb bottom-0 right-0 translate-x-1/4 translate-y-1/4 rotate-12 scale-x-[-1] scale-y-[-1]">
             🕸️
           </div>
-          <div className="cobweb top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 rotate-90">
+          <div className="hidden sm:block cobweb top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 rotate-90">
             🕸️
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getAnimationSettings } from "@/lib/admin.functions";
+import { getAnimationSettings, getEventSettings } from "@/lib/admin.functions";
 
 let leafTextureImage: HTMLImageElement | null = null;
 let leafTextureLoading = false;
@@ -105,6 +105,11 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
     snow: false,
     leaves: false,
   });
+  const [baseEffects, setBaseEffects] = useState<{ snow: boolean; leaves: boolean }>({
+    snow: false,
+    leaves: false,
+  });
+  const [eventSettings, setEventSettings] = useState<any>(null);
   const [leafTexture, setLeafTexture] = useState<HTMLImageElement | null>(null);
   const [snowCount, setSnowCount] = useState(40);
   const [leavesCount, setLeavesCount] = useState(30);
@@ -134,7 +139,7 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
         const leavesActive =
           settings.leaves.enabled &&
           isMonthInRange(currentMonth, settings.leaves.from, settings.leaves.to);
-        setActiveEffects({ snow: snowActive, leaves: leavesActive });
+        setBaseEffects({ snow: snowActive, leaves: leavesActive });
         setSnowCount(settings.snow.count ?? 40);
         setLeavesCount(settings.leaves.count ?? 30);
       })
@@ -146,6 +151,41 @@ export function FallingEffects({ onSnowChange }: FallingEffectsProps) {
       cancelled = true;
     };
   }, [getAnim]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getEventSettings()
+      .then((s) => {
+        if (cancelled) return;
+        setEventSettings(s);
+      })
+      .catch(() => setEventSettings(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [getEventSettings]);
+
+  // Re-evaluate event active status periodically so animations toggle automatically.
+  useEffect(() => {
+    const computeEventActive = () => {
+      if (!eventSettings?.enabled) return false;
+      const now = Date.now();
+      const start = eventSettings.start_at ? new Date(eventSettings.start_at).getTime() : 0;
+      const end = eventSettings.end_at ? new Date(eventSettings.end_at).getTime() : 0;
+      if (!start) return false;
+      return now >= start && (end === 0 || now <= end);
+    };
+    const update = () => {
+      const evActive = computeEventActive();
+      setActiveEffects({
+        snow: baseEffects.snow && !evActive,
+        leaves: baseEffects.leaves && !evActive,
+      });
+    };
+    update();
+    const id = setInterval(update, 15000);
+    return () => clearInterval(id);
+  }, [baseEffects, eventSettings]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
