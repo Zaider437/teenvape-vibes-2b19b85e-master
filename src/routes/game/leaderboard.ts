@@ -24,9 +24,23 @@ async function readBoard(): Promise<Score[]> {
   const val = (data as { value?: unknown } | null)?.value;
   const obj = val && typeof val === "object" ? (val as { scores?: unknown }) : null;
   const arr = Array.isArray(val) ? val : Array.isArray(obj?.scores) ? obj!.scores : [];
-  return (arr as Score[]).filter(
+  const valid = (arr as Score[]).filter(
     (s) => s && typeof s.name === "string" && typeof s.score === "number",
   );
+  const byKey = new Map<string, Score>();
+  const anonymous: Score[] = [];
+  for (const s of valid) {
+    if (typeof s.tg_id === "number") {
+      const key = `tg:${s.tg_id}`;
+      const prev = byKey.get(key);
+      if (!prev || s.score > prev.score || (s.score === prev.score && s.date > prev.date)) {
+        byKey.set(key, s);
+      }
+    } else {
+      anonymous.push(s);
+    }
+  }
+  return [...byKey.values(), ...anonymous];
 }
 
 async function writeBoard(scores: Score[]) {
@@ -84,13 +98,7 @@ export const Route = createFileRoute("/game/leaderboard")({
           const viewer = url.searchParams.get("viewer");
           const viewerId = viewer ? Number(viewer) : null;
           const admin = await isAdminRequest(request);
-          const top3Ids = new Set(
-            sorted
-              .slice(0, 3)
-              .map((s) => s.tg_id)
-              .filter((x) => typeof x === "number"),
-          );
-          const privileged = admin || (viewerId !== null && top3Ids.has(viewerId));
+          const privileged = admin;
           const out = sorted.map((s, i) => {
             const isTop3 = i < 3;
             let name = s.name;
@@ -145,7 +153,18 @@ export const Route = createFileRoute("/game/leaderboard")({
             telegram_photo_url,
           } = parsed.data;
           const scores = await readBoard();
-          scores.push({
+          const existing =
+            telegram_id !== undefined ? scores.find((s) => s.tg_id === telegram_id) : undefined;
+          // Keep the best score per player: do not add a duplicate lower/equal score.
+          if (existing && existing.score >= score) {
+            const top = [...scores].sort((a, b) => b.score - a.score).slice(0, 15);
+            return new Response(JSON.stringify({ scores: top }), {
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          const filtered =
+            telegram_id !== undefined ? scores.filter((s) => s.tg_id !== telegram_id) : scores;
+          filtered.push({
             name,
             score,
             date: new Date().toISOString(),
@@ -154,7 +173,7 @@ export const Route = createFileRoute("/game/leaderboard")({
             tg_first_name: telegram_first_name,
             tg_photo_url: telegram_photo_url,
           });
-          const trimmed = scores.sort((a, b) => b.score - a.score).slice(0, 15);
+          const trimmed = filtered.sort((a, b) => b.score - a.score).slice(0, 15);
           await writeBoard(trimmed);
           const top = trimmed.slice(0, 15);
           return new Response(JSON.stringify({ scores: top }), {
