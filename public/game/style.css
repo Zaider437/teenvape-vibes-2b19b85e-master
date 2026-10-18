@@ -13,6 +13,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #050510; f
 #overlayInner button { margin-top: 8px; padding: 12px 28px; font-size: 18px; border: none; border-radius: 10px; background: linear-gradient(135deg,#ff7a18,#ff3d00); color: #fff; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
 #overlayInner button:hover { transform: scale(1.05); }
 #backToSiteBtn { position: fixed; top: 10px; right: 10px; z-index: 20; padding: 8px 14px; font-size: 14px; border: none; border-radius: 8px; background: rgba(255,122,24,0.9); color: #000; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+#fireBtn { position: fixed; bottom: 24px; right: 24px; z-index: 20; width: 74px; height: 74px; border-radius: 50%; border: none; background: radial-gradient(circle at 30% 30%, #ff9a3c, #ff3d00); color: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.5); touch-action: manipulation; }
+#fireBtn:active { transform: scale(0.92); }
+@media (min-width: 601px) { #fireBtn { display: none; } }
 #overlayMsg { color: #fff; font-weight: 600; }
 @media (max-width: 600px) {
   #hud { font-size: 13px; }
