@@ -1693,8 +1693,7 @@ for (const h of houses) {
         localStorage.setItem("szh_tg", JSON.stringify(tgUser));
         playerName = tgUser.first_name || tgUser.username || playerName || "Игрок";
         localStorage.setItem("szh_name", playerName);
-        buildMenu();
-        fetchLeaderboard();
+        location.reload();
       } catch (e) {
         console.warn("tg auth error", e);
       }
