@@ -1,0 +1,1245 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { getEventSettings } from "@/lib/admin.functions";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  ShoppingBag,
+  Plus,
+  Minus,
+  Trash2,
+  X,
+  Flame,
+  CheckCircle2,
+  Heart,
+  Search,
+  Send,
+  ClipboardList,
+} from "lucide-react";
+import { CartProvider, useCart, type CartItem } from "../lib/cart";
+import {
+  CATEGORIES,
+  fetchProductsWithImages,
+  invalidateProductsCache,
+  type Product,
+} from "../lib/products";
+import { createOrder, debugEnv, getMeetingTimes, getCategoryOrder } from "../lib/orders.functions";
+import { toast, Toaster } from "sonner";
+import { FallingEffects } from "../components/FallingEffects";
+import { LoveVapeLogo } from "../components/LoveVapeLogo";
+import { NewsCarousel } from "../components/NewsCarousel";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet";
+import { Skeleton } from "../components/ui/skeleton";
+
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "LoveVape — вейпы, жижи и расходники в Гродно" },
+      {
+        name: "description",
+        content: "Одноразки, POD-системы и жидкости. Встреча по Гродно, оплата на месте.",
+      },
+    ],
+  }),
+  component: () => {
+    const [snowActive, setSnowActive] = useState<boolean | undefined>(undefined);
+    return (
+      <CartProvider>
+        <FallingEffects onSnowChange={setSnowActive} />
+        <Shop snowActive={snowActive} />
+        <Toaster position="top-center" theme="dark" richColors />
+      </CartProvider>
+    );
+  },
+});
+
+export function Shop({
+  snowActive,
+  eventPreview,
+}: {
+  snowActive?: boolean;
+  eventPreview?: boolean;
+}) {
+  const [category, setCategory] = useState<string>("all");
+  const [eventSettings, setEventSettings] = useState<any>(null);
+  const getEvt = useServerFn(getEventSettings);
+  useEffect(() => {
+    getEvt()
+      .then((s) => setEventSettings(s))
+      .catch(() => setEventSettings(null));
+  }, [getEvt]);
+
+  const eventEnabled = !!eventSettings?.enabled || !!eventPreview;
+  const eventStart = eventSettings ? new Date(eventSettings.start_at).getTime() : 0;
+  const eventEnd = eventSettings ? new Date(eventSettings.end_at).getTime() : 0;
+  const now = Date.now();
+  const eventThemeActive =
+    eventPreview ||
+    (eventEnabled && eventStart > 0 && now >= eventStart && (eventEnd === 0 || now <= eventEnd));
+  const eventTimerVisible = eventEnabled && !eventPreview && eventStart > 0 && now < eventStart;
+  const [brand, setBrand] = useState<string>("all");
+  const [flavor, setFlavor] = useState<string>("all");
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [query, setQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [meetingTimes, setMeetingTimes] = useState<string[]>([]);
+  const [loadingMeetingTimes, setLoadingMeetingTimes] = useState(true);
+  const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
+  const [hoveredBrand, setHoveredBrand] = useState<string | null>(null);
+  const { items } = useCart();
+  const fetchProductsServer = useServerFn(fetchProductsWithImages);
+  const cartQtyByProduct = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of items) {
+      map.set(item.product.id, (map.get(item.product.id) ?? 0) + item.qty);
+    }
+    return map;
+  }, [items]);
+
+  const availableProducts = useMemo(() => {
+    return products.filter((p) => {
+      const cartQty = cartQtyByProduct.get(p.id) ?? 0;
+      const remaining = (p.stock_quantity ?? Infinity) - cartQty;
+      return remaining > 0;
+    });
+  }, [products, cartQtyByProduct]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchProductsServer()
+      .then((data) => {
+        if (!cancelled) setProducts(data);
+      })
+      .catch((err) => {
+        console.error("[shop] load products failed", err);
+        if (!cancelled) toast.error("Не удалось загрузить каталог");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProducts(false);
+      });
+    getMeetingTimes()
+      .then((data) => {
+        if (!cancelled) setMeetingTimes(data);
+      })
+      .catch((err) => {
+        console.error("[shop] load meeting times failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMeetingTimes(false);
+      });
+    getCategoryOrder()
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setCategoryOrder(data);
+      })
+      .catch((err) => {
+        console.error("[shop] load category order failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchProductsServer]);
+
+  const hasSubfilters =
+    category === "liquid" ||
+    category === "consumable" ||
+    category === "device" ||
+    category === "disposable" ||
+    category === "snus";
+
+  const inCategory = useMemo(
+    () =>
+      category === "all"
+        ? availableProducts
+        : availableProducts.filter((p) => p.category === category),
+    [category, availableProducts],
+  );
+
+  const brandOptions = useMemo(() => {
+    if (!hasSubfilters) return [] as string[];
+    return Array.from(new Set(inCategory.map((p) => p.brand))).sort((a, b) =>
+      a.localeCompare(b, "en"),
+    );
+  }, [inCategory, hasSubfilters]);
+
+  const flavorsByBrand = useMemo(() => {
+    if (!hasSubfilters) return new Map<string, string[]>();
+    const map = new Map<string, string[]>();
+    for (const p of inCategory) {
+      if (!p.flavor) continue;
+      const list = map.get(p.brand) || [];
+      if (!list.includes(p.flavor)) list.push(p.flavor);
+      map.set(p.brand, list);
+    }
+    return map;
+  }, [inCategory, hasSubfilters]);
+
+  const flavorOptions = useMemo(() => {
+    if (!hasSubfilters) return [] as string[];
+    const set = new Set<string>();
+    const productsForBrand =
+      brand === "all" ? inCategory : inCategory.filter((p) => p.brand === brand);
+    for (const p of productsForBrand) {
+      const value =
+        category.toLowerCase() === "snus" ||
+        category.toLowerCase() === "disposable" ||
+        category.toLowerCase() === "liquid"
+          ? p.name && p.name.includes(" - ")
+            ? p.name.split(" - ").pop() || p.name
+            : p.name || ""
+          : p.flavor;
+      if (value) set.add(value);
+    }
+    return Array.from(set).sort();
+  }, [inCategory, hasSubfilters, brand, category]);
+
+  const dynamicCategories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(availableProducts.map((p) => p.category)));
+    const CATEGORY_MAP: Record<string, { label: string; emoji?: string; image?: string }> = {
+      all: { label: "Всё", image: "/assets/images/01a14a5f-7a7f-7843-9509-464d90a7f0ca.png" },
+      disposable: { label: "Одноразки", image: "/assets/images/photo_5350826908158993580_y.png" },
+      device: { label: "Устройства", image: "/assets/images/photo_5350826908158993578_y.png" },
+      liquid: { label: "Жидкости", image: "/assets/images/photo_5350826908158993581_y.png" },
+      consumable: { label: "Расходники", image: "/assets/images/photo_5350826908158993582_y.png" },
+      snus: { label: "Снюс", image: "/assets/images/photo_5350826908158993579_y.png" },
+    };
+
+    const hasAll = categoryOrder.includes("all");
+    const orderToUse = hasAll ? categoryOrder : ["all", ...categoryOrder];
+
+    const allCategories = Array.from(new Set([...orderToUse, "all", ...uniqueCategories])).filter(
+      (id) => id === "all" || uniqueCategories.includes(id),
+    );
+
+    const sortedCategories = [...allCategories].sort((a, b) => {
+      const idxA = orderToUse.indexOf(a);
+      const idxB = orderToUse.indexOf(b);
+      const posA = idxA === -1 ? (a === "all" ? 0 : 9999) : idxA;
+      const posB = idxB === -1 ? (b === "all" ? 0 : 9999) : idxB;
+      return posA - posB;
+    });
+
+    return sortedCategories.map((id) => {
+      const mapped = CATEGORY_MAP[id];
+      if (mapped) {
+        return { id, label: mapped.label, emoji: mapped.emoji, image: mapped.image };
+      }
+      const label = id.charAt(0).toUpperCase() + id.slice(1);
+      return { id, label, emoji: "📦" };
+    });
+  }, [availableProducts, categoryOrder]);
+
+  function selectCategory(id: string) {
+    setCategory(id);
+    setBrand("all");
+    setFlavor("all");
+  }
+
+  const filtered = useMemo(() => {
+    let list = inCategory;
+    if (hasSubfilters) {
+      if (brand !== "all") list = list.filter((p) => p.brand === brand);
+      if (flavor !== "all") {
+        const useSubcategory =
+          category.toLowerCase() === "snus" ||
+          category.toLowerCase() === "disposable" ||
+          category.toLowerCase() === "liquid";
+        if (useSubcategory) {
+          list = list.filter((p) =>
+            p.name && p.name.includes(" - ")
+              ? p.name.split(" - ").pop() === flavor
+              : p.name === flavor,
+          );
+        } else {
+          list = list.filter((p) => p.flavor === flavor);
+        }
+      }
+    }
+
+    const sortProducts = (a: Product, b: Product) => {
+      if (category === "all" && categoryOrder.length > 0) {
+        const idxA = categoryOrder.indexOf(a.category);
+        const idxB = categoryOrder.indexOf(b.category);
+        const posA = idxA === -1 ? 9999 : idxA;
+        const posB = idxB === -1 ? 9999 : idxB;
+        if (posA !== posB) return posA - posB;
+      }
+      return (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name);
+    };
+
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return list
+        .filter((p) => (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0)
+        .sort(sortProducts);
+    }
+    return list
+      .filter((p) => {
+        const hay = [p.name, p.brand, p.flavor, p.puffs, p.volume]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return (
+          hay.includes(q) && (p.stock_quantity ?? Infinity) - (cartQtyByProduct.get(p.id) ?? 0) > 0
+        );
+      })
+      .sort(sortProducts);
+  }, [inCategory, hasSubfilters, brand, flavor, category, query, cartQtyByProduct, categoryOrder]);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground pb-32">
+      <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} />
+      {eventThemeActive && (
+        <div className="fixed inset-0 pointer-events-none z-[45] overflow-hidden">
+          <div className="absolute inset-0 event-ambient" />
+          <div className="absolute top-10 left-6 text-2xl sm:text-3xl pumpkin-float">🎃</div>
+          <div className="absolute bottom-24 left-0 text-xl sm:text-2xl pumpkin-float-x pumpkin-float-x-reverse" style={{ animationDelay: "0s" }}>
+            🎃
+          </div>
+          <div className="absolute top-20 right-10 text-2xl sm:text-3xl skeleton-float">💀</div>
+          <div className="absolute bottom-16 left-0 text-xl sm:text-2xl skeleton-drift skeleton-drift-reverse" style={{ animationDelay: "3s" }}>
+            💀
+          </div>
+          <div className="hidden sm:block absolute bottom-8 left-4 text-2xl skeleton-float">💀</div>
+          <div className="hidden sm:block absolute bottom-8 right-4 text-2xl sm:text-3xl pumpkin-float">🎃</div>
+          <div className="hidden sm:block absolute bottom-8 left-0 text-2xl sm:text-3xl pumpkin-float-x" style={{ animationDelay: "4s" }}>🎃</div>
+          <div className="absolute top-1/4 left-0 text-xl sm:text-2xl bat-fly">🦇</div>
+          <div className="hidden sm:block absolute top-2/3 left-0 text-xl sm:text-2xl bat-fly bat-fly-reverse">🦇</div>
+          <div className="hidden sm:block absolute top-1/2 left-1/4 text-lg sm:text-xl bat-fly">🦇</div>
+          <div className="hidden sm:block absolute top-1/3 right-1/4 text-lg sm:text-xl bat-fly bat-fly-reverse">🦇</div>
+          <div className="hidden sm:block absolute bottom-1/3 left-1/3 text-base sm:text-lg bat-fly">🦇</div>
+          <div className="cobweb top-0 left-0 -translate-x-1/4 -translate-y-1/4 rotate-12">🕸️</div>
+          <div className="cobweb top-0 right-0 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1]">
+            🕸️
+          </div>
+          <div className="hidden sm:block cobweb bottom-0 left-0 -translate-x-1/4 translate-y-1/4 -rotate-12 scale-y-[-1]">
+            🕸️
+          </div>
+          <div className="hidden sm:block cobweb top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45">
+            🕸️
+          </div>
+          <div className="hidden sm:block cobweb bottom-0 right-0 translate-x-1/4 translate-y-1/4 rotate-12 scale-x-[-1] scale-y-[-1]">
+            🕸️
+          </div>
+          <div className="hidden sm:block cobweb top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 rotate-90">
+            🕸️
+          </div>
+        </div>
+      )}
+       {eventTimerVisible && <EventCountdown target={eventStart} />}
+       {eventThemeActive && (
+         <div className="max-w-5xl mx-auto px-4 mt-4">
+           <div className="relative rounded-xl border border-purple-500/40 bg-gradient-to-r from-orange-500/10 via-purple-500/10 to-orange-500/10 px-4 py-3 text-center overflow-hidden">
+             <span className="absolute top-0 left-0 text-3xl opacity-30 -translate-x-1/4 -translate-y-1/4 rotate-12 pointer-events-none select-none">🕸️</span>
+             <span className="absolute top-0 right-0 text-3xl opacity-30 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1] pointer-events-none select-none">🕸️</span>
+             <span className="absolute bottom-0 left-1/2 text-2xl opacity-25 -translate-x-1/2 translate-y-1/4 rotate-45 pointer-events-none select-none">🕸️</span>
+              <div className="font-display text-2xl sm:text-3xl text-orange-300 drop-shadow-[0_0_12px_rgba(255,140,0,0.6)]">
+                🎃 Happy Halloween 🎃
+              </div>
+            </div>
+            <div className="mt-3 flex justify-center">
+              <Link
+                to="/game"
+                className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2 font-bold text-black shadow-lg shadow-orange-500/30 transition hover:bg-orange-400"
+              >
+                🎮 Играть в игру
+              </Link>
+            </div>
+          </div>
+       )}
+      <NewsCarousel />
+      <div id="catalog" className="mt-4 sm:mt-6 flex items-baseline justify-between">
+        <h2 className="font-display text-2xl sm:text-3xl text-foreground">
+          Каталог<span className="text-primary">.</span>
+        </h2>
+        <span className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">
+          {availableProducts.length} товаров
+        </span>
+      </div>
+
+      {/* search */}
+      <div className="px-3 sm:px-4 mt-3 sm:mt-4">
+        <div className="relative">
+          <Search
+            className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+            strokeWidth={2.5}
+          />
+          <input
+            type="search"
+            inputMode="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Поиск товара…"
+            className="w-full h-10 sm:h-11 pl-9 sm:pl-10 pr-9 sm:pr-10 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all"
+            aria-label="Поиск товара"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-muted grid place-items-center text-muted-foreground hover:text-foreground"
+              aria-label="Очистить"
+            >
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* categories */}
+      <div className="px-3 sm:px-4 mt-2 sm:mt-3">
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 sm:pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 snap-x">
+          {loadingProducts
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton
+                  key={i}
+                  className="snap-start shrink-0 h-9 sm:h-10 w-24 sm:w-28 rounded-full"
+                />
+              ))
+            : dynamicCategories.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => selectCategory(c.id)}
+                  className={`snap-start shrink-0 px-4 sm:px-4 py-2 sm:py-2 rounded-full border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
+                    category === c.id
+                      ? "bg-primary text-primary-foreground border-primary glow-pink"
+                      : "bg-card text-foreground border-border hover:border-primary/60"
+                  }`}
+                >
+                  {c.image ? (
+                    <img
+                      src={c.image}
+                      alt=""
+                      className="h-9 w-9 mr-1 inline-block object-contain align-middle drop-shadow-sm bg-white/10 rounded-md p-0.5"
+                    />
+                  ) : (
+                    <span className="mr-1">{c.emoji}</span>
+                  )}
+                  {c.label}
+                </button>
+              ))}
+        </div>
+      </div>
+
+      {/* sub-filters for liquid / consumable */}
+      {hasSubfilters && (
+        <div className="px-3 sm:px-4 mt-2">
+          <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
+            Производитель
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5">
+            <button
+              onClick={() => setBrand("all")}
+              className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+            >
+              Все
+            </button>
+            {brandOptions.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => {
+                  setBrand(opt);
+                  setFlavor("all");
+                }}
+                onMouseEnter={() => setHoveredBrand(opt)}
+                onMouseLeave={() => setHoveredBrand(null)}
+                className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* products grid */}
+      {loadingProducts ? (
+        <div className="px-3 sm:px-4 mt-6 sm:mt-8 text-center text-sm text-muted-foreground">
+          Загружаем каталог…
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="px-3 sm:px-4 mt-6 sm:mt-8 text-center">
+          <p className="text-sm text-muted-foreground">Ничего не найдено по запросу «{query}»</p>
+          <button
+            onClick={() => {
+              setQuery("");
+              setCategory("all");
+            }}
+            className="mt-4 inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-widest text-xs px-5 py-2.5 rounded-full glow-soft"
+          >
+            Сбросить поиск
+          </button>
+        </div>
+      ) : (
+        <section className="px-3 sm:px-4 mt-3 sm:mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
+          {filtered.map((p) => (
+            <ProductCard key={p.id} product={p} onOpen={(product) => setSelectedProduct(product)} />
+          ))}
+        </section>
+      )}
+
+      <Footer />
+
+      <FloatingCartBar onOpen={() => setCartOpen(true)} />
+
+      {cartOpen && (
+        <CartDrawer
+          open={cartOpen}
+          onClose={() => setCartOpen(false)}
+          onCheckout={() => {
+            setCartOpen(false);
+            setCheckoutOpen(true);
+          }}
+        />
+      )}
+      {checkoutOpen && (
+        <CheckoutSheet
+          onClose={() => setCheckoutOpen(false)}
+          meetingTimes={meetingTimes}
+          onOrderPlaced={(orderedItems) => {
+            const orderedIds = new Set(orderedItems.map((i) => i.product.id));
+            setProducts((prev) =>
+              prev.map((p) =>
+                orderedIds.has(p.id)
+                  ? {
+                      ...p,
+                      stock_quantity: Math.max(
+                        0,
+                        (p.stock_quantity ?? 0) -
+                          (orderedItems.find((i) => i.product.id === p.id)?.qty ?? 0),
+                      ),
+                    }
+                  : p,
+              ),
+            );
+          }}
+          onProductsUpdate={setProducts}
+          refetchProducts={fetchProductsServer}
+        />
+      )}
+
+      <Dialog
+        open={!!selectedProduct}
+        onOpenChange={(open) => {
+          if (!open) setSelectedProduct(null);
+        }}
+      >
+        <DialogContent className="max-w-sm sm:max-w-md max-h-[85vh] overflow-y-auto p-4 sm:p-5 gap-3">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg pr-8">{selectedProduct?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedProduct && <ProductDetail product={selectedProduct} />}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Header({ onOpenCart, snowActive }: { onOpenCart: () => void; snowActive?: boolean }) {
+  const { count } = useCart();
+  return (
+    <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-lg border-b border-border">
+      <div className="px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="h-8 sm:h-11 flex items-center relative">
+            <LoveVapeLogo className="h-7 sm:h-9 w-auto" />
+            {snowActive && (
+              <span
+                className="absolute -top-1 -right-1 text-base animate-bounce"
+                aria-hidden="true"
+              >
+                🎄
+              </span>
+            )}
+          </div>
+          <div className="leading-none">
+            <div className="font-display text-xl sm:text-2xl tracking-tight">
+              <span className="text-primary">Love</span>
+              <span className="text-foreground">Vape</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <a
+            href="https://t.me/Love_Vape1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary text-primary-foreground px-3 sm:px-3 flex items-center gap-1.5 glow-soft active:translate-y-0.5 text-xs sm:text-xs font-bold"
+            aria-label="Связь с нами в Telegram"
+          >
+            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2.5} />
+            <span>Связь с нами</span>
+          </a>
+          <button
+            onClick={onOpenCart}
+            className="relative w-10 h-10 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary text-primary-foreground grid place-items-center glow-soft active:translate-y-0.5"
+            aria-label="Корзина"
+          >
+            <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2.5} />
+            {count > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 min-w-4 h-4 sm:min-w-5 sm:h-5 px-0.5 rounded-full bg-secondary text-secondary-foreground text-[9px] sm:text-[10px] font-black grid place-items-center border-2 border-background">
+                {count}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function Hero({ total }: { total: number }) {
+  return (
+    <section className="px-3 sm:px-4 pt-3 sm:pt-4">
+      <div
+        className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 pt-5 sm:pt-8 border border-primary/30"
+        style={{ backgroundImage: "var(--gradient-hero)" }}
+      >
+        <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
+        <div className="relative">
+          <div className="inline-flex items-center gap-1 bg-primary/15 text-primary text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.25em] px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-primary/40 backdrop-blur">
+            <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> new drop
+          </div>
+          <h1 className="mt-3 sm:mt-4 font-display text-[2.5rem] sm:text-[3.25rem] leading-[0.92] text-foreground">
+            LOVE THE
+            <br />
+            <span className="text-primary text-glow-pink">VAPE.</span>
+          </h1>
+          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground max-w-[90%] leading-relaxed">
+            Одноразки, POD-системы и жидкости. Встреча по Гродно, оплата на месте.
+          </p>
+          <a
+            href="#catalog"
+            className="inline-flex items-center gap-2 mt-4 sm:mt-5 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] sm:text-xs px-4 sm:px-6 py-2 sm:py-3 rounded-full glow-soft active:translate-y-0.5"
+          >
+            <Heart className="w-3 h-3 sm:w-4 sm:h-4 fill-current" /> к каталогу
+          </a>
+        </div>
+      </div>
+      <div id="catalog" className="mt-4 sm:mt-6 flex items-baseline justify-between">
+        <h2 className="font-display text-2xl sm:text-3xl text-foreground">
+          Каталог<span className="text-primary">.</span>
+        </h2>
+        <span className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">
+          {total} товаров
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Product) => void }) {
+  const { add, items } = useCart();
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [product.id, product.image]);
+  const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
+  const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
+  const isOutOfStock = remainingStock <= 0;
+  return (
+    <div
+      className="relative rounded-xl border border-border overflow-hidden flex flex-col transition-all hover:border-primary/60 hover:-translate-y-0.5"
+      style={{ backgroundImage: "var(--gradient-card)" }}
+    >
+      <div className="aspect-[4/5] sm:aspect-[3/4] grid place-items-center text-4xl sm:text-5xl bg-primary/5 border-b border-border/60 relative overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            background: "radial-gradient(circle at 50% 50%, var(--primary) 0%, transparent 60%)",
+          }}
+        />
+        <button
+          onClick={() => onOpen(product)}
+          className="relative w-full h-full flex items-center justify-center cursor-pointer"
+          aria-label={`Подробнее о ${product.name}`}
+        >
+          {product.image && !broken ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              className="relative w-full h-full object-contain p-1.5 sm:p-2.5"
+              onError={() => setBroken(true)}
+            />
+          ) : (
+            <span className="drop-shadow-lg">{product.emoji}</span>
+          )}
+        </button>
+      </div>
+      <div className="p-2 sm:p-3 flex-1 flex flex-col">
+        <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          {product.brand}
+        </div>
+        <div className="mt-0.5 font-bold text-xs sm:text-sm leading-tight text-foreground line-clamp-2 min-h-[1.5rem] sm:min-h-[2rem] flex items-center">
+          {product.name}
+        </div>
+        {product.flavor && (
+          <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2 min-h-[1.25rem] sm:min-h-[1.5rem] flex items-center">
+            {product.flavor}
+          </div>
+        )}
+        {product.subcategory && (
+          <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2 min-h-[1.25rem] sm:min-h-[1.5rem] flex items-center">
+            {product.subcategory}
+          </div>
+        )}
+        {product.puffs && (
+          <div className="text-[9px] sm:text-[10px] text-primary mt-0.5">{product.puffs}</div>
+        )}
+        {product.volume && (
+          <div className="text-[9px] sm:text-[10px] text-primary mt-0.5">{product.volume}</div>
+        )}
+        <div className="mt-1.5 sm:mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+          <div>
+            {product.discount_percent != null && (
+              <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-primary leading-none mb-1">
+                −{product.discount_percent}%
+              </div>
+            )}
+            <div className="font-display text-lg sm:text-xl flex items-baseline gap-1.5 leading-none">
+              {product.old_price != null && (
+                <span className="text-xs sm:text-sm text-muted-foreground line-through">
+                  {product.old_price}
+                </span>
+              )}
+              <span className={product.old_price != null ? "text-primary" : undefined}>
+                {product.price}
+              </span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">BYN</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {isOutOfStock && (
+              <span className="text-[9px] sm:text-[10px] text-red-500 font-bold uppercase tracking-wider">
+                Нет в наличии
+              </span>
+            )}
+            <button
+              onClick={() => onOpen(product)}
+              className="w-9 h-9 rounded-lg grid place-items-center bg-muted text-foreground border border-border hover:border-primary/60 hover:text-primary active:translate-y-0.5 transition-colors"
+              aria-label={`Описание: ${product.name}`}
+              title="Описание"
+            >
+              <ClipboardList className="w-4 h-4 sm:w-4 sm:h-4" />
+            </button>
+            {!isOutOfStock && (
+              <button
+                onClick={() => {
+                  const added = add(product);
+                  if (added) {
+                    toast.success(
+                      `${product.name}${product.flavor ? ` (${product.flavor})` : ""} в корзине`,
+                    );
+                  } else {
+                    toast.warning("Максимум 3 шт. одного товара");
+                  }
+                }}
+                disabled={isOutOfStock}
+                className="w-9 h-9 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-primary text-primary-foreground glow-soft active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Добавить"
+              >
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={3} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FloatingCartBar({ onOpen }: { onOpen: () => void }) {
+  const { count, total } = useCart();
+  if (count === 0) return null;
+  return (
+    <div className="fixed bottom-3 left-3 right-3 sm:left-4 sm:right-4 z-30">
+      <button
+        onClick={onOpen}
+        className="w-full bg-primary text-primary-foreground rounded-xl sm:rounded-2xl py-2.5 sm:py-3.5 px-4 sm:px-5 flex items-center justify-between font-black uppercase tracking-widest text-xs sm:text-sm glow-pink"
+      >
+        <span className="flex items-center gap-2">
+          <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={3} />
+          {count} шт.
+        </span>
+        <span>{total.toFixed(2)} BYN →</span>
+      </button>
+    </div>
+  );
+}
+
+function ProductDetail({ product }: { product: Product }) {
+  const { add, items } = useCart();
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [product.id, product.image]);
+  const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
+  const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
+  const isOutOfStock = remainingStock <= 0;
+  return (
+    <div className="space-y-2 sm:space-y-3">
+      <div className="aspect-[4/3] sm:aspect-[3/4] grid place-items-center text-4xl sm:text-5xl bg-primary/5 rounded-lg overflow-hidden">
+        {product.image && !broken ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            decoding="async"
+            className="w-full h-full object-contain p-1.5 sm:p-2"
+            onError={() => setBroken(true)}
+          />
+        ) : (
+          <span>{product.emoji}</span>
+        )}
+      </div>
+      <div className="space-y-1 sm:space-y-1.5">
+        <div className="text-xs sm:text-sm text-muted-foreground">
+          <span className="font-bold text-foreground">{product.brand}</span>
+          {product.flavor && <span> · {product.flavor}</span>}
+          {product.subcategory && <span> · {product.subcategory}</span>}
+        </div>
+        {product.puffs && <div className="text-xs sm:text-sm text-primary">{product.puffs}</div>}
+        {product.volume && <div className="text-xs sm:text-sm text-primary">{product.volume}</div>}
+        {product.discount_percent != null && (
+          <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary">
+            Скидка {product.discount_percent}%
+          </div>
+        )}
+        <div className="font-display text-lg sm:text-xl flex items-baseline flex-wrap gap-x-2">
+          {product.old_price != null && (
+            <span className="text-sm text-muted-foreground line-through">
+              {product.old_price} <span className="text-xs">BYN</span>
+            </span>
+          )}
+          <span className={product.old_price != null ? "text-primary" : undefined}>
+            {product.price} <span className="text-xs sm:text-sm text-muted-foreground">BYN</span>
+          </span>
+        </div>
+        {product.description && (
+          <div className="text-xs sm:text-sm text-foreground whitespace-pre-line border-t border-border pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
+            {product.description}
+          </div>
+        )}
+        {isOutOfStock ? (
+          <div className="mt-2 sm:mt-3 text-center">
+            <span className="text-red-500 font-bold text-xs sm:text-sm uppercase tracking-wider">
+              Нет в наличии — ждите пополнения
+            </span>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              const added = add(product);
+              if (added) {
+                toast.success(`${product.name} в корзине`);
+              } else {
+                toast.warning("Максимум 3 шт. одного товара");
+              }
+            }}
+            disabled={isOutOfStock}
+            className="mt-2 sm:mt-3 w-full bg-primary text-primary-foreground font-black uppercase tracking-widest py-2 sm:py-2.5 rounded-xl glow-soft text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            В корзину
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CartDrawer({
+  open,
+  onClose,
+  onCheckout,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCheckout: () => void;
+}) {
+  const { items, setQty, remove, total, clear } = useCart();
+  const [brokenMap, setBrokenMap] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    setBrokenMap({});
+  }, [items]);
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <SheetContent
+        side="bottom"
+        className="max-h-[85vh] flex flex-col rounded-t-2xl sm:rounded-t-3xl border-t-2 border-primary"
+      >
+        <SheetHeader className="p-3 sm:p-4 border-b border-border">
+          <SheetTitle className="font-display text-xl sm:text-2xl truncate">
+            Твоя корзина
+          </SheetTitle>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 sm:space-y-3">
+          {items.length === 0 && (
+            <p className="text-center text-muted-foreground py-8 sm:py-10 text-sm">
+              Пусто. Закинь что-нибудь 💨
+            </p>
+          )}
+          {items.map((i) => (
+            <div
+              key={i.product.id}
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 sm:gap-3 items-center bg-background rounded-lg sm:rounded-xl p-1.5 sm:p-2 border border-border"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md sm:rounded-lg bg-muted grid place-items-center text-xl sm:text-2xl shrink-0 overflow-hidden">
+                {i.product.image && !brokenMap[i.product.id] ? (
+                  <img
+                    src={i.product.image}
+                    alt={i.product.name}
+                    decoding="async"
+                    className="w-full h-full object-contain"
+                    onError={() => setBrokenMap((m) => ({ ...m, [i.product.id]: true }))}
+                  />
+                ) : (
+                  <span>{i.product.emoji}</span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs sm:text-sm font-bold leading-tight break-words">
+                  {i.product.name}
+                </div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight break-words">
+                  {i.product.brand}
+                </div>
+                {i.product.flavor && (
+                  <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight break-words">
+                    {i.product.flavor}
+                  </div>
+                )}
+                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">
+                  {i.product.price} BYN
+                </div>
+              </div>
+              <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                <button
+                  onClick={() => setQty(i.product.id, i.qty - 1)}
+                  className="w-7 h-7 sm:w-7 sm:h-7 rounded grid place-items-center bg-muted"
+                  aria-label="Уменьшить количество"
+                >
+                  <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                </button>
+                <span className="w-5 sm:w-6 text-center font-bold text-xs sm:text-sm">{i.qty}</span>
+                <button
+                  onClick={() => setQty(i.product.id, i.qty + 1)}
+                  className="w-7 h-7 sm:w-7 sm:h-7 rounded bg-primary text-primary-foreground grid place-items-center"
+                  aria-label="Увеличить количество"
+                >
+                  <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" strokeWidth={3} />
+                </button>
+                <button
+                  onClick={() => remove(i.product.id)}
+                  className="ml-0.5 sm:ml-1 w-7 h-7 sm:w-7 sm:h-7 rounded bg-destructive/20 text-destructive grid place-items-center"
+                  aria-label="Удалить из корзины"
+                >
+                  <Trash2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {items.length > 0 && (
+          <div className="p-3 sm:p-4 border-t border-border space-y-2 sm:space-y-3">
+            <div className="flex justify-between font-display text-xl sm:text-2xl">
+              <span>Итого</span>
+              <span className="text-primary text-glow-pink">{total.toFixed(2)} BYN</span>
+            </div>
+            <button
+              onClick={onCheckout}
+              className="w-full bg-primary text-primary-foreground font-black uppercase tracking-widest py-2.5 sm:py-3 rounded-xl glow-pink text-sm sm:text-base"
+            >
+              Оформить заказ
+            </button>
+            <button
+              onClick={clear}
+              className="w-full text-[10px] sm:text-xs text-muted-foreground underline"
+            >
+              Очистить корзину
+            </button>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function CheckoutSheet({
+  onClose,
+  meetingTimes,
+  onOrderPlaced,
+  onProductsUpdate,
+  refetchProducts,
+}: {
+  onClose: () => void;
+  meetingTimes: string[];
+  onOrderPlaced?: (items: CartItem[]) => void;
+  onProductsUpdate?: (products: Product[]) => void;
+  refetchProducts?: () => Promise<Product[]>;
+}) {
+  const { items, total, clear } = useCart();
+  const submit = useServerFn(createOrder);
+  const [telegram, setTelegram] = useState("");
+  const [change, setChange] = useState("");
+  const [meetingTime, setMeetingTime] = useState<string>(meetingTimes[0] || "");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState<null | { id: string }>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!telegram.trim()) {
+      toast.error("Укажи юзернейм Telegram");
+      return;
+    }
+    if (items.length === 0) return;
+    const tg = telegram.trim().replace(/^@+/, "");
+    if (tg.length < 3) {
+      toast.error("Юзернейм слишком короткий");
+      return;
+    }
+    const currentItems = [...items];
+    setLoading(true);
+    try {
+      const noteParts = [`Сдача: ${change.trim() ? change.trim() : "не нужна"}`];
+      const res = await submit({
+        data: {
+          customer_name: `@${tg}`,
+          customer_phone: "Telegram",
+          customer_address: meetingTime,
+          customer_note: noteParts.join(" · "),
+          items: currentItems.map((i) => ({
+            id: i.product.id,
+            name: i.product.name,
+            price: i.product.price,
+            qty: i.qty,
+            flavor: i.product.flavor || null,
+          })),
+          total_amount: total,
+          origin: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      setDone({ id: res.id });
+      clear();
+      invalidateProductsCache();
+      onOrderPlaced?.(currentItems);
+      (refetchProducts || fetchProducts)()
+        .then((data) => {
+          onProductsUpdate?.(data);
+        })
+        .catch((err) => {
+          console.error("[shop] refetch products failed", err);
+          toast.error("Не удалось обновить каталог. Обновите страницу.");
+        });
+    } catch (err) {
+      console.error(err);
+      toast.error("Не удалось отправить заказ. Попробуй ещё раз.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col">
+      <div className="mt-auto bg-card rounded-t-3xl border-t-2 border-secondary max-h-[92vh] flex flex-col">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4 border-b border-border">
+          <h3 className="font-display text-2xl truncate">{done ? "Заказ принят" : "Оформление"}</h3>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-lg bg-muted grid place-items-center shrink-0"
+            aria-label="Закрыть"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {done ? (
+          <div className="p-6 text-center flex-1 overflow-y-auto">
+            <CheckCircle2 className="w-16 h-16 text-primary mx-auto" strokeWidth={2.5} />
+            <h4 className="font-display text-3xl mt-3 text-glow-pink text-primary">Готово!</h4>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Номер заказа <span className="font-mono text-foreground">#{done.id.slice(0, 8)}</span>
+              . Мы напишем тебе в Telegram в ближайшее время.
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-6 bg-primary text-primary-foreground font-black uppercase tracking-widest px-6 py-3 rounded-xl glow-soft"
+            >
+              Закрыть
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-4 space-y-3 overflow-y-auto">
+            <Field
+              label="Юзернейм Telegram"
+              value={telegram}
+              onChange={setTelegram}
+              placeholder="@username"
+              id="telegram"
+              name="telegram"
+            />
+            <Field
+              label="Нужна ли сдача?"
+              value={change}
+              onChange={setChange}
+              placeholder="Например: сдача с 50, адрес в случае доставки"
+              textarea
+              id="change"
+              name="change"
+            />
+
+            <label className="block">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                Время встречи
+              </span>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {meetingTimes.map((t) => {
+                  const active = meetingTime === t;
+                  return (
+                    <button
+                      type="button"
+                      key={t}
+                      onClick={() => setMeetingTime(t)}
+                      className={`text-left text-xs font-semibold px-3 py-2.5 rounded-xl border transition-all ${
+                        active
+                          ? "bg-primary text-primary-foreground border-primary glow-pink"
+                          : "bg-background text-foreground border-border hover:border-primary/60"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
+            </label>
+
+            <div className="bg-background rounded-xl p-3 border border-border">
+              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+                Заказ
+              </div>
+              {items.map((i) => (
+                <div key={i.product.id} className="flex justify-between gap-2 text-sm py-0.5">
+                  <span className="min-w-0 break-words mr-2">
+                    {i.product.brand} — {i.product.name}
+                    {i.product.flavor ? `, ${i.product.flavor}` : ""} × {i.qty}
+                  </span>
+                  <span className="font-bold shrink-0">{(i.product.price * i.qty).toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="mt-2 pt-2 border-t border-border flex justify-between font-display text-xl">
+                <span>Итого</span>
+                <span className="text-primary">{total.toFixed(2)} BYN</span>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary text-primary-foreground font-black uppercase tracking-widest py-3 rounded-xl glow-pink disabled:opacity-60"
+            >
+              {loading ? "Отправляем..." : "Подтвердить заказ"}
+            </button>
+            <p className="text-[10px] text-center text-muted-foreground">
+              Нажимая кнопку, вы подтверждаете возраст 18+ и согласие на обработку данных.
+            </p>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  textarea,
+  id,
+  name,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  textarea?: boolean;
+  id?: string;
+  name?: string;
+}) {
+  const base =
+    "w-full bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none";
+  return (
+    <label className="block">
+      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
+      {textarea ? (
+        <textarea
+          id={id}
+          name={name}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={2}
+          className={base + " mt-1 resize-none"}
+        />
+      ) : (
+        <input
+          id={id}
+          name={name}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={base + " mt-1"}
+        />
+      )}
+    </label>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="mt-10 px-4 pb-4">
+      <div className="rounded-2xl border border-border bg-card p-5 text-center">
+        <div className="font-display text-3xl tracking-tight">
+          <span className="text-primary">Love</span>
+          <span className="text-foreground">Vape</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+export function EventCountdown({ target }: { target: number }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const diff = Math.max(0, target - now);
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  return (
+    <div className="max-w-5xl mx-auto px-4 mt-4">
+      <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-center">
+        <div className="text-sm uppercase tracking-widest text-orange-400 font-bold">
+          До начала ивента
+        </div>
+        <div className="font-display text-2xl text-orange-300 mt-1">
+          {days}д {hours}ч {mins}м {secs}с
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,1760 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X as XIcon,
+  Search,
+  Copy,
+  FolderInput,
+  Package,
+  Image,
+  Tag,
+  FileText,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  CheckSquare,
+} from "lucide-react";
+import { toast, Toaster } from "sonner";
+import {
+  adminListProducts,
+  adminUpsertProduct,
+  adminDeleteProduct,
+  adminToggleActive,
+  adminMoveOrCopyProduct,
+  adminUpdateStock,
+  adminUploadProductImage,
+  adminBulkUpdateImage,
+  adminBulkUpdateBrand,
+  adminBulkUpdateDescription,
+  adminGetCategoryOrder,
+  adminUpdateCategoryOrder,
+  adminSetProductDiscount,
+  DEFAULT_CATEGORY_ORDER,
+} from "@/lib/admin.functions";
+import { invalidateProductsCache } from "@/lib/products";
+import { compressImageFile } from "@/lib/image-compression";
+import { formatImageUrl } from "@/lib/product-helpers";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+
+type ProductRow = {
+  id: string;
+  slug: string;
+  name: string;
+  brand: string;
+  category: "device" | "disposable" | "liquid" | "consumable" | string;
+  price: number | string;
+  flavor: string | null;
+  puffs: string | null;
+  volume: string | null;
+  emoji: string;
+  color: string;
+  image_url: string | null;
+  display_image_url?: string | null;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+  stock_quantity: number;
+  subcategory?: string | null;
+  discount_price?: number | null;
+};
+
+type Draft = {
+  id?: string;
+  slug: string;
+  name: string;
+  brand: string;
+  category: string;
+  price: string;
+  discount_price: string;
+  flavor: string;
+  puffs: string;
+  volume: string;
+  emoji: string;
+  color: "pink" | "cyan" | "lime";
+  image_url: string;
+  description: string;
+  is_active: boolean;
+  sort_order: string;
+  stock_quantity: string;
+  subcategory?: string;
+};
+
+const EMPTY: Draft = {
+  slug: "",
+  name: "",
+  brand: "",
+  category: "disposable",
+  price: "0",
+  discount_price: "",
+  flavor: "",
+  puffs: "",
+  volume: "",
+  emoji: "🔥",
+  color: "pink",
+  image_url: "",
+  description: "",
+  is_active: true,
+  sort_order: "0",
+  stock_quantity: "0",
+};
+
+export const Route = createFileRoute("/_authenticated/admin/")({
+  component: ProductsAdmin,
+});
+
+const CATEGORY_MAP: Record<string, string> = {
+  all: "Все",
+  disposable: "Одноразки",
+  device: "Устройства",
+  liquid: "Жидкости",
+  consumable: "Расходники",
+  snus: "Снюс",
+};
+
+function getCategoryLabel(id: string): string {
+  return CATEGORY_MAP[id] || id.charAt(0).toUpperCase() + id.slice(1);
+}
+
+function ProductsAdmin() {
+  const list = useServerFn(adminListProducts);
+  const upsert = useServerFn(adminUpsertProduct);
+  const remove = useServerFn(adminDeleteProduct);
+  const toggle = useServerFn(adminToggleActive);
+  const updateStock = useServerFn(adminUpdateStock);
+  const getCatOrder = useServerFn(adminGetCategoryOrder);
+  const updateCatOrder = useServerFn(adminUpdateCategoryOrder);
+  const setDiscount = useServerFn(adminSetProductDiscount);
+
+  const [rows, setRows] = useState<ProductRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
+  const [brand, setBrand] = useState<string>("all");
+  const [flavor, setFlavor] = useState<string>("all");
+  const [query, setQuery] = useState("");
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [editingStockId, setEditingStockId] = useState<string | null>(null);
+  const [stockValue, setStockValue] = useState<string>("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkImageDialog, setShowBulkImageDialog] = useState(false);
+  const [bulkImageFile, setBulkImageFile] = useState<File | null>(null);
+  const [bulkImagePreview, setBulkImagePreview] = useState<string | null>(null);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [showBulkBrandDialog, setShowBulkBrandDialog] = useState(false);
+  const [bulkBrandValue, setBulkBrandValue] = useState("");
+  const [isBulkBrandSaving, setIsBulkBrandSaving] = useState(false);
+  const [showBulkDescriptionDialog, setShowBulkDescriptionDialog] = useState(false);
+  const [bulkDescriptionValue, setBulkDescriptionValue] = useState("");
+  const [isBulkDescriptionSaving, setIsBulkDescriptionSaving] = useState(false);
+  const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
+  const [showCategoryOrderDialog, setShowCategoryOrderDialog] = useState(false);
+  const [isSavingCategoryOrder, setIsSavingCategoryOrder] = useState(false);
+  const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
+  const [moveCopyTarget, setMoveCopyTarget] = useState<ProductRow | null>(null);
+  const [moveCopyMode, setMoveCopyMode] = useState<"move" | "copy">("move");
+  const [moveCopyCategory, setMoveCopyCategory] = useState<string>("");
+  const [moveCopySubcategory, setMoveCopySubcategory] = useState<string>("");
+  const [moveCopyCustomSubcategory, setMoveCopyCustomSubcategory] = useState(false);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
+
+  const dynamicCategories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(rows.map((r) => r.category)));
+    const hasAll = categoryOrder.includes("all");
+    const orderToUse = hasAll ? categoryOrder : ["all", ...categoryOrder];
+
+    const allCategories = Array.from(new Set([...orderToUse, "all", ...uniqueCategories])).filter(
+      (id) => id === "all" || uniqueCategories.includes(id),
+    );
+
+    const sorted = [...allCategories].sort((a, b) => {
+      const idxA = orderToUse.indexOf(a);
+      const idxB = orderToUse.indexOf(b);
+      const posA = idxA === -1 ? (a === "all" ? 0 : 9999) : idxA;
+      const posB = idxB === -1 ? (b === "all" ? 0 : 9999) : idxB;
+      return posA - posB;
+    });
+
+    return sorted.map((id) => ({
+      id,
+      label: getCategoryLabel(id),
+    }));
+  }, [rows, categoryOrder]);
+
+  const formCategories = useMemo(() => {
+    const defaults = [
+      { id: "disposable", label: "Одноразка" },
+      { id: "device", label: "Устройство" },
+      { id: "liquid", label: "Жидкость" },
+      { id: "consumable", label: "Расходник" },
+      { id: "snus", label: "Снюс" },
+    ];
+    const unique = Array.from(new Set(rows.map((r) => r.category)));
+    const list = [...defaults];
+    for (const id of unique) {
+      if (!list.some((item) => item.id === id)) {
+        const label = id.charAt(0).toUpperCase() + id.slice(1);
+        list.push({ id, label });
+      }
+    }
+    return list;
+  }, [rows]);
+
+  const subcategoriesByCategory = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const r of rows) {
+      if (!r.subcategory) continue;
+      const list = map.get(r.category) || [];
+      if (!list.includes(r.subcategory)) list.push(r.subcategory);
+      map.set(r.category, list);
+    }
+    return map;
+  }, [rows]);
+
+  async function reload(silent = false) {
+    if (!silent) setLoading(true);
+    try {
+      const [data, savedOrder] = await Promise.all([
+        (list()) as unknown as ProductRow[],
+        getCatOrder().catch(() => DEFAULT_CATEGORY_ORDER),
+      ]);
+      setRows(data);
+      const hasAll = (savedOrder ?? []).includes("all");
+      const baseList = hasAll ? (savedOrder ?? []) : ["all", ...(savedOrder ?? [])];
+      const allKnown = new Set([
+        ...baseList,
+        ...DEFAULT_CATEGORY_ORDER,
+        ...data.map((r) => r.category).filter(Boolean),
+      ]);
+      setCategoryOrder(Array.from(allKnown));
+    } catch (e: any) {
+      toast.error(e?.message ?? "Ошибка загрузки");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const inCategory = useMemo(
+    () => (filter === "all" ? rows : rows.filter((r) => r.category === filter)),
+    [rows, filter],
+  );
+  const hasSub = filter !== "all";
+  const brandOptions = useMemo(() => {
+    if (!hasSub) return [] as string[];
+    return Array.from(new Set(inCategory.map((r) => r.brand))).sort((a, b) =>
+      a.localeCompare(b, "en"),
+    );
+  }, [inCategory, hasSub]);
+  const flavorOptions = useMemo(() => {
+    if (!hasSub) return [] as string[];
+    const set = new Set<string>();
+    const rowsForBrand = brand === "all" ? inCategory : inCategory.filter((r) => r.brand === brand);
+    for (const r of rowsForBrand) if (r.flavor) set.add(r.flavor);
+    return Array.from(set).sort();
+  }, [inCategory, hasSub, brand]);
+
+  const subcategoryOptions = useMemo(() => {
+    if (!hasSub) return [] as string[];
+    const useName =
+      filter.toLowerCase() === "disposable" ||
+      filter.toLowerCase() === "liquid" ||
+      filter.toLowerCase() === "snus";
+    if (useName) {
+      const values = inCategory
+        .map((r) =>
+          r.name && r.name.includes(" - ") ? r.name.split(" - ").pop() || r.name : r.name,
+        )
+        .filter((s): s is string => !!s);
+      return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "en"));
+    }
+
+    return Array.from(
+      new Set(inCategory.map((r) => r.subcategory).filter((s): s is string => !!s)),
+    ).sort((a, b) => a.localeCompare(b, "en"));
+  }, [inCategory, hasSub, filter]);
+  const visible = useMemo(() => {
+    let list = inCategory;
+    if (hasSub) {
+      if (brand !== "all") list = list.filter((r) => r.brand === brand);
+      if (flavor !== "all") list = list.filter((r) => r.flavor === flavor);
+      if (selectedSubcategory !== "all") {
+        const useName =
+          filter.toLowerCase() === "disposable" ||
+          filter.toLowerCase() === "liquid" ||
+          filter.toLowerCase() === "snus";
+        if (useName) {
+          list = list.filter((r) =>
+            r.name && r.name.includes(" - ")
+              ? r.name.split(" - ").pop() === selectedSubcategory
+              : r.name === selectedSubcategory,
+          );
+        } else {
+          list = list.filter((r) => r.subcategory === selectedSubcategory);
+        }
+      }
+    }
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return list.sort(
+        (a, b) => (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name),
+      );
+    }
+    return list
+      .filter((r) => {
+        const hay = [r.name, r.brand, r.flavor, r.puffs, r.volume]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      })
+      .sort((a, b) => (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name));
+  }, [inCategory, hasSub, brand, flavor, selectedSubcategory, query]);
+  function selectCategory(id: string) {
+    setFilter(id);
+    setBrand("all");
+    setFlavor("all");
+    setSelectedSubcategory("all");
+    setQuery("");
+  }
+
+  function edit(row: ProductRow) {
+    setShowCustomCategoryInput(false);
+    setDraft({
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      brand: row.brand,
+      category: row.category ?? "disposable",
+      price: String(row.price),
+      discount_price: row.discount_price != null ? String(row.discount_price) : "",
+      flavor: row.flavor ?? "",
+      puffs: row.puffs ?? "",
+      volume: row.volume ?? "",
+      emoji: row.emoji || "🔥",
+      color: (row.color as Draft["color"]) ?? "pink",
+      image_url: row.image_url ?? "",
+      description: row.description ?? "",
+      is_active: row.is_active,
+      sort_order: String(row.sort_order),
+      stock_quantity: String(row.stock_quantity ?? 0),
+      subcategory: row.subcategory ?? "",
+    });
+  }
+
+  async function save() {
+    if (!draft) return;
+    const isEdit = !!draft.id;
+    const discountValue =
+      draft.discount_price.trim() === "" ? null : Number(draft.discount_price);
+    const priceValue = Number(draft.price) || 0;
+
+    if (discountValue !== null) {
+      if (!Number.isFinite(discountValue) || discountValue <= 0) {
+        toast.error("Скидка должна быть больше 0");
+        return;
+      }
+      if (discountValue >= priceValue) {
+        toast.error("Цена со скидкой должна быть меньше обычной цены");
+        return;
+      }
+    }
+
+    const savedProduct: ProductRow = {
+      id:
+        draft.id ||
+        (typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2)),
+      slug: draft.slug.trim(),
+      name: draft.name.trim(),
+      brand: draft.brand.trim(),
+      category: draft.category,
+      price: priceValue,
+      discount_price: discountValue,
+      flavor: draft.flavor || null,
+      puffs: draft.puffs || null,
+      volume: draft.volume || null,
+      emoji: draft.emoji.trim() || "🔥",
+      color: draft.color,
+      image_url: draft.image_url || null,
+      description: draft.description || null,
+      is_active: draft.is_active,
+      sort_order: Number(draft.sort_order) || 0,
+      stock_quantity: Number(draft.stock_quantity) || 0,
+      subcategory: draft.subcategory || null,
+    };
+
+    // Optimistically update local state instantly
+    if (isEdit) {
+      setRows((prev) => prev.map((r) => (r.id === draft.id ? savedProduct : r)));
+    } else {
+      setRows((prev) => [...prev, savedProduct].sort((a, b) => a.sort_order - b.sort_order));
+    }
+
+    // Automatically switch filter to the product's new category so the user can see it!
+    setFilter(draft.category);
+    setBrand("all");
+    setFlavor("all");
+
+    setDraft(null);
+
+    try {
+      await upsert({
+        data: {
+          id: draft.id,
+          slug: draft.slug.trim(),
+          name: draft.name.trim(),
+          brand: draft.brand.trim(),
+          category: draft.category,
+          price: priceValue,
+          flavor: draft.flavor,
+          puffs: draft.puffs,
+          volume: draft.volume,
+          emoji: draft.emoji.trim() || "рџ”Ґ",
+          color: draft.color,
+          image_url: draft.image_url,
+          description: draft.description,
+          is_active: draft.is_active,
+          sort_order: Number(draft.sort_order) || 0,
+          subcategory: draft.subcategory,
+          stock_quantity: Number(draft.stock_quantity) || 0,
+        },
+      });
+      await setDiscount({
+        data: { id: savedProduct.id, discountPrice: discountValue },
+      });
+      toast.success(isEdit ? "Сохранено" : "Товар добавлен");
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось сохранить");
+      await reload();
+    }
+  }
+
+  async function del(row: ProductRow) {
+    if (!confirm(`Удалить «${row.name}»?`)) return;
+
+    // Optimistically remove from local state instantly
+    setRows((prev) => prev.filter((r) => r.id !== row.id));
+
+    try {
+      await remove({ data: { id: row.id } });
+      toast.success("Удалено");
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось удалить");
+      await reload();
+    }
+  }
+
+  async function toggleActive(row: ProductRow) {
+    const nextActive = !row.is_active;
+
+    // Optimistically update local state instantly
+    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, is_active: nextActive } : r)));
+
+    try {
+      await toggle({ data: { id: row.id, is_active: nextActive } });
+      invalidateProductsCache();
+    } catch (e: any) {
+      toast.error(e?.message ?? "РћС€РёР±РєР°");
+      // Rollback on error
+      setRows((prev) =>
+        prev.map((r) => (r.id === row.id ? { ...r, is_active: row.is_active } : r)),
+      );
+    }
+  }
+
+  async function moveOrCopy(row: ProductRow, mode: "move" | "copy") {
+    setMoveCopyTarget(row);
+    setMoveCopyMode(mode);
+    setMoveCopyCategory("");
+    setMoveCopySubcategory("");
+    setMoveCopyCustomSubcategory(false);
+  }
+
+  async function quickCopy(row: ProductRow) {
+    try {
+      await adminMoveOrCopyProduct({
+        data: {
+          id: row.id,
+          targetCategory: row.category,
+          targetSubcategory: row.subcategory ?? null,
+          mode: "copy",
+        },
+      });
+      const categoryLabel = getCategoryLabel(row.category);
+      const subLabel = row.subcategory ? ` · ${row.subcategory}` : "";
+      toast.success(`Скопировано в «${categoryLabel}${subLabel}»`);
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось скопировать");
+    }
+  }
+
+  async function confirmMoveCopy(targetCategory: string, targetSubcategory?: string | null) {
+    if (!moveCopyTarget) return;
+    const row = moveCopyTarget;
+    const normalizedSubcategory = (targetSubcategory ?? "").trim() || null;
+    try {
+      await adminMoveOrCopyProduct({
+        data: {
+          id: row.id,
+          targetCategory,
+          targetSubcategory: normalizedSubcategory,
+          mode: moveCopyMode,
+        },
+      });
+      const categoryLabel = getCategoryLabel(targetCategory);
+      const subLabel = normalizedSubcategory ? ` В· ${normalizedSubcategory}` : "";
+      toast.success(
+        moveCopyMode === "move"
+          ? `Перемещён в «${categoryLabel}${subLabel}»`
+          : `Скопировано в «${categoryLabel}${subLabel}»`,
+      );
+      invalidateProductsCache();
+      setMoveCopyTarget(null);
+      setMoveCopyCategory("");
+      setMoveCopySubcategory("");
+      setMoveCopyCustomSubcategory(false);
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось выполнить");
+    }
+  }
+
+  async function updateStockQty(row: ProductRow, newQty: number) {
+    try {
+      await updateStock({ data: { id: row.id, stock_quantity: newQty } });
+      const nextActive =
+        newQty === 0 ? false : row.stock_quantity === 0 && newQty > 0 ? true : row.is_active;
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === row.id ? { ...r, stock_quantity: newQty, is_active: nextActive } : r,
+        ),
+      );
+      invalidateProductsCache();
+      toast.success("Количество обновлено");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось обновить количество");
+    }
+  }
+
+  function toggleSelection(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function selectAllVisible() {
+    setSelectedIds((prev) => {
+      if (prev.size === visible.length) {
+        return new Set();
+      }
+      return new Set(visible.map((r) => r.id));
+    });
+  }
+
+  async function handleBulkSetImage() {
+    if (selectedIds.size === 0) return;
+    if (!bulkImageFile) {
+      toast.error("Загрузите изображение");
+      return;
+    }
+    setIsBulkUploading(true);
+    try {
+      const file = await compressImageFile(bulkImageFile);
+      const formData = new FormData();
+      formData.append("file", file);
+      const result = await adminUploadProductImage({ data: formData as any });
+      const ids = Array.from(selectedIds);
+      await adminBulkUpdateImage({ data: { ids, image_url: result.path } });
+      toast.success(`Изображение обновлено для ${ids.length} товаров`);
+      setShowBulkImageDialog(false);
+      setBulkImageFile(null);
+      setBulkImagePreview(null);
+      clearSelection();
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось обновить изображения");
+    } finally {
+      setIsBulkUploading(false);
+    }
+  }
+
+  function handleBulkImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setBulkImageFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setBulkImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setBulkImagePreview(null);
+    }
+  }
+
+  async function handleBulkSetBrand() {
+    const brand = bulkBrandValue.trim();
+    if (!brand || selectedIds.size === 0) return;
+    setIsBulkBrandSaving(true);
+    try {
+      const ids = Array.from(selectedIds);
+      await adminBulkUpdateBrand({ data: { ids, brand } });
+      toast.success(`Бренд обновлён для ${ids.length} товаров`);
+      setShowBulkBrandDialog(false);
+      setBulkBrandValue("");
+      clearSelection();
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось обновить бренд");
+    } finally {
+      setIsBulkBrandSaving(false);
+    }
+  }
+
+  async function handleBulkSetDescription() {
+    if (selectedIds.size === 0) return;
+    setIsBulkDescriptionSaving(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const description = bulkDescriptionValue.trim();
+      await adminBulkUpdateDescription({ data: { ids, description } });
+      toast.success(`Описание обновлено для ${ids.length} товаров`);
+      setShowBulkDescriptionDialog(false);
+      setBulkDescriptionValue("");
+      clearSelection();
+      invalidateProductsCache();
+      await reload(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось обновить описание");
+    } finally {
+      setIsBulkDescriptionSaving(false);
+    }
+  }
+
+  async function handleSaveCategoryOrder() {
+    setIsSavingCategoryOrder(true);
+    try {
+      await updateCatOrder({ data: { categories: categoryOrder } });
+      toast.success("Порядок каталогов сохранён");
+      setShowCategoryOrderDialog(false);
+      invalidateProductsCache();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Не удалось сохранить порядок каталогов");
+    } finally {
+      setIsSavingCategoryOrder(false);
+    }
+  }
+
+  function generateRandomSlug(): string {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let slug = "product-";
+    for (let i = 0; i < 8; i++) {
+      slug += chars[Math.floor(Math.random() * chars.length)];
+    }
+    const existing = new Set(rows.map((r) => r.slug));
+    let counter = 1;
+    let uniqueSlug = slug;
+    while (existing.has(uniqueSlug)) {
+      uniqueSlug = `${slug}-${counter++}`;
+    }
+    return uniqueSlug;
+  }
+
+  return (
+    <div className="space-y-4">
+      <Toaster position="top-center" theme="dark" richColors />
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-display text-2xl">Товары</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCategoryOrderDialog(true)}
+            className="inline-flex items-center gap-1.5 bg-card hover:bg-muted text-foreground font-semibold px-3 py-1.5 rounded-lg text-sm border border-border transition-colors"
+            title="Настроить порядок каталогов на сайте"
+          >
+            <ArrowUpDown className="w-4 h-4" /> Порядок каталогов
+          </button>
+          <button
+            onClick={() => {
+              setShowCustomCategoryInput(false);
+              setDraft({ ...EMPTY, slug: generateRandomSlug() });
+            }}
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
+          >
+            <Plus className="w-4 h-4" /> Добавить
+          </button>
+          <button
+            type="button"
+            onClick={selectAllVisible}
+            className="inline-flex items-center gap-1.5 bg-card hover:bg-muted text-foreground font-semibold px-3 py-1.5 rounded-lg text-sm border border-border transition-colors"
+          >
+            <CheckSquare className="w-4 h-4" />
+            {selectedIds.size === visible.length && visible.length > 0
+              ? "Снять выбор"
+              : "Выбрать все"}
+          </button>
+        </div>
+      </div>
+
+      {/* search */}
+      <div className="relative">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+          strokeWidth={2.5}
+        />
+        <input
+          type="search"
+          inputMode="search"
+          id="product-search"
+          name="product-search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Поиск товара…"
+          className="w-full h-11 pl-10 pr-10 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all"
+          aria-label="Поиск товара"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-muted grid place-items-center text-muted-foreground hover:text-foreground"
+            aria-label="Очистить"
+          >
+            <XIcon className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl p-2.5 sm:px-4 sm:py-2.5">
+          <span className="text-sm font-bold text-primary">Выбрано: {selectedIds.size}</span>
+          <button
+            onClick={() => setShowBulkImageDialog(true)}
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
+          >
+            <Image className="w-4 h-4" /> Установить изображение
+          </button>
+          <button
+            onClick={() => {
+              setBulkBrandValue("");
+              setShowBulkBrandDialog(true);
+            }}
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
+          >
+            <Tag className="w-4 h-4" /> Установить бренд
+          </button>
+          <button
+            onClick={() => {
+              setBulkDescriptionValue("");
+              setShowBulkDescriptionDialog(true);
+            }}
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold px-3 py-1.5 rounded-lg text-sm"
+          >
+            <FileText className="w-4 h-4" /> Установить описание
+          </button>
+          <button
+            onClick={clearSelection}
+            className="inline-flex items-center gap-1.5 bg-muted text-foreground font-bold px-3 py-1.5 rounded-lg text-sm hover:bg-muted/80"
+          >
+            <XIcon className="w-4 h-4" /> Снять выбор
+          </button>
+        </div>
+      )}
+
+      {/* categories */}
+      <div className="px-3 sm:px-4 mt-2 sm:mt-3">
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1.5 sm:pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 snap-x">
+          {dynamicCategories.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => selectCategory(c.id)}
+              className={`snap-start shrink-0 px-4 sm:px-4 py-2 sm:py-2 rounded-full border-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
+                filter === c.id
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground border-border hover:border-primary/60"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* sub-filters for categories */}
+      {hasSub && brandOptions.length > 0 && (
+        <div className="px-3 sm:px-4 mt-2">
+          <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 sm:mb-1.5">
+            Производитель
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5">
+            <button
+              onClick={() => {
+                setBrand("all");
+                setQuery("");
+              }}
+              className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === "all" ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+            >
+              Все
+            </button>
+            {brandOptions.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => {
+                  setBrand(opt);
+                  setQuery("");
+                }}
+                className={`text-left px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${brand === opt ? "bg-secondary text-secondary-foreground border-secondary" : "bg-card text-muted-foreground border-border hover:border-secondary/60"}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Загрузка…</p>
+      ) : (
+        <div className="grid gap-2">
+          {visible.map((row) => (
+            <div
+              key={row.id}
+              className={`bg-card border rounded-xl p-3 flex items-center gap-3 ${row.is_active ? "border-border" : "border-red-500/50 bg-red-500/5"}`}
+            >
+              <Checkbox
+                checked={selectedIds.has(row.id)}
+                onCheckedChange={() => toggleSelection(row.id)}
+                className="shrink-0"
+              />
+              <div className="w-12 h-12 rounded-lg bg-muted grid place-items-center text-2xl shrink-0 overflow-hidden">
+                {row.image_url ? (
+                  <img
+                    src={row.display_image_url || formatImageUrl(row.image_url) || ""}
+                    alt=""
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                      const parent = (e.target as HTMLImageElement).parentElement;
+                      if (parent && !parent.querySelector("span")) {
+                        const span = document.createElement("span");
+                        span.textContent = row.emoji;
+                        parent.appendChild(span);
+                      }
+                    }}
+                  />
+                ) : (
+                  <span>{row.emoji}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline gap-x-1.5">
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+                    {row.brand} · {row.category} {row.subcategory ? `· ${row.subcategory}` : ""}
+                  </span>
+                  <span className="font-bold text-sm leading-snug break-words">{row.name}</span>
+                </div>
+                <div className="text-xs text-muted-foreground break-words">
+                  {row.flavor || row.volume || row.puffs || "—"}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 sm:gap-1.5 sm:ml-auto sm:flex-row flex-wrap">
+                <div className="text-right sm:text-right w-full sm:w-auto">
+                  <div className="font-display text-lg">{Number(row.price).toFixed(2)}</div>
+                  <div className="text-[10px] text-muted-foreground">BYN</div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {editingStockId === row.id ? (
+                    <>
+                      <input
+                        type="number"
+                        id={`stock-${row.id}`}
+                        name={`stock-${row.id}`}
+                        min="0"
+                        value={stockValue}
+                        onChange={(e) => setStockValue(e.target.value)}
+                        className="w-20 h-9 rounded-lg bg-background border-2 border-border px-2 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const val = parseInt(stockValue, 10);
+                            if (!isNaN(val) && val >= 0) {
+                              updateStockQty(row, val);
+                              setEditingStockId(null);
+                            }
+                          }
+                          if (e.key === "Escape") {
+                            setEditingStockId(null);
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          const val = parseInt(stockValue, 10);
+                          if (!isNaN(val) && val >= 0) {
+                            updateStockQty(row, val);
+                          }
+                          setEditingStockId(null);
+                        }}
+                        className="w-8 h-9 rounded-lg bg-primary text-primary-foreground grid place-items-center text-xs font-bold"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setEditingStockId(null)}
+                        className="w-8 h-9 rounded-lg bg-muted grid place-items-center"
+                      >
+                        <XIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditingStockId(row.id);
+                          setStockValue(String(row.stock_quantity ?? 0));
+                        }}
+                        title="Установить количество"
+                        className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center ${row.stock_quantity === 0 ? "bg-red-500/10 text-red-500 hover:bg-red-500/20" : "bg-muted hover:bg-muted/80"}`}
+                      >
+                        <Package className="w-4 h-4" />
+                      </button>
+                      <span
+                        className={`text-xs font-bold ${row.stock_quantity === 0 ? "text-red-500" : "text-muted-foreground"}`}
+                      >
+                        {row.stock_quantity ?? 0}
+                      </span>
+                    </>
+                  )}
+                  <button
+                    onClick={() => moveOrCopy(row, "move")}
+                    title="Переместить в каталог/подкаталог"
+                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
+                  >
+                    <FolderInput className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => quickCopy(row)}
+                    title="Копировать товар"
+                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => toggleActive(row)}
+                    title={row.is_active ? "Активен" : "Отключён"}
+                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center ${row.is_active ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "bg-red-500/10 text-red-500 hover:bg-red-500/20"}`}
+                  >
+                    {row.is_active ? <Check className="w-4 h-4" /> : <XIcon className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => edit(row)}
+                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-muted"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => del(row)}
+                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg grid place-items-center bg-destructive/20 text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {draft && (
+        <DraftEditor
+          draft={draft}
+          onChange={setDraft}
+          onCancel={() => setDraft(null)}
+          onSave={save}
+          rows={rows}
+        />
+      )}
+
+      <Dialog open={!!moveCopyTarget} onOpenChange={(open) => !open && setMoveCopyTarget(null)}>
+        <DialogContent className="max-w-sm w-[calc(100%-2rem)] max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="sticky top-0 bg-background z-10 pb-2">
+            <DialogTitle className="text-base">
+              {moveCopyMode === "move" ? "Переместить в каталог" : "Копировать в каталог"}
+            </DialogTitle>
+          </DialogHeader>
+          {moveCopyTarget && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Товар: <span className="font-semibold text-foreground">{moveCopyTarget.name}</span>
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Текущий каталог: {getCategoryLabel(moveCopyTarget.category)}
+                {moveCopyTarget.subcategory ? ` · ${moveCopyTarget.subcategory}` : ""}
+              </p>
+
+              {moveCopyMode === "copy" ? (
+                <div className="grid gap-2">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Выберите категорию и подкаталог
+                  </div>
+                  {formCategories
+                    .filter((c) => c.id !== "all")
+                    .map((c) => {
+                      const subs = subcategoriesByCategory.get(c.id) || [];
+                      const hasSubs = subs.length > 0;
+                      return (
+                        <div key={c.id} className="grid gap-1">
+                          <div className="text-[11px] font-bold text-foreground">{c.label}</div>
+                          <button
+                            onClick={() => confirmMoveCopy(c.id, "")}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg bg-card border border-border hover:border-primary hover:bg-primary/5 transition-colors"
+                          >
+                            <span className="font-semibold text-[11px]">Без подкаталога</span>
+                          </button>
+                          {hasSubs &&
+                            subs.map((sub) => (
+                              <button
+                                key={sub}
+                                onClick={() => confirmMoveCopy(c.id, sub)}
+                                className="w-full text-left px-2.5 py-1.5 rounded-lg bg-card border border-border hover:border-primary hover:bg-primary/5 transition-colors"
+                              >
+                                <span className="font-semibold text-[11px]">{sub}</span>
+                              </button>
+                            ))}
+                          <CustomSubcategoryInput
+                            categoryId={c.id}
+                            categoryLabel={c.label}
+                            onConfirm={(sub) => confirmMoveCopy(c.id, sub)}
+                          />
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="grid gap-1.5">
+                  {!moveCopyCategory ? (
+                    <>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Шаг 1. Выберите каталог
+                      </div>
+                      {formCategories
+                        .filter((c) => c.id !== "all" && c.id !== moveCopyTarget.category)
+                        .map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => {
+                              setMoveCopyCategory(c.id);
+                              setMoveCopySubcategory("");
+                              setMoveCopyCustomSubcategory(false);
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-lg bg-card border border-border hover:border-primary hover:bg-primary/5 transition-colors"
+                          >
+                            <span className="font-semibold text-xs">{c.label}</span>
+                          </button>
+                        ))}
+                      {formCategories.filter(
+                        (c) => c.id !== "all" && c.id !== moveCopyTarget.category,
+                      ).length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-3">
+                          Нет других каталогов
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Шаг 2. Подкаталог для «{getCategoryLabel(moveCopyCategory)}»
+                      </div>
+                      <button
+                        onClick={() => confirmMoveCopy(moveCopyCategory, "")}
+                        className="w-full text-left px-3 py-2 rounded-lg bg-card border border-border hover:border-primary hover:bg-primary/5 transition-colors"
+                      >
+                        <span className="font-semibold text-xs">Без подкаталога</span>
+                      </button>
+                      {(subcategoriesByCategory.get(moveCopyCategory) || []).map((sub) => (
+                        <button
+                          key={sub}
+                          onClick={() => confirmMoveCopy(moveCopyCategory, sub)}
+                          className="w-full text-left px-3 py-2 rounded-lg bg-card border border-border hover:border-primary hover:bg-primary/5 transition-colors"
+                        >
+                          <span className="font-semibold text-xs">{sub}</span>
+                        </button>
+                      ))}
+                      <CustomSubcategoryInput
+                        categoryId={moveCopyCategory}
+                        categoryLabel={getCategoryLabel(moveCopyCategory)}
+                        onConfirm={(sub) => confirmMoveCopy(moveCopyCategory, sub)}
+                      />
+                      <button
+                        onClick={() => {
+                          setMoveCopyCategory("");
+                          setMoveCopySubcategory("");
+                          setMoveCopyCustomSubcategory(false);
+                        }}
+                        className="text-[11px] text-muted-foreground underline"
+                      >
+                        ← Назад к выбору каталога
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="sticky bottom-0 bg-background z-10 pt-2">
+            <button
+              onClick={() => setMoveCopyTarget(null)}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBulkImageDialog} onOpenChange={setShowBulkImageDialog}>
+        <DialogContent className="max-w-sm w-[calc(100%-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Установить изображение для {selectedIds.size} товаров</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Загрузить файл
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBulkImageFileChange}
+                className="text-xs text-foreground"
+              />
+              {bulkImagePreview && (
+                <img
+                  src={bulkImagePreview}
+                  alt="Preview"
+                  className="w-full h-32 object-contain rounded-lg border border-border"
+                />
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setShowBulkImageDialog(false);
+                setBulkImageFile(null);
+                setBulkImagePreview(null);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleBulkSetImage}
+              disabled={isBulkUploading || !bulkImageFile}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isBulkUploading ? "Сохраняю…" : "Применить"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBulkBrandDialog} onOpenChange={setShowBulkBrandDialog}>
+        <DialogContent className="max-w-sm w-[calc(100%-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Установить бренд для {selectedIds.size} товаров</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Бренд
+            </label>
+            <input
+              type="text"
+              value={bulkBrandValue}
+              onChange={(e) => setBulkBrandValue(e.target.value)}
+              placeholder="Например: Elf Bar"
+              className="h-10 rounded-lg bg-background border-2 border-border px-3 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
+            />
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setShowBulkBrandDialog(false);
+                setBulkBrandValue("");
+              }}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleBulkSetBrand}
+              disabled={isBulkBrandSaving || !bulkBrandValue.trim()}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isBulkBrandSaving ? "Сохраняю…" : "Применить"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBulkDescriptionDialog} onOpenChange={setShowBulkDescriptionDialog}>
+        <DialogContent className="max-w-4xl w-[calc(100%-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Установить описание для {selectedIds.size} товаров</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Описание товара
+            </label>
+            <Textarea
+              value={bulkDescriptionValue}
+              onChange={(e) => setBulkDescriptionValue(e.target.value)}
+              placeholder="Введите описание, которое будет установлено для всех выбранных товаров…"
+              rows={14}
+              className="bg-background border-2 border-border rounded-xl px-3 py-2 text-sm min-h-[360px]"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Указанное описание применится ко всем {selectedIds.size} выбранным товарам.
+            </p>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setShowBulkDescriptionDialog(false);
+                setBulkDescriptionValue("");
+              }}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleBulkSetDescription}
+              disabled={isBulkDescriptionSaving}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isBulkDescriptionSaving ? "Сохраняю…" : "Применить"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCategoryOrderDialog} onOpenChange={setShowCategoryOrderDialog}>
+        <DialogContent className="max-w-md w-[calc(100%-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Порядок каталогов на сайте</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-1">
+            Настройте расположение категорий в каталоге. Товары и кнопки категорий будут отображаться в указанном порядке.
+          </p>
+          <div className="divide-y divide-border rounded-xl border border-border bg-background/50 overflow-hidden max-h-[60vh] overflow-y-auto">
+            {categoryOrder.map((catId, idx) => (
+              <div
+                key={catId}
+                className="flex items-center justify-between gap-3 px-3.5 py-2.5"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-5 text-xs font-bold text-muted-foreground tabular-nums">
+                    {idx + 1}.
+                  </span>
+                  <span className="text-sm font-semibold truncate">{getCategoryLabel(catId)}</span>
+                  <span className="text-[11px] text-muted-foreground font-mono bg-muted/60 px-1.5 py-0.5 rounded">
+                    {catId}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (idx === 0) return;
+                      const copy = [...categoryOrder];
+                      const temp = copy[idx];
+                      copy[idx] = copy[idx - 1];
+                      copy[idx - 1] = temp;
+                      setCategoryOrder(copy);
+                    }}
+                    disabled={idx === 0}
+                    className="w-8 h-8 rounded-lg bg-muted grid place-items-center disabled:opacity-30 hover:bg-muted/80 transition-colors"
+                    title="Выше"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (idx === categoryOrder.length - 1) return;
+                      const copy = [...categoryOrder];
+                      const temp = copy[idx];
+                      copy[idx] = copy[idx + 1];
+                      copy[idx + 1] = temp;
+                      setCategoryOrder(copy);
+                    }}
+                    disabled={idx === categoryOrder.length - 1}
+                    className="w-8 h-8 rounded-lg bg-muted grid place-items-center disabled:opacity-30 hover:bg-muted/80 transition-colors"
+                    title="Ниже"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setShowCategoryOrderDialog(false)}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleSaveCategoryOrder}
+              disabled={isSavingCategoryOrder}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isSavingCategoryOrder ? "Сохраняю…" : "Сохранить порядок"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function CustomSubcategoryInput({
+  categoryId,
+  categoryLabel,
+  onConfirm,
+}: {
+  categoryId: string;
+  categoryLabel: string;
+  onConfirm: (sub: string) => void;
+}) {
+  const [value, setValue] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const submit = () => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    onConfirm(trimmed);
+    setValue("");
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full text-left px-2.5 py-1.5 rounded-lg bg-card border border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors"
+      >
+        <span className="font-semibold text-[11px]">
+          + Свой подкаталог для «{categoryLabel}»...
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex gap-1.5">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Например: VOZOL VISTA"
+        className="flex-1 bg-background border-2 border-border rounded-lg px-2.5 py-1.5 text-xs"
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submit();
+          }
+        }}
+      />
+      <button
+        onClick={submit}
+        className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs"
+      >
+        Ок
+      </button>
+    </div>
+  );
+}
+
+function DraftEditor({
+  draft,
+  onChange,
+  onCancel,
+  onSave,
+  rows,
+}: {
+  draft: Draft;
+  onChange: (d: Draft) => void;
+  onCancel: () => void;
+  onSave: () => void;
+  rows: ProductRow[];
+}) {
+  const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
+  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => onChange({ ...draft, [k]: v });
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const uploadImage = useServerFn(adminUploadProductImage);
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    if (!file) {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      return;
+    }
+    setSelectedFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setPreviewUrl(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function onUploadClick() {
+    if (!selectedFile) return;
+    setUploading(true);
+    try {
+      const file = await compressImageFile(selectedFile);
+      const formData = new FormData();
+      formData.append("file", file);
+      const result = await uploadImage({ data: formData as any });
+      set("image_url", result.path);
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      toast.success("Фото загружено");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Ошибка загрузки");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const formCategories = useMemo(() => {
+    const defaults = [
+      { id: "disposable", label: "Одноразка" },
+      { id: "device", label: "Устройство" },
+      { id: "liquid", label: "Жидкость" },
+      { id: "consumable", label: "Расходник" },
+    ];
+    const unique = Array.from(new Set(rows.map((r) => r.category)));
+    const list = [...defaults];
+    for (const id of unique) {
+      if (!list.some((item) => item.id === id)) {
+        const label = id.charAt(0).toUpperCase() + id.slice(1);
+        list.push({ id, label });
+      }
+    }
+    return list;
+  }, [rows]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-card border border-border rounded-2xl p-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-3">
+        <div className="flex justify-between items-center">
+          <h3 className="font-display text-xl">{draft.id ? "Редактировать" : "Новый товар"}</h3>
+          <button
+            onClick={onCancel}
+            className="w-8 h-8 rounded-lg bg-muted grid place-items-center"
+          >
+            <XIcon className="w-4 h-4" />
+          </button>
+        </div>
+        <F
+          label="Slug (уникальный)"
+          v={draft.slug}
+          on={(v) => set("slug", v)}
+          id="slug"
+          name="slug"
+        />
+        <F
+          label="Название"
+          v={draft.name}
+          on={(v) => {
+            set("name", v);
+          }}
+          id="name"
+          name="name"
+        />
+        <F
+          label="Бренд (текст)"
+          v={draft.brand}
+          on={(v) => set("brand", v)}
+          id="brand"
+          name="brand"
+        />
+        <F
+          label="Подкатегория (опционально)"
+          v={draft.subcategory || ""}
+          on={(v) => set("subcategory", v)}
+          id="subcategory"
+          name="subcategory"
+        />
+        <label className="block">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Категория
+          </span>
+          <select
+            id="category"
+            name="category"
+            value={showCustomCategoryInput ? "+custom" : draft.category || "disposable"}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "+custom") {
+                setShowCustomCategoryInput(true);
+                set("category", "");
+              } else {
+                setShowCustomCategoryInput(false);
+                set("category", val);
+              }
+            }}
+            className="mt-1 w-full bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm"
+          >
+            {formCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+            <option value="+custom">+ Добавить новую...</option>
+          </select>
+        </label>
+        {showCustomCategoryInput && (
+          <div className="mt-2">
+            <F
+              label="Название новой категории (на английском, например: pod)"
+              v={draft.category}
+              on={(v) => set("category", v.toLowerCase().trim())}
+              id="new-category"
+              name="new-category"
+            />
+          </div>
+        )}
+        <F
+          label="Цена (BYN)"
+          v={draft.price}
+          on={(v) => set("price", v)}
+          type="number"
+          id="price"
+          name="price"
+        />
+        <F
+          label="Скидка — новая цена (BYN)"
+          v={draft.discount_price}
+          on={(v) => set("discount_price", v)}
+          type="number"
+          id="discount_price"
+          name="discount_price"
+          placeholder="пусто — без скидки"
+        />
+        {(() => {
+          const priceNum = Number(draft.price) || 0;
+          const discRaw = draft.discount_price.trim();
+          const discNum = discRaw === "" ? null : Number(discRaw);
+          if (discNum === null || !Number.isFinite(discNum) || discNum <= 0) return null;
+          if (priceNum <= 0 || discNum >= priceNum) {
+            return (
+              <p className="text-[11px] text-destructive font-semibold -mt-1">
+                Цена со скидкой должна быть меньше обычной цены
+              </p>
+            );
+          }
+          const percent = Math.round((1 - discNum / priceNum) * 100);
+          return (
+            <p className="text-[11px] text-primary font-semibold -mt-1">
+              На сайте: зачёркнутые {priceNum} BYN → {discNum} BYN (−{percent}%)
+            </p>
+          );
+        })()}
+        <F
+          label="Вкус / вариант"
+          v={draft.flavor}
+          on={(v) => set("flavor", v)}
+          id="flavor"
+          name="flavor"
+        />
+        <F label="Затяжки" v={draft.puffs} on={(v) => set("puffs", v)} id="puffs" name="puffs" />
+        <F
+          label="Объём / характеристики"
+          v={draft.volume}
+          on={(v) => set("volume", v)}
+          id="volume"
+          name="volume"
+        />
+        <F
+          label="Эмодзи (если нет фото)"
+          v={draft.emoji}
+          on={(v) => set("emoji", v)}
+          id="emoji"
+          name="emoji"
+        />
+        <label className="block">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Цвет акцента
+          </span>
+          <select
+            id="color"
+            name="color"
+            value={draft.color}
+            onChange={(e) => set("color", e.target.value as Draft["color"])}
+            className="mt-1 w-full bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm"
+          >
+            <option value="pink">pink</option>
+            <option value="cyan">cyan</option>
+            <option value="lime">lime</option>
+          </select>
+        </label>
+        <div className="space-y-2">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Фото товара
+          </span>
+          {(draft.image_url || previewUrl) && (
+            <div className="relative w-full h-40 rounded-xl overflow-hidden bg-muted border border-border">
+              <img
+                src={previewUrl || formatImageUrl(draft.image_url) || ""}
+                alt=""
+                className="w-full h-full object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  set("image_url", "");
+                  setSelectedFile(null);
+                  setPreviewUrl(null);
+                }}
+                className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-destructive text-white grid place-items-center"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <label className="flex-1 cursor-pointer">
+              <input type="file" accept="image/*" onChange={onFileChange} className="hidden" />
+              <div className="w-full py-2.5 px-4 rounded-xl border-2 border-dashed border-border text-center text-sm hover:border-muted-foreground transition-colors">
+                {selectedFile ? selectedFile.name : "Выбрать файл"}
+              </div>
+            </label>
+            <button
+              type="button"
+              onClick={onUploadClick}
+              disabled={!selectedFile || uploading}
+              className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+            >
+              {uploading ? "Загрузка..." : "Загрузить"}
+            </button>
+          </div>
+        </div>
+        <label className="block">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Описание товара
+          </span>
+          <Textarea
+            id="description"
+            name="description"
+            value={draft.description}
+            onChange={(e) => set("description", e.target.value)}
+            rows={8}
+            className="mt-1 bg-background border-2 border-border rounded-xl px-3 py-2 text-sm min-h-[180px]"
+            placeholder="Описание товара (опционально)"
+          />
+        </label>
+        <F
+          label="Порядок сортировки"
+          v={draft.sort_order}
+          on={(v) => set("sort_order", v)}
+          type="number"
+          id="sort_order"
+          name="sort_order"
+        />
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            id="is_active"
+            name="is_active"
+            checked={draft.is_active}
+            onChange={(e) => set("is_active", e.target.checked)}
+          />
+          <span>Активен</span>
+        </label>
+        <div className="flex gap-2 pt-2">
+          <button
+            onClick={onSave}
+            className="flex-1 bg-primary text-primary-foreground font-bold py-2.5 rounded-lg"
+          >
+            Сохранить
+          </button>
+          <button onClick={onCancel} className="px-4 py-2.5 rounded-lg bg-muted font-semibold">
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function F({
+  label,
+  v,
+  on,
+  type = "text",
+  id,
+  name,
+  placeholder,
+}: {
+  label: string;
+  v: string;
+  on: (v: string) => void;
+  type?: string;
+  id?: string;
+  name?: string;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
+      <input
+        id={id}
+        name={name}
+        type={type}
+        value={v}
+        onChange={(e) => on(e.target.value)}
+        placeholder={placeholder}
+        className="mt-1 w-full bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm"
+      />
+    </label>
+  );
+}
