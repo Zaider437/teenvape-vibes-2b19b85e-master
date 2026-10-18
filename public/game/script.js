@@ -595,6 +595,11 @@ for (let i = 0; i < 6; i++) {
   let reloadStart = 0;
 
   let playerName = localStorage.getItem("szh_name") || "";
+  let tgUser = null;
+  try { tgUser = JSON.parse(localStorage.getItem("szh_tg") || "null"); } catch (e) { tgUser = null; }
+  if (tgUser && (tgUser.first_name || tgUser.username)) {
+    playerName = tgUser.first_name || tgUser.username || playerName;
+  }
   let leaderboard = [];
 
   // Player 3D
@@ -1223,7 +1228,12 @@ for (let i = 0; i < 6; i++) {
 
   async function fetchLeaderboard() {
     try {
-      const r = await fetch("/game/leaderboard", { cache: "no-store" });
+      let url = "/game/leaderboard";
+      if (tgUser && tgUser.id) url += "?viewer=" + encodeURIComponent(tgUser.id);
+      const headers = {};
+      const token = getSupabaseAccessToken();
+      if (token) headers["Authorization"] = "Bearer " + token;
+      const r = await fetch(url, { cache: "no-store", headers });
       const j = await r.json();
       leaderboard = Array.isArray(j.scores) ? j.scores : [];
     } catch (e) {
@@ -1236,7 +1246,13 @@ for (let i = 0; i < 6; i++) {
       const r = await fetch("/game/leaderboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: playerName || "Игрок", score }),
+        body: JSON.stringify({
+          name: playerName || "Игрок",
+          score,
+          telegram_id: tgUser ? tgUser.id : undefined,
+          telegram_username: tgUser ? tgUser.username : undefined,
+          telegram_first_name: tgUser ? tgUser.first_name : undefined,
+        }),
       });
       const j = await r.json();
       if (Array.isArray(j.scores)) leaderboard = j.scores;
@@ -1523,9 +1539,13 @@ for (const h of houses) {
   }
 
   function startGame() {
+    if (!tgUser) return;
     ensureAudio();
-    const nameInput = document.getElementById("nameInput");
-    playerName = (nameInput ? nameInput.value.trim() : playerName) || "Игрок";
+    if (tgUser) {
+      playerName = tgUser.first_name || tgUser.username || playerName || "Игрок";
+    } else {
+      playerName = playerName || "Игрок";
+    }
     localStorage.setItem("szh_name", playerName);
     if (player && player.mesh) scene.remove(player.mesh);
     resetGame();
@@ -1542,26 +1562,64 @@ for (const h of houses) {
     const sub = document.createElement("p");
     sub.textContent = "Halloween Vape Edition — 3D";
     overlayInner.appendChild(sub);
-    const nameWrap = document.createElement("div");
-    nameWrap.style.cssText = "width:100%;";
-    const input = document.createElement("input");
-    input.id = "nameInput";
-    input.placeholder = "Ваше имя";
-    input.value = playerName;
-    input.maxLength = 20;
-    nameWrap.appendChild(input);
-    overlayInner.appendChild(nameWrap);
     const info = document.createElement("p");
     info.textContent =
       "Стрелки/мышь — движение, пробел/клик — выстрел, R — перезарядка. Телефон: свайп — движение, тап — выстрел.";
     overlayInner.appendChild(info);
-    const btn = document.createElement("button");
-    btn.textContent = "Играть";
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      startGame();
-    };
-    overlayInner.appendChild(btn);
+    const tgWrap = document.createElement("div");
+    tgWrap.style.cssText = "width:100%;margin:8px 0;text-align:center;";
+    const tgContainer = document.createElement("div");
+    tgContainer.id = "tgWidgetContainer";
+    tgContainer.style.cssText = "display:flex;justify-content:center;margin:6px 0;min-height:44px;";
+    tgWrap.appendChild(tgContainer);
+    overlayInner.appendChild(tgWrap);
+    if (!tgUser) {
+      loadTelegramWidget(tgWrap);
+    }
+    const tgHint = document.createElement("p");
+    tgHint.style.cssText = "font-size:12px;color:#888;margin:4px 0;";
+    tgHint.textContent = tgUser
+      ? `Вы вошли как ${tgUser.first_name || tgUser.username}`
+      : "Если кнопка Telegram не появилась, проверьте домен у @BotFather";
+    overlayInner.appendChild(tgHint);
+    if (!tgUser) {
+      const manual = document.createElement("div");
+      manual.style.cssText = "margin:8px 0;";
+      const minput = document.createElement("input");
+      minput.placeholder = "@username в Telegram";
+      minput.style.cssText = "width:100%;padding:8px;border-radius:8px;border:1px solid #444;background:#111;color:#fff;";
+      const mbtn = document.createElement("button");
+      mbtn.textContent = "Войти вручную";
+      mbtn.style.cssText = "width:100%;margin-top:6px;padding:8px;border-radius:8px;border:none;background:#ff7a18;color:#000;font-weight:700;cursor:pointer;";
+      mbtn.onclick = (e) => {
+        e.stopPropagation();
+        const v = minput.value.trim().replace(/^@+/, "");
+        if (!v) return;
+        tgUser = { id: Date.now(), first_name: v, last_name: null, username: v, photo_url: null };
+        localStorage.setItem("szh_tg", JSON.stringify(tgUser));
+        playerName = v;
+        localStorage.setItem("szh_name", playerName);
+        buildMenu();
+        fetchLeaderboard();
+      };
+      manual.appendChild(minput);
+      manual.appendChild(mbtn);
+      overlayInner.appendChild(manual);
+    }
+    if (tgUser) {
+      const btn = document.createElement("button");
+      btn.textContent = "Играть";
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        startGame();
+      };
+      overlayInner.appendChild(btn);
+    } else {
+      const msg = document.createElement("p");
+      msg.textContent = "Войдите через Telegram, чтобы начать игру";
+      msg.style.color = "#ff7a18";
+      overlayInner.appendChild(msg);
+    }
     const lbTitle = document.createElement("h3");
     lbTitle.textContent = "Таблица рекордов";
     lbTitle.style.color = "#ff7a18";
@@ -1582,12 +1640,19 @@ for (const h of houses) {
     }
     lb.innerHTML = leaderboard
       .map(
-        (s, i) => `
+        (s, i) => {
+          const name = escapeHtml(s.name);
+          const contact = s.contact ? escapeHtml(s.contact) : null;
+          const nameHtml = contact
+            ? `<a href="${contact}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:underline;">${name}</a>`
+            : name;
+          return `
       <div style="display:flex;justify-content:space-between;padding:4px 6px;border-bottom:1px solid rgba(255,255,255,0.08);">
-        <span>${i + 1}. ${escapeHtml(s.name)}</span>
+        <span>${i + 1}. ${nameHtml}</span>
         <span style="color:#ff7a18;font-weight:700;">${s.score}</span>
       </div>
-    `,
+    `;
+        },
       )
       .join("");
   }
@@ -1596,6 +1661,53 @@ for (const h of houses) {
       /[&<>"']/g,
       (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
     );
+  }
+
+  function getSupabaseAccessToken() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+          const v = JSON.parse(localStorage.getItem(k));
+          const token = v?.access_token || v?.currentSession?.access_token;
+          if (token) return token;
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  async function loadTelegramWidget(container) {
+    const box = container.querySelector("#tgWidgetContainer") || container;
+    box.innerHTML = "";
+    const botUsername = "gameeventlove_bot";
+    window.onTelegramAuth = function (user) {
+      try {
+        tgUser = {
+          id: user.id,
+          first_name: user.first_name || null,
+          last_name: user.last_name || null,
+          username: user.username || null,
+          photo_url: user.photo_url || null,
+        };
+        localStorage.setItem("szh_tg", JSON.stringify(tgUser));
+        playerName = tgUser.first_name || tgUser.username || playerName || "Игрок";
+        localStorage.setItem("szh_name", playerName);
+        buildMenu();
+        fetchLeaderboard();
+      } catch (e) {
+        console.warn("tg auth error", e);
+      }
+    };
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.async = true;
+    script.setAttribute("data-telegram-login", botUsername);
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-userpic", "true");
+    script.setAttribute("data-request-access", "write");
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    box.appendChild(script);
   }
 
   // Input

@@ -15,6 +15,7 @@ import { Route as GameRouteImport } from './routes/game'
 import { Route as EventRouteImport } from './routes/event'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GameTelegramConfigRouteImport } from './routes/game/telegram-config'
 import { Route as GameLeaderboardRouteImport } from './routes/game/leaderboard'
 import { Route as BSlugRouteImport } from './routes/b/$slug'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -54,6 +55,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const GameTelegramConfigRoute = GameTelegramConfigRouteImport.update({
+  id: '/telegram-config',
+  path: '/telegram-config',
+  getParentRoute: () => GameRoute,
 } as any)
 const GameLeaderboardRoute = GameLeaderboardRouteImport.update({
   id: '/leaderboard',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/b/$slug': typeof BSlugRoute
   '/game/leaderboard': typeof GameLeaderboardRoute
+  '/game/telegram-config': typeof GameTelegramConfigRoute
   '/admin/news': typeof AuthenticatedAdminNewsRoute
   '/admin/recent-actions': typeof AuthenticatedAdminRecentActionsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/b/$slug': typeof BSlugRoute
   '/game/leaderboard': typeof GameLeaderboardRoute
+  '/game/telegram-config': typeof GameTelegramConfigRoute
   '/admin/news': typeof AuthenticatedAdminNewsRoute
   '/admin/recent-actions': typeof AuthenticatedAdminRecentActionsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/b/$slug': typeof BSlugRoute
   '/game/leaderboard': typeof GameLeaderboardRoute
+  '/game/telegram-config': typeof GameTelegramConfigRoute
   '/_authenticated/admin/news': typeof AuthenticatedAdminNewsRoute
   '/_authenticated/admin/recent-actions': typeof AuthenticatedAdminRecentActionsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/b/$slug'
     | '/game/leaderboard'
+    | '/game/telegram-config'
     | '/admin/news'
     | '/admin/recent-actions'
     | '/admin/settings'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/b/$slug'
     | '/game/leaderboard'
+    | '/game/telegram-config'
     | '/admin/news'
     | '/admin/recent-actions'
     | '/admin/settings'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/b/$slug'
     | '/game/leaderboard'
+    | '/game/telegram-config'
     | '/_authenticated/admin/news'
     | '/_authenticated/admin/recent-actions'
     | '/_authenticated/admin/settings'
@@ -268,6 +280,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/game/telegram-config': {
+      id: '/game/telegram-config'
+      path: '/telegram-config'
+      fullPath: '/game/telegram-config'
+      preLoaderRoute: typeof GameTelegramConfigRouteImport
+      parentRoute: typeof GameRoute
     }
     '/game/leaderboard': {
       id: '/game/leaderboard'
@@ -376,10 +395,12 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface GameRouteChildren {
   GameLeaderboardRoute: typeof GameLeaderboardRoute
+  GameTelegramConfigRoute: typeof GameTelegramConfigRoute
 }
 
 const GameRouteChildren: GameRouteChildren = {
   GameLeaderboardRoute: GameLeaderboardRoute,
+  GameTelegramConfigRoute: GameTelegramConfigRoute,
 }
 
 const GameRouteWithChildren = GameRoute._addFileChildren(GameRouteChildren)
