@@ -1644,7 +1644,7 @@ for (const h of houses) {
           const name = escapeHtml(s.name);
           const contact = s.contact ? escapeHtml(s.contact) : null;
           const nameHtml = contact
-            ? `<a href="${contact}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:underline;">${name}</a>`
+            ? `<a href="${contact}" target="_blank" rel="noopener" onclick="if(!window.open('${contact}','_blank')){window.top.location.href='${contact}';}return false;" style="color:#7dd3fc;text-decoration:underline;cursor:pointer;">${name}</a>`
             : name;
           return `
       <div style="display:flex;justify-content:space-between;padding:4px 6px;border-bottom:1px solid rgba(255,255,255,0.08);">
