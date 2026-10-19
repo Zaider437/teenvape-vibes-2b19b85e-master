@@ -1253,6 +1253,7 @@ for (let i = 0; i < 6; i++) {
 
   function fire() {
     if (state !== "playing") return;
+    if (!spaceMode) scene.children.slice().forEach((o) => { if (o.userData && o.userData.isShip) scene.remove(o); });
     if (reloading) return;
     if (ammo <= 0) {
       startReload();
