@@ -1739,6 +1739,7 @@ function makeSpaceship() {
     const glow = new THREE.Mesh(new THREE.SphereGeometry(0.35,16,16), new THREE.MeshBasicMaterial({color:0x66ccff}));
     glow.position.set(0,0.9,0); g.add(glow);
     g.rotation.x = -Math.PI / 2;
+    g.userData.isShip = true;
     scene.add(g);
     return g;
   }
