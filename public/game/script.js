@@ -1717,20 +1717,25 @@ for (const h of houses) {
     scene.add(g);
     return g;
   }
-function makeSpaceship() {
+  function makeSpaceship() {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.4,3.2,16), new THREE.MeshStandardMaterial({color:0xcccccc, metalness:0.7, roughness:0.3}));
-    body.rotation.x = Math.PI/2; body.castShadow = true; g.add(body);
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.9,1.6,16), new THREE.MeshStandardMaterial({color:0xff7a18, emissive:0xff3d00, emissiveIntensity:0.4}));
-    nose.rotation.x = -Math.PI/2; nose.position.z = 2.4; g.add(nose);
-    const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,2.2), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.6}));
-    wingL.position.set(-1.3,0,-0.4); g.add(wingL);
-    const wingR = wingL.clone(); wingR.position.x = 1.3; g.add(wingR);
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.35,16,16), new THREE.MeshBasicMaterial({color:0x66ccff}));
-    glow.position.set(0,0.9,0); g.add(glow);
-    g.rotation.x = -Math.PI / 2;
     g.userData.isShip = true;
     scene.add(g);
+    if (typeof THREE.GLTFLoader !== "undefined") {
+      const loader = new THREE.GLTFLoader();
+      loader.load("spaceship.glb", (gltf) => {
+        const model = gltf.scene;
+        model.scale.set(1.2, 1.2, 1.2);
+        model.rotation.x = -Math.PI / 2;
+        model.traverse((o) => {
+          if (o.isMesh && o.material) {
+            if (o.material.color) o.material.color.set(0x88aaff);
+            if (o.material.emissive) o.material.emissive.set(0x2244aa);
+          }
+        });
+        g.add(model);
+      }, undefined, (err) => { console.error("ship load", err); });
+    }
     return g;
   }
   function enterSpaceMode() {
