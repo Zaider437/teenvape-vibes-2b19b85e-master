@@ -589,7 +589,7 @@ for (let i = 0; i < 6; i++) {
   let touchMoved = false;
   let mouseX = null;
 
-  const MAX_AMMO = 12;
+  const MAX_AMMO = 20;
   let ammo = MAX_AMMO;
   let reloading = false;
   let reloadUntil = 0;
@@ -603,6 +603,11 @@ for (let i = 0; i < 6; i++) {
   }
   let leaderboard = [];
   let spaceMode = false;
+  let planetMode = false;
+  let cinematicKind = null;
+  let spaceCinematicDone = false;
+  let planetCinematicDone = false;
+  let slowUntil = 0;
   let cinematic = null;
   let cinematicStarted = false;
   let spaceship = null;
@@ -784,6 +789,14 @@ for (let i = 0; i < 6; i++) {
      const base = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.04), prongMat);
      base.position.set(0.9, 0.38, 0.2);
      g.add(base);
+      if (spaceMode) {
+        const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.55,16,16), new THREE.MeshStandardMaterial({color:0xddddff, transparent:true, opacity:0.35, roughness:0.2}));
+        helmet.position.y = 1.25; g.add(helmet);
+        const jet = new THREE.Mesh(new THREE.BoxGeometry(0.45,0.8,0.25), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
+        jet.position.set(0,-0.3,-0.65); g.add(jet);
+        const flame = new THREE.Mesh(new THREE.ConeGeometry(0.12,0.35,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
+        flame.position.set(0,-0.85,-0.65); flame.rotation.x=Math.PI; g.add(flame);
+      }
       scene.add(g);
       return g;
    }
@@ -1054,17 +1067,44 @@ for (let i = 0; i < 6; i++) {
   }
 
   function spawnEnemy() {
-    const isNun = Math.random() < 0.35 + level * 0.02;
-    const r = isNun ? 22 : 28;
-    const mesh = isNun ? makeNun() : makeZombie();
-    const label = makeTextSprite(isNun ? "Монашка" : "Зомби");
+    const sl = planetMode ? Math.max(1, level - 19) : level;
+    let type, r, mesh, label, speed;
+    if (planetMode) {
+      type = "slime";
+      r = 24;
+      mesh = makeSlime();
+      label = makeTextSprite("Слизь");
+      speed = 1.0 + (sl - 1) * 0.1;
+    } else if (spaceMode) {
+      if (Math.random() < 0.35) {
+        type = "meteor";
+        r = 20;
+        mesh = makeMeteorite();
+        label = makeTextSprite("Метеорит");
+        speed = 2.0 + (sl - 1) * 0.12;
+      } else {
+        const isNun = Math.random() < 0.35;
+        type = isNun ? "nun" : "zombie";
+        r = isNun ? 22 : 28;
+        mesh = isNun ? makeNun() : makeZombie();
+        label = makeTextSprite(isNun ? "Монашка" : "Зомби");
+        speed = (isNun ? 2.2 : 1.0) + (sl - 1) * 0.1;
+      }
+    } else {
+      const isNun = Math.random() < 0.35 + level * 0.02;
+      type = isNun ? "nun" : "zombie";
+      r = isNun ? 22 : 28;
+      mesh = isNun ? makeNun() : makeZombie();
+      label = makeTextSprite(isNun ? "Монашка" : "Зомби");
+      speed = (isNun ? 2.2 : 1.0) + (level - 1) * 0.1;
+    }
     scene.add(label);
     enemies.push({
       x: rand(r + 20, W - r - 20),
       y: -r - 10,
       r,
-      type: isNun ? "nun" : "zombie",
-      speed: (isNun ? 2.2 : 1.0) + (level - 1) * 0.1,
+      type,
+      speed,
       hp: 1,
       wobble: rand(0, Math.PI * 2),
       mesh,
@@ -1294,10 +1334,17 @@ for (let i = 0; i < 6; i++) {
        const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
        camera.position.z = baseCameraZ * zoomFactor;
        camera.lookAt(0, 0, 0);
+        if (player && player.mesh) {
+          const bp = Math.min(1, Math.max(0, (t - 1) / 2.5));
+          player.mesh.position.x = screenToWorldX(player.x) * (1 - bp);
+          player.mesh.position.y = screenToWorldY(player.y) * (1 - bp);
+          player.mesh.scale.setScalar(1 - bp * 0.8);
+        }
        if (t >= 4.2) {
          if (spaceship) { scene.remove(spaceship); spaceship = null; }
-         enterSpaceMode();
-         cinematic = null;
+          if (cinematicKind === "planet") { planetCinematicDone = true; enterPlanetMode(); } else { spaceCinematicDone = true; enterSpaceMode(); }
+          cinematicKind = null;
+          cinematic = null;
          camera.position.z = baseCameraZ;
        }
        return;
@@ -1336,7 +1383,7 @@ for (let i = 0; i < 6; i++) {
         spawnTimer = 200;
       } else {
         spawnEnemy();
-        spawnTimer = Math.max(420, 1100 - level * 30);
+        spawnTimer = Math.max(420, 1100 - (planetMode ? Math.max(1, level - 19) : level) * 30);
       }
     }
     bonusTimer -= dt;
@@ -1353,7 +1400,7 @@ for (let i = 0; i < 6; i++) {
      for (let i = enemies.length - 1; i >= 0; i--) {
        const e = enemies[i];
        if (!e.frozen) {
-         e.y += e.speed;
+         let _sp = e.speed; if (spaceMode && !planetMode && performance.now() < slowUntil) _sp *= 0.5; e.y += _sp;
          e.x += Math.sin(performance.now() / 600 + e.wobble) * 0.4;
        }
        e.mesh.position.set(screenToWorldX(e.x), screenToWorldY(e.y), 0);
@@ -1375,7 +1422,8 @@ for (let i = 0; i < 6; i++) {
           scene.remove(e.mesh);
           if (e.label) scene.remove(e.label);
           scene.remove(s.mesh);
-          score += e.type === "nun" ? 25 : 10;
+           const gained = e.type === "nun" ? 25 : e.type === "meteor" ? 15 : e.type === "slime" ? 12 : 10;
+           score += gained;
           scoreEl.textContent = score;
           addParticles(e.x, e.y, e.type === "nun" ? 0xc77dff : 0x7bc950, 20);
            beep(e.type === "nun" ? 740 : 440, 0.1, "square", 0.06);
@@ -1385,7 +1433,8 @@ for (let i = 0; i < 6; i++) {
             level = newLevel;
             levelEl.textContent = level;
             beep(920, 0.18, "triangle", 0.09);
-            if (level >= 5 && !spaceMode && !cinematicStarted) startCinematic();
+            if (level >= 5 && !spaceMode && !cinematicStarted) startCinematic("space");
+            if (level >= 20 && !planetCinematicDone && !cinematic) startCinematic("planet");
           }
           hit = true;
           break;
@@ -1435,7 +1484,8 @@ for (let i = 0; i < 6; i++) {
              level = newLevel;
              levelEl.textContent = level;
              beep(920, 0.18, "triangle", 0.09);
-             if (level >= 5 && !spaceMode && !cinematicStarted) startCinematic();
+             if (level >= 5 && !spaceMode && !cinematicStarted) startCinematic("space");
+             if (level >= 20 && !planetCinematicDone && !cinematic) startCinematic("planet");
            }
            addParticles(b.x, b.y, 0xff6600, 45);
            beep(120, 0.4, "sawtooth", 0.15);
@@ -1455,6 +1505,7 @@ for (let i = 0; i < 6; i++) {
            upgradeLine.textContent = "Бонус: Заморозка! ❄️";
          } else {
            buffUntil = performance.now() + 6000;
+           if (spaceMode && !planetMode) { slowUntil = performance.now() + 20000; upgradeLine.textContent = "Улучшения: замедление врагов 20с"; }
            upgradeLine.textContent = `Улучшения: Усиленный пар (${b.name}) — площадь +100%`;
            addParticles(b.x, b.y, flavorColorHex(b.flavor), 22);
            beep(680, 0.14, "triangle", 0.09);
@@ -1573,6 +1624,25 @@ for (const h of houses) {
     renderLeaderboard();
   }
 
+  function makeMeteorite() {
+    const g = new THREE.Group();
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.9,0), new THREE.MeshStandardMaterial({color:0x665544, roughness:0.9}));
+    g.add(rock);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.5,8,8), new THREE.MeshBasicMaterial({color:0xff6600}));
+    glow.position.set(0.3,0.3,0.3); g.add(glow);
+    scene.add(g);
+    return g;
+  }
+  function makeSlime() {
+    const g = new THREE.Group();
+    const blob = new THREE.Mesh(new THREE.SphereGeometry(0.9,16,16), new THREE.MeshStandardMaterial({color:0x33cc66, emissive:0x118833, emissiveIntensity:0.3, roughness:0.4, transparent:true, opacity:0.85}));
+    blob.scale.set(1,0.7,1); g.add(blob);
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8), new THREE.MeshBasicMaterial({color:0xffffff}));
+    eyeL.position.set(-0.25,0.15,0.7); g.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x=0.25; g.add(eyeR);
+    scene.add(g);
+    return g;
+  }
 function makeSpaceship() {
     const g = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.4,3.2,16), new THREE.MeshStandardMaterial({color:0xcccccc, metalness:0.7, roughness:0.3}));
@@ -1600,9 +1670,40 @@ function makeSpaceship() {
     dir.intensity = 0.9;
     upgradeLine.textContent = "Космос: скафандры и реактивные ранцы! 🚀";
   }
-  function startCinematic() {
-    if (cinematicStarted) return;
-    cinematicStarted = true;
+  function enterPlanetMode() {
+    planetMode = true;
+    spaceMode = false;
+    scene.fog.color.set(0xff99cc);
+    scene.fog.near = 40;
+    scene.fog.far = 260;
+    sky.material.color.set(0xff66aa);
+    ambient.intensity = 0.6;
+    ambient.color.set(0xffcccc);
+    hemi.intensity = 0.3;
+    dir.color.set(0xff3322);
+    dir.intensity = 1.2;
+    // cornfield rows
+    const cornMat = new THREE.MeshStandardMaterial({color:0x2d8a3e, roughness:0.9});
+    for (let i = 0; i < 40; i++) {
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.12,1.6,6), cornMat);
+      c.position.set((Math.random()-0.5)*60, -2, (Math.random())*80 - 20);
+      scene.add(c);
+    }
+    // ancient stones
+    const stoneMat = new THREE.MeshStandardMaterial({color:0x887766, roughness:0.95});
+    for (let i = 0; i < 6; i++) {
+      const st = new THREE.Mesh(new THREE.BoxGeometry(1.2,3.5,1.2), stoneMat);
+      st.position.set((i-3)*8, -1, 30 + Math.random()*10);
+      st.rotation.y = Math.random()*0.4;
+      scene.add(st);
+    }
+    upgradeLine.textContent = "Планета: слизь и древние камни! 🌽";
+  }
+  function startCinematic(kind) {
+    if (kind === "space" && spaceCinematicDone) return;
+    if (kind === "planet" && planetCinematicDone) return;
+    if (cinematic) return;
+    cinematicKind = kind;
     cinematic = { start: performance.now() };
     for (const e of enemies) { scene.remove(e.mesh); if (e.label) scene.remove(e.label); }
     enemies = [];
@@ -1615,7 +1716,7 @@ function makeSpaceship() {
     spaceship.scale.setScalar(0.001);
     spawnTimer = 1200;
     bonusTimer = 5000;
-    upgradeLine.textContent = "Уровень 5: запуск! 🚀";
+    upgradeLine.textContent = kind === "planet" ? "Уровень 20: новый мир! 🪐" : "Уровень 5: запуск! 🚀";
   }
   function startGame() {
     if (!tgUser) return;
