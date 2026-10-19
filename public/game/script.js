@@ -622,65 +622,56 @@ for (let i = 0; i < 6; i++) {
   // Player 3D
   function makePlayer() {
     const g = new THREE.Group();
-    // body / chassis
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(1.1, 1.3, 0.55),
-      new THREE.MeshStandardMaterial({ color: 0x1a1a22, metalness: 0.7, roughness: 0.35 }),
-    );
-    body.castShadow = true;
-    g.add(body);
-    // tank (glass)
-    const tank = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.32, 0.32, 1.0, 24),
-      new THREE.MeshPhysicalMaterial({ color: 0x99ccff, transmission: 0.6, opacity: 0.7, transparent: true, roughness: 0.1, metalness: 0.1 }),
-    );
-    tank.rotation.z = Math.PI / 2;
-    tank.position.y = 0.15;
-    tank.castShadow = true;
-    g.add(tank);
-    // liquid inside
-    const liquid = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.26, 0.26, 0.85, 24),
-      new THREE.MeshStandardMaterial({ color: 0xff6b9d, emissive: 0xff6b9d, emissiveIntensity: 0.35, roughness: 0.2 }),
-    );
-    liquid.rotation.z = Math.PI / 2;
-    liquid.position.y = 0.15;
-    g.add(liquid);
-    // mouthpiece
-    const mouth = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.13, 0.16, 0.35, 16),
-      new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9, roughness: 0.2 }),
-    );
-    mouth.position.y = 0.85;
-    mouth.castShadow = true;
-    g.add(mouth);
-    // drip tip
-    const tip = new THREE.Mesh(
-      new THREE.ConeGeometry(0.1, 0.18, 16),
-      new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.4 }),
-    );
-    tip.position.y = 1.08;
-    g.add(tip);
-    // fire button
-    const btn = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.12, 0.12, 0.08, 16),
-      new THREE.MeshStandardMaterial({ color: 0xff7a18, emissive: 0xff3d00, emissiveIntensity: 0.5, metalness: 0.6 }),
-    );
-    btn.rotation.x = Math.PI / 2;
-    btn.position.set(0, -0.1, 0.32);
-    g.add(btn);
-    // emitter glow
-    const emitter = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 16, 16),
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        emissive: 0x88ccff,
-        emissiveIntensity: 1.2,
-      }),
-    );
-    emitter.position.y = 1.25;
-    g.add(emitter);
+    const placeholder = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.6,0.6), new THREE.MeshStandardMaterial({color:0x1a1a22}));
+    g.add(placeholder);
     scene.add(g);
+    // load GLTF vape
+    if (typeof THREE.GLTFLoader !== "undefined") {
+      const loader = new THREE.GLTFLoader();
+      loader.load("geek_pulse.glb", (gltf) => {
+        // remove placeholder
+        g.remove(placeholder);
+        const model = gltf.scene;
+        // scale to fit
+        model.scale.set(0.9, 0.9, 0.9);
+        model.position.set(0, -0.2, 0);
+        // recolor materials
+        model.traverse((o) => {
+          if (o.isMesh && o.material) {
+            if (o.material.color) o.material.color.set(0x2255aa);
+            if (o.material.emissive) o.material.emissive.set(0x113366);
+          }
+        });
+        g.add(model);
+        g.userData.model = model;
+        // eyes
+        const eyeMat = new THREE.MeshBasicMaterial({color:0xffffff});
+        const pupilMat = new THREE.MeshBasicMaterial({color:0x000000});
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
+        const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), pupilMat);
+        eyeL.position.set(-0.25, 0.6, 0.5);
+        pupilL.position.set(0, 0, 0.06);
+        eyeL.add(pupilL);
+        const eyeR = eyeL.clone();
+        eyeR.position.x = 0.25;
+        g.add(eyeL);
+        g.add(eyeR);
+        g.userData.eyes = [eyeL, eyeR];
+        // phrases
+        const phrases = ["Получайте, твари!", "Ещё раз?", "Больше ни разу!", "Да как вы смеете!", "Да вы чё, серьёзно?", "Бывало и лучше", "А как тебе такое?"];
+        const sprites = [];
+        phrases.forEach((txt, idx) => {
+          const sp = makeTextSprite(txt);
+          const ang = (idx / phrases.length) * Math.PI * 2;
+          sp.position.set(Math.cos(ang) * 2.5, 1.2 + (idx % 2) * 0.4, Math.sin(ang) * 2.5);
+          g.add(sp);
+          sprites.push(sp);
+        });
+        g.userData.phrases = sprites;
+      }, undefined, (err) => {
+        console.error("GLTF load error", err);
+      });
+    }
     return g;
   }
 
@@ -1586,6 +1577,25 @@ for (let i = 0; i < 6; i++) {
 // player mesh
 player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
 player.mesh.scale.setScalar(1);
+  if (player.mesh.userData.eyes) {
+    const et = performance.now() / 1000;
+    const eyes = player.mesh.userData.eyes;
+    eyes[0].position.x = -0.25 + Math.sin(et * 2) * 0.03;
+    eyes[0].position.y = 0.6 + Math.cos(et * 1.5) * 0.02;
+    eyes[1].position.x = 0.25 + Math.sin(et * 2 + 1) * 0.03;
+    eyes[1].position.y = 0.6 + Math.cos(et * 1.5 + 1) * 0.02;
+  }
+  if (player.mesh.userData.phrases) {
+    const pt = performance.now() / 1000;
+    const ps = player.mesh.userData.phrases;
+    ps.forEach((sp, idx) => {
+      const ang = (idx / ps.length) * Math.PI * 2 + pt * 0.4;
+      sp.position.x = Math.cos(ang) * 2.6;
+      sp.position.z = Math.sin(ang) * 2.6;
+      sp.position.y = 1.2 + Math.sin(pt + idx) * 0.25;
+    });
+  }
+
 playerLight.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 2);
 
 // house transparency when player is behind

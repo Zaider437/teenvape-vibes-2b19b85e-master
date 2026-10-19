@@ -1592,6 +1592,25 @@ for (let i = 0; i < 6; i++) {
 // player mesh
 player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
 player.mesh.scale.setScalar(1);
+  if (player.mesh.userData.eyes) {
+    const et = performance.now() / 1000;
+    const eyes = player.mesh.userData.eyes;
+    eyes[0].position.x = -0.25 + Math.sin(et * 2) * 0.03;
+    eyes[0].position.y = 0.6 + Math.cos(et * 1.5) * 0.02;
+    eyes[1].position.x = 0.25 + Math.sin(et * 2 + 1) * 0.03;
+    eyes[1].position.y = 0.6 + Math.cos(et * 1.5 + 1) * 0.02;
+  }
+  if (player.mesh.userData.phrases) {
+    const pt = performance.now() / 1000;
+    const ps = player.mesh.userData.phrases;
+    ps.forEach((sp, idx) => {
+      const ang = (idx / ps.length) * Math.PI * 2 + pt * 0.4;
+      sp.position.x = Math.cos(ang) * 2.6;
+      sp.position.z = Math.sin(ang) * 2.6;
+      sp.position.y = 1.2 + Math.sin(pt + idx) * 0.25;
+    });
+  }
+
 playerLight.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 2);
 
 // house transparency when player is behind
