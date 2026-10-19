@@ -1585,7 +1585,7 @@ for (let i = 0; i < 6; i++) {
 
 // player mesh
 player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
-player.mesh.scale.setScalar(1);
+player.mesh.scale.setScalar(spaceMode ? 0.6 : 1);
   const _sp = player.mesh.userData.speech;
   if (player.mesh.userData.mouth && (!_sp || !_sp.active)) player.mesh.userData.mouth.scale.set(1, 0.2, 1);
   if (_sp) {
@@ -1720,6 +1720,8 @@ function makeSpaceship() {
   }
   function enterSpaceMode() {
     spaceMode = true;
+    if (player && player.mesh) scene.remove(player.mesh);
+    const _ship = makeSpaceship(); _ship.scale.setScalar(0.6); player.mesh = _ship;
     scene.fog.color.set(0x000011);
     scene.fog.near = 120;
     scene.fog.far = 420;
@@ -1733,6 +1735,8 @@ function makeSpaceship() {
   }
   function enterPlanetMode() {
     planetMode = true;
+    if (player && player.mesh) scene.remove(player.mesh);
+    player.mesh = makePlayer();
     spaceMode = false;
     groundDecor.forEach((o) => { o.visible = true; });
     scene.fog.color.set(0xff99cc);
