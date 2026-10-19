@@ -1741,14 +1741,16 @@ function makeSpaceship() {
     scene.fog.color.set(0x000011);
     scene.fog.near = 120;
     scene.fog.far = 420;
-    sky.material.color.set(0x000008);
+    sky.material.color.set(0x000005);
+    stars.material.opacity = 1.0;
+    stars.material.size = 0.35;
     ambient.intensity = 0.25;
     ambient.color.set(0x8899cc);
     hemi.intensity = 0.2;
     dir.color.set(0xffffff);
     dir.intensity = 0.9;
     upgradeLine.textContent = "Космос: скафандры и реактивные ранцы! 🚀";
-    const pcolors = [0xff5533, 0x3399ff, 0xcccc33, 0xff33aa, 0x33ffcc];
+    const pcolors = [0x2266aa, 0x338844, 0x886633, 0x44aaff, 0x66aa44];
     for (let i = 0; i < 7; i++) {
       const pl = new THREE.Mesh(new THREE.SphereGeometry(2 + Math.random()*5, 16, 16), new THREE.MeshStandardMaterial({color: pcolors[i % pcolors.length], emissive: pcolors[i % pcolors.length], emissiveIntensity: 0.25}));
       pl.position.set((Math.random()-0.5)*80, 10 + Math.random()*40, -80 - Math.random()*60);
