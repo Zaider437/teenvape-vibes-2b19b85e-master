@@ -1560,6 +1560,7 @@ for (let i = 0; i < 6; i++) {
 
 // player mesh
 player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
+player.mesh.scale.setScalar(1);
 playerLight.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 2);
 
 // house transparency when player is behind
@@ -1995,8 +1996,8 @@ function makeSpaceship() {
     const dt = now - lastTime;
     lastTime = now;
     if (state === "playing") {
-      update(dt);
-      updateLivesUI();
+       try { update(dt); } catch (e) {}
+       try { updateLivesUI(); } catch (e) {}
     }
     // player mesh update (position already in update; but menu no player)
     renderer.render(scene, camera);
