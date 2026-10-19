@@ -2070,7 +2070,7 @@ function makeSpaceship() {
     const dt = now - lastTime;
     lastTime = now;
     if (state === "playing") {
-       try { update(dt); } catch (e) {}
+       try { update(dt); } catch (e) { upgradeLine.textContent = "ERR: " + e.message; console.error(e); }
        try { updateLivesUI(); } catch (e) {}
     }
     // player mesh update (position already in update; but menu no player)
