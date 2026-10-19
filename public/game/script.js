@@ -654,6 +654,10 @@ for (let i = 0; i < 6; i++) {
         g.add(eyeL);
         g.add(eyeR);
         g.userData.eyes = [eyeL, eyeR];
+        const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.1), new THREE.MeshStandardMaterial({color:0x111111}));
+        mouth.position.set(0, 0.45, 1.3);
+        g.add(mouth);
+        g.userData.mouth = mouth;
         // phrases
          // speech bubble
          const speechPhrases = ["Получайте, твари!", "Ещё раз?", "Больше ни разу!", "Да как вы смеете!", "Да вы чё, серьёзно?", "Бывало и лучше", "А как тебе такое?"];
