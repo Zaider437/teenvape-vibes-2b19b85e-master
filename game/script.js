@@ -1366,6 +1366,7 @@ for (let i = 0; i < 6; i++) {
             level = newLevel;
             levelEl.textContent = level;
             beep(920, 0.18, "triangle", 0.09);
+            if (level >= 5 && !spaceMode && !cinematicStarted) startCinematic();
           }
           hit = true;
           break;
@@ -1415,6 +1416,7 @@ for (let i = 0; i < 6; i++) {
              level = newLevel;
              levelEl.textContent = level;
              beep(920, 0.18, "triangle", 0.09);
+             if (level >= 5 && !spaceMode && !cinematicStarted) startCinematic();
            }
            addParticles(b.x, b.y, 0xff6600, 45);
            beep(120, 0.4, "sawtooth", 0.15);
