@@ -1283,6 +1283,25 @@ for (let i = 0; i < 6; i++) {
 
   function update(dt) {
     if (state !== "playing") return;
+     if (cinematic) {
+       const t = (performance.now() - cinematic.start) / 1000;
+       if (spaceship) {
+         const s = Math.min(1, t / 1.0);
+         spaceship.scale.setScalar(0.001 + s * 0.999);
+         spaceship.position.y = -8 + Math.min(1, t / 1.8) * 8;
+         spaceship.rotation.y += dt * 0.003;
+       }
+       const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
+       camera.position.z = baseCameraZ * zoomFactor;
+       camera.lookAt(0, 0, 0);
+       if (t >= 4.2) {
+         if (spaceship) { scene.remove(spaceship); spaceship = null; }
+         enterSpaceMode();
+         cinematic = null;
+         camera.position.z = baseCameraZ;
+       }
+       return;
+     }
 
     if (reloading && performance.now() >= reloadUntil) {
       reloading = false;
@@ -1567,6 +1586,36 @@ function makeSpaceship() {
     glow.position.set(0,0.9,0); g.add(glow);
     scene.add(g);
     return g;
+  }
+  function enterSpaceMode() {
+    spaceMode = true;
+    scene.fog.color.set(0x000011);
+    scene.fog.near = 120;
+    scene.fog.far = 420;
+    sky.material.color.set(0x000008);
+    ambient.intensity = 0.25;
+    ambient.color.set(0x8899cc);
+    hemi.intensity = 0.2;
+    dir.color.set(0xffffff);
+    dir.intensity = 0.9;
+    upgradeLine.textContent = "Космос: скафандры и реактивные ранцы! 🚀";
+  }
+  function startCinematic() {
+    if (cinematicStarted) return;
+    cinematicStarted = true;
+    cinematic = { start: performance.now() };
+    for (const e of enemies) { scene.remove(e.mesh); if (e.label) scene.remove(e.label); }
+    enemies = [];
+    for (const b of bonuses) { scene.remove(b.mesh); if (b.label) scene.remove(b.label); }
+    bonuses = [];
+    for (const s of shots) { scene.remove(s.mesh); }
+    shots = [];
+    spaceship = makeSpaceship();
+    spaceship.position.set(0, -8, 0);
+    spaceship.scale.setScalar(0.001);
+    spawnTimer = 1200;
+    bonusTimer = 5000;
+    upgradeLine.textContent = "Уровень 5: запуск! 🚀";
   }
   function startGame() {
     if (!tgUser) return;
