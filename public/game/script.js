@@ -644,13 +644,13 @@ for (let i = 0; i < 6; i++) {
         // eyes
         const eyeMat = new THREE.MeshBasicMaterial({color:0xffffff});
         const pupilMat = new THREE.MeshBasicMaterial({color:0x000000});
-        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), eyeMat);
-        const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), pupilMat);
-        eyeL.position.set(-0.25, 0.6, 0.5);
-        pupilL.position.set(0, 0, 0.06);
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), eyeMat);
+        const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), pupilMat);
+        eyeL.position.set(-0.35, 0.7, 1.2);
+        pupilL.position.set(0, 0, 0.12);
         eyeL.add(pupilL);
         const eyeR = eyeL.clone();
-        eyeR.position.x = 0.25;
+        eyeR.position.x = 0.35;
         g.add(eyeL);
         g.add(eyeR);
         g.userData.eyes = [eyeL, eyeR];
@@ -1604,10 +1604,10 @@ player.mesh.scale.setScalar(1);
   if (player.mesh.userData.eyes) {
     const et = performance.now() / 1000;
     const eyes = player.mesh.userData.eyes;
-    eyes[0].position.x = -0.25 + Math.sin(et * 2) * 0.03;
-    eyes[0].position.y = 0.6 + Math.cos(et * 1.5) * 0.02;
-    eyes[1].position.x = 0.25 + Math.sin(et * 2 + 1) * 0.03;
-    eyes[1].position.y = 0.6 + Math.cos(et * 1.5 + 1) * 0.02;
+    eyes[0].position.x = -0.35 + Math.sin(et * 2) * 0.03;
+    eyes[0].position.y = 0.7 + Math.cos(et * 1.5) * 0.02;
+    eyes[1].position.x = 0.35 + Math.sin(et * 2 + 1) * 0.03;
+    eyes[1].position.y = 0.7 + Math.cos(et * 1.5 + 1) * 0.02;
   }
 
 playerLight.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 2);
