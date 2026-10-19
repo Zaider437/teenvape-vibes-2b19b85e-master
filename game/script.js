@@ -1600,7 +1600,7 @@ player.mesh.scale.setScalar(1);
     if (_sp.active) {
       const _el = _now - _sp.timer;
       const _chars = Math.min(_sp.text.length, Math.floor(_el / 45));
-      if (player.mesh.userData.mouth) player.mesh.userData.mouth.scale.set(1, 0.6 + Math.sin(_now * 0.02) * 0.4, 1);
+      if (player.mesh.userData.mouth) player.mesh.userData.mouth.scale.set(1, 0.3 + Math.abs(Math.sin(_now * 0.015)) * 0.9, 1);
       if (_chars !== _sp.index) {
         _sp.index = _chars;
         const _ctx = _sp.ctx;

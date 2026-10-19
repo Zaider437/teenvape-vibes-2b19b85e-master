@@ -654,7 +654,7 @@ for (let i = 0; i < 6; i++) {
         g.add(eyeL);
         g.add(eyeR);
         g.userData.eyes = [eyeL, eyeR];
-        const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.1), new THREE.MeshStandardMaterial({color:0x111111}));
+        const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.12), new THREE.MeshStandardMaterial({color:0x111111}));
         mouth.position.set(0, 0.45, 1.3);
         g.add(mouth);
         g.userData.mouth = mouth;
@@ -1589,7 +1589,7 @@ player.mesh.scale.setScalar(1);
     if (_sp.active) {
       const _el = _now - _sp.timer;
       const _chars = Math.min(_sp.text.length, Math.floor(_el / 45));
-      if (player.mesh.userData.mouth) player.mesh.userData.mouth.scale.set(1, 0.6 + Math.sin(_now * 0.02) * 0.4, 1);
+      if (player.mesh.userData.mouth) player.mesh.userData.mouth.scale.set(1, 0.3 + Math.abs(Math.sin(_now * 0.015)) * 0.9, 1);
       if (_chars !== _sp.index) {
         _sp.index = _chars;
         const _ctx = _sp.ctx;
