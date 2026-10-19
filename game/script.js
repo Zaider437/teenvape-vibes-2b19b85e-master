@@ -622,7 +622,6 @@ for (let i = 0; i < 6; i++) {
   }
   let leaderboard = [];
   let spaceMode = false;
-  groundDecor.forEach((o) => { o.visible = true; });
   let planetMode = false;
   let cinematicKind = null;
   let spaceCinematicDone = false;
@@ -1743,6 +1742,7 @@ function makeSpaceship() {
   }
   function enterSpaceMode() {
     spaceMode = true;
+    groundDecor.forEach((o) => { o.visible = false; });
     if (player && player.mesh) scene.remove(player.mesh);
     const _ship = makeSpaceship(); _ship.scale.setScalar(0.6); player.mesh = _ship;
     scene.fog.color.set(0x000011);
@@ -1765,10 +1765,10 @@ function makeSpaceship() {
   }
   function enterPlanetMode() {
     planetMode = true;
+    groundDecor.forEach((o) => { o.visible = false; });
     if (player && player.mesh) scene.remove(player.mesh);
     player.mesh = makePlayer();
     spaceMode = false;
-    groundDecor.forEach((o) => { o.visible = true; });
     scene.fog.color.set(0xff99cc);
     scene.fog.near = 40;
     scene.fog.far = 260;
