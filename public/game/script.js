@@ -1578,12 +1578,14 @@ for (let i = 0; i < 6; i++) {
 player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
 player.mesh.scale.setScalar(1);
   const _sp = player.mesh.userData.speech;
+  if (player.mesh.userData.mouth && (!_sp || !_sp.active)) player.mesh.userData.mouth.scale.set(1, 0.2, 1);
   if (_sp) {
     const _now = performance.now();
-    if (!_sp.active && _now >= _sp.nextTime) { _sp.active = true; _sp.text = _sp.phrases[Math.floor(Math.random() * _sp.phrases.length)]; _sp.index = 0; _sp.timer = _now; _sp.sprite.visible = true; }
+    if (!_sp.active && _now >= _sp.nextTime) { _sp.active = true; _sp.text = _sp.phrases[Math.floor(Math.random() * _sp.phrases.length)]; _sp.index = 0; _sp.timer = _now; _sp.sprite.visible = true; if (player.mesh.userData.mouth) player.mesh.userData.mouth.scale.set(1, 1, 1); }
     if (_sp.active) {
       const _el = _now - _sp.timer;
       const _chars = Math.min(_sp.text.length, Math.floor(_el / 45));
+      if (player.mesh.userData.mouth) player.mesh.userData.mouth.scale.set(1, 0.6 + Math.sin(_now * 0.02) * 0.4, 1);
       if (_chars !== _sp.index) {
         _sp.index = _chars;
         const _ctx = _sp.ctx;
@@ -1597,7 +1599,7 @@ player.mesh.scale.setScalar(1);
         _ctx.fillText(_sp.text.substring(0, _sp.index), _sp.canvas.width / 2, _sp.canvas.height / 2);
         _sp.tex.needsUpdate = true;
       }
-      if (_sp.index >= _sp.text.length && _el > _sp.text.length * 45 + 2200) { _sp.active = false; _sp.sprite.visible = false; _sp.nextTime = _now + 3500 + Math.random() * 4000; }
+      if (_sp.index >= _sp.text.length && _el > _sp.text.length * 45 + 2200) { _sp.active = false; _sp.sprite.visible = false; _sp.nextTime = _now + 3500 + Math.random() * 4000; if (player.mesh.userData.mouth) player.mesh.userData.mouth.scale.set(1, 0.2, 1); }
     }
   }
 
