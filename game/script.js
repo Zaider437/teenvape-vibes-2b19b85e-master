@@ -1802,6 +1802,15 @@ function makeSpaceship() {
       st.userData.planetDecor = true;
     }
     upgradeLine.textContent = "Планета: слизь и древние камни! 🌽";
+    // royal castle in distance
+    const castleMat = new THREE.MeshStandardMaterial({color:0x8888aa, roughness:0.8});
+    const castleBase = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 8), castleMat);
+    castleBase.position.set(0, 2, 60);
+    scene.add(castleBase);
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2, 10, 8), castleMat);
+    tower.position.set(-4, 8, 60);
+    scene.add(tower);
+    const tower2 = tower.clone(); tower2.position.x = 4; scene.add(tower2);
   }
   function startCinematic(kind) {
     if (kind === "space" && spaceCinematicDone) return;
