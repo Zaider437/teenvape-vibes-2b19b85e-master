@@ -609,6 +609,7 @@ for (let i = 0; i < 6; i++) {
   }
   let leaderboard = [];
   let spaceMode = false;
+  groundDecor.forEach((o) => { o.visible = true; });
   let planetMode = false;
   let cinematicKind = null;
   let spaceCinematicDone = false;
@@ -936,6 +937,7 @@ for (let i = 0; i < 6; i++) {
     pumpkins.push(makePumpkin(W - 50, H - 34));
   }
   initPumpkins();
+  const groundDecor = scene.children.filter((o) => o !== stars && o !== sky && o !== moon && !(o.isLight));
 
   function rand(a, b) {
     return a + Math.random() * (b - a);
@@ -1069,6 +1071,7 @@ for (let i = 0; i < 6; i++) {
     upgradeLine.textContent = "Улучшения: нет";
      // reset world
      spaceMode = false;
+     groundDecor.forEach((o) => { o.visible = true; });
      planetMode = false;
      spaceCinematicDone = false;
      planetCinematicDone = false;
@@ -1731,6 +1734,7 @@ function makeSpaceship() {
   function enterPlanetMode() {
     planetMode = true;
     spaceMode = false;
+    groundDecor.forEach((o) => { o.visible = true; });
     scene.fog.color.set(0xff99cc);
     scene.fog.near = 40;
     scene.fog.far = 260;
