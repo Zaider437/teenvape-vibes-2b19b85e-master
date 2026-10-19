@@ -1204,16 +1204,23 @@ for (let i = 0; i < 6; i++) {
        const names = { strawberry: "Клубника", kiwi: "Киви", orange: "Мандарин" };
        flavor = flavors[Math.floor(Math.random() * flavors.length)];
        name = names[flavor];
-       mesh = new THREE.Mesh(
-         new THREE.SphereGeometry(0.5, 16, 16),
-         new THREE.MeshStandardMaterial({
-           color: flavorColorHex(flavor),
-           emissive: flavorColorHex(flavor),
-           emissiveIntensity: 0.5,
-           roughness: 0.3,
-         }),
-       );
-       mesh.castShadow = true;
+        mesh = new THREE.Group();
+        const _buffColor = flavorColorHex(flavor);
+        if (typeof THREE.GLTFLoader !== "undefined") {
+          const _bloader = new THREE.GLTFLoader();
+          _bloader.load("buff_can.glb", (gltf) => {
+            const _bm = gltf.scene;
+            _bm.scale.set(0.5, 0.5, 0.5);
+            _bm.traverse((o) => {
+              if (o.isMesh && o.material) {
+                if (o.material.color) o.material.color.set(_buffColor);
+                if (o.material.emissive) o.material.emissive.set(_buffColor);
+              }
+            });
+            mesh.add(_bm);
+          });
+        }
+        mesh.castShadow = true;
      }
      scene.add(mesh);
      bonuses.push({
