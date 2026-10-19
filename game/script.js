@@ -142,6 +142,7 @@
   ground.position.y = -(H / 2) * SCALE - 0.6;
   ground.receiveShadow = true;
   scene.add(ground);
+  ground.userData.decor = true;
 
   // Distant 3D scenery: mountains + forest
 const mountainMat = new THREE.MeshStandardMaterial({ color: 0x2a2a4a, roughness: 0.9, metalness: 0.05 });
@@ -342,6 +343,7 @@ g.traverse((o) => {
 });
 g.position.set(x, ground.position.y + 0.0, z);
 scene.add(g);
+g.userData.decor = true;
 return g;
   }
 const houses = [];
@@ -373,6 +375,7 @@ for (let i = 0; i < 6; i++) {
     g.add(leaves2);
     g.position.set(x, ground.position.y, z);
     scene.add(g);
+    g.userData.decor = true;
     return g;
   }
   for (let i = 0; i < 12; i++) {
@@ -387,6 +390,7 @@ for (let i = 0; i < 6; i++) {
     );
     post.position.set(-6, ground.position.y + 0.6, z);
     scene.add(post);
+    post.userData.decor = true;
     const post2 = post.clone();
     post2.position.x = 6;
     scene.add(post2);
@@ -419,6 +423,7 @@ for (let i = 0; i < 6; i++) {
       g.add(light);
       g.position.set(x, ground.position.y, z);
       scene.add(g);
+      g.userData.decor = true;
       return g;
     }
     for (let z = -90; z <= 90; z += 18) {
@@ -508,6 +513,7 @@ for (let i = 0; i < 6; i++) {
     g.add(stem);
     g.position.set(screenToWorldX(x), screenToWorldY(y), 0);
     scene.add(g);
+    g.userData.decor = true;
     return g;
   }
 
@@ -796,6 +802,7 @@ for (let i = 0; i < 6; i++) {
         jet.position.set(0,-0.3,-0.65); g.add(jet);
         const flame = new THREE.Mesh(new THREE.ConeGeometry(0.12,0.35,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
         flame.position.set(0,-0.85,-0.65); flame.rotation.x=Math.PI; g.add(flame);
+        g.traverse((o) => { if (o.isMesh && o.material && o.material.color && !(o.material.emissive && o.material.emissive.r > 0.5)) o.material.color.set(0xffffff); });
       }
       scene.add(g);
       return g;
@@ -900,6 +907,7 @@ for (let i = 0; i < 6; i++) {
       jet.position.set(0,-0.2,-0.6); g.add(jet);
       const flame = new THREE.Mesh(new THREE.ConeGeometry(0.1,0.3,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
       flame.position.set(0,-0.7,-0.6); flame.rotation.x=Math.PI; g.add(flame);
+      g.traverse((o) => { if (o.isMesh && o.material && o.material.color && !(o.material.emissive && o.material.emissive.r > 0.5)) o.material.color.set(0xffffff); });
     }
     scene.add(g);
     return g;
@@ -1064,8 +1072,25 @@ for (let i = 0; i < 6; i++) {
     scoreEl.textContent = 0;
     levelEl.textContent = 1;
     upgradeLine.textContent = "Улучшения: нет";
+     // reset world
+     spaceMode = false;
+     planetMode = false;
+     spaceCinematicDone = false;
+     planetCinematicDone = false;
+     cinematic = null;
+     cinematicKind = null;
+     scene.children.forEach((o) => { if (o.userData && o.userData.decor) o.visible = true; });
+     scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
+     scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
+     moon.material.color.set(0xfff5cc);
+     moon.material.emissive.set(0xfff5cc);
+     moon.material.emissiveIntensity = 1.2;
+     moon.scale.setScalar(1);
+     sky.material.color.set(0x0a0a2a);
+     scene.fog.color.set(0x050510);
+     scene.fog.near = 30;
+     scene.fog.far = 400;
   }
-
   function spawnEnemy() {
     const sl = planetMode ? Math.max(1, level - 19) : level;
     let type, r, mesh, label, speed;
@@ -1346,6 +1371,12 @@ for (let i = 0; i < 6; i++) {
           cinematicKind = null;
           cinematic = null;
          camera.position.z = baseCameraZ;
+         scene.children.forEach((o) => { if (o.userData && o.userData.decor) o.visible = true; });
+         scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
+         scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
+         moon.material.color.set(0xffffff);
+         moon.material.emissive = new THREE.Color(0x000000);
+         moon.scale.setScalar(1);
        }
        return;
      }
@@ -1683,12 +1714,18 @@ function makeSpaceship() {
     hemi.intensity = 0.3;
     dir.color.set(0xff3322);
     dir.intensity = 1.2;
+    moon.material.color.set(0xff3322);
+    moon.material.emissive.set(0xff3322);
+    moon.material.emissiveIntensity = 1.5;
+    moon.scale.setScalar(2.5);
     // cornfield rows
     const cornMat = new THREE.MeshStandardMaterial({color:0x2d8a3e, roughness:0.9});
     for (let i = 0; i < 40; i++) {
       const c = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.12,1.6,6), cornMat);
       c.position.set((Math.random()-0.5)*60, -2, (Math.random())*80 - 20);
       scene.add(c);
+      c.userData.planetDecor = true;
+      c.userData.planetDecor = true;
     }
     // ancient stones
     const stoneMat = new THREE.MeshStandardMaterial({color:0x887766, roughness:0.95});
@@ -1697,6 +1734,8 @@ function makeSpaceship() {
       st.position.set((i-3)*8, -1, 30 + Math.random()*10);
       st.rotation.y = Math.random()*0.4;
       scene.add(st);
+      st.userData.planetDecor = true;
+      st.userData.planetDecor = true;
     }
     upgradeLine.textContent = "Планета: слизь и древние камни! 🌽";
   }
