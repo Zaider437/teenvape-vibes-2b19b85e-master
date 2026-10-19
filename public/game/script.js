@@ -1087,6 +1087,7 @@ for (let i = 0; i < 6; i++) {
      scene.fog.far = 400;
   }
   function spawnEnemy() {
+    try {
     const sl = planetMode ? Math.max(1, level - 19) : level;
     let type, r, mesh, label, speed;
     if (planetMode) {
@@ -1130,6 +1131,7 @@ for (let i = 0; i < 6; i++) {
       mesh,
       label,
     });
+    } catch (e) { console.error(e); }
   }
 
    function spawnBonus() {
