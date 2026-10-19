@@ -557,6 +557,7 @@ for (let i = 0; i < 6; i++) {
     alien.position.set(0, 0.6, 0);
     g.add(alien);
     scene.add(g);
+    g.visible = false;
     return { g, x: Math.random()*W, y: Math.random()*H*0.3, vx: (Math.random()-0.5)*0.8, phase: Math.random()*Math.PI*2 };
   }
   for (let i = 0; i < 5; i++) alienShips.push(makeAlienShip());
