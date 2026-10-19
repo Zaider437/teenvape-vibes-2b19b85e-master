@@ -59,12 +59,21 @@ async function isAdminRequest(request: Request): Promise<boolean> {
     const auth = request.headers.get("authorization");
     const token = auth?.replace(/^Bearer\s+/i, "").trim();
     if (!token) return false;
+    const supabaseUrl = process.env.SUPABASE_URL || "https://ueazjqvxjlppgtkhcmut.supabase.co";
+    const anonKey =
+      process.env.SUPABASE_PUBLISHABLE_KEY ||
+      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlYXpqcXZ4amxwcGd0a2hjbXV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDg2MjgsImV4cCI6MjA5OTc4NDYyOH0.jyJjCPse3Woz3ghOs3exBEGMImG7SSsa69BTlCvVx50";
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
+    });
+    if (!userRes.ok) return false;
+    const user = (await userRes.json()) as {
+      id?: string;
+      user_metadata?: { telegram_username?: string };
+    };
+    if (!user?.id) return false;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-    const user = (
-      userData as { user?: { id: string; user_metadata?: { telegram_username?: string } } } | null
-    )?.user;
-    if (userErr || !user) return false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: role } = await (supabaseAdmin as any)
       .from("user_roles")

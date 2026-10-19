@@ -34,7 +34,8 @@
     renderer.setSize(W, H);
     camera.aspect = W / H;
     const cameraZ = (H * SCALE) / (2 * Math.tan((60 * Math.PI) / 180 / 2));
-    camera.position.set(0, 0, cameraZ);
+    baseCameraZ = cameraZ;
+    if (!cinematic) camera.position.set(0, 0, cameraZ);
     camera.updateProjectionMatrix();
   }
   window.addEventListener("resize", resize);
@@ -601,6 +602,11 @@ for (let i = 0; i < 6; i++) {
     playerName = tgUser.first_name || tgUser.username || playerName;
   }
   let leaderboard = [];
+  let spaceMode = false;
+  let cinematic = null;
+  let cinematicStarted = false;
+  let spaceship = null;
+  let baseCameraZ = camera.position.z;
 
   // Player 3D
   function makePlayer() {
@@ -874,6 +880,14 @@ for (let i = 0; i < 6; i++) {
     const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.06, 0.06), crossMat);
     crossH.position.set(0, 1.9, 0.55);
     g.add(crossH);
+    if (spaceMode) {
+      const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), new THREE.MeshStandardMaterial({color:0xddddff, transparent:true, opacity:0.35, roughness:0.2}));
+      helmet.position.y = 1.35; g.add(helmet);
+      const jet = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.7,0.2), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
+      jet.position.set(0,-0.2,-0.6); g.add(jet);
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.1,0.3,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
+      flame.position.set(0,-0.7,-0.6); flame.rotation.x=Math.PI; g.add(flame);
+    }
     scene.add(g);
     return g;
   }
@@ -1050,7 +1064,7 @@ for (let i = 0; i < 6; i++) {
       y: -r - 10,
       r,
       type: isNun ? "nun" : "zombie",
-      speed: (isNun ? 2.4 : 1.1) + level * 0.18,
+      speed: (isNun ? 2.2 : 1.0) + (level - 1) * 0.1,
       hp: 1,
       wobble: rand(0, Math.PI * 2),
       mesh,
@@ -1303,7 +1317,7 @@ for (let i = 0; i < 6; i++) {
         spawnTimer = 200;
       } else {
         spawnEnemy();
-        spawnTimer = Math.max(350, 1000 - level * 55);
+        spawnTimer = Math.max(420, 1100 - level * 30);
       }
     }
     bonusTimer -= dt;
@@ -1347,7 +1361,7 @@ for (let i = 0; i < 6; i++) {
           addParticles(e.x, e.y, e.type === "nun" ? 0xc77dff : 0x7bc950, 20);
            beep(e.type === "nun" ? 740 : 440, 0.1, "square", 0.06);
            if (e.frozen && !enemies.some((x) => x.frozen)) freezeUntil = 0;
-          const newLevel = 1 + Math.floor(score / 120);
+          const newLevel = 1 + Math.floor(score / 180);
           if (newLevel !== level) {
             level = newLevel;
             levelEl.textContent = level;
@@ -1396,7 +1410,7 @@ for (let i = 0; i < 6; i++) {
             score += gained;
             if (!enemies.some((x) => x.frozen)) freezeUntil = 0;
            scoreEl.textContent = score;
-           const newLevel = 1 + Math.floor(score / 120);
+           const newLevel = 1 + Math.floor(score / 180);
            if (newLevel !== level) {
              level = newLevel;
              levelEl.textContent = level;
@@ -1538,6 +1552,20 @@ for (const h of houses) {
     renderLeaderboard();
   }
 
+function makeSpaceship() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.4,3.2,16), new THREE.MeshStandardMaterial({color:0xcccccc, metalness:0.7, roughness:0.3}));
+    body.rotation.x = Math.PI/2; body.castShadow = true; g.add(body);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.9,1.6,16), new THREE.MeshStandardMaterial({color:0xff7a18, emissive:0xff3d00, emissiveIntensity:0.4}));
+    nose.rotation.x = -Math.PI/2; nose.position.z = 2.4; g.add(nose);
+    const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,2.2), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.6}));
+    wingL.position.set(-1.3,0,-0.4); g.add(wingL);
+    const wingR = wingL.clone(); wingR.position.x = 1.3; g.add(wingR);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.35,16,16), new THREE.MeshBasicMaterial({color:0x66ccff}));
+    glow.position.set(0,0.9,0); g.add(glow);
+    scene.add(g);
+    return g;
+  }
   function startGame() {
     if (!tgUser) return;
     ensureAudio();
