@@ -622,18 +622,15 @@ for (let i = 0; i < 6; i++) {
   // Player 3D
   function makePlayer() {
     const g = new THREE.Group();
-    const placeholder = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.6,0.6), new THREE.MeshStandardMaterial({color:0x1a1a22}));
-    g.add(placeholder);
     scene.add(g);
     // load GLTF vape
     if (typeof THREE.GLTFLoader !== "undefined") {
       const loader = new THREE.GLTFLoader();
       loader.load("geek_pulse.glb", (gltf) => {
         // remove placeholder
-        g.remove(placeholder);
         const model = gltf.scene;
         // scale to fit
-        model.scale.set(0.9, 0.9, 0.9);
+        model.scale.set(3.5, 3.5, 3.5);
         model.position.set(0, -0.2, 0);
         // recolor materials
         model.traverse((o) => {
@@ -658,16 +655,19 @@ for (let i = 0; i < 6; i++) {
         g.add(eyeR);
         g.userData.eyes = [eyeL, eyeR];
         // phrases
-        const phrases = ["Получайте, твари!", "Ещё раз?", "Больше ни разу!", "Да как вы смеете!", "Да вы чё, серьёзно?", "Бывало и лучше", "А как тебе такое?"];
-        const sprites = [];
-        phrases.forEach((txt, idx) => {
-          const sp = makeTextSprite(txt);
-          const ang = (idx / phrases.length) * Math.PI * 2;
-          sp.position.set(Math.cos(ang) * 2.5, 1.2 + (idx % 2) * 0.4, Math.sin(ang) * 2.5);
-          g.add(sp);
-          sprites.push(sp);
-        });
-        g.userData.phrases = sprites;
+         // speech bubble
+         const speechPhrases = ["Получайте, твари!", "Ещё раз?", "Больше ни разу!", "Да как вы смеете!", "Да вы чё, серьёзно?", "Бывало и лучше", "А как тебе такое?"];
+         const speechCanvas = document.createElement("canvas");
+         speechCanvas.width = 512; speechCanvas.height = 128;
+         const speechCtx = speechCanvas.getContext("2d");
+         const speechTex = new THREE.CanvasTexture(speechCanvas);
+         const speechMat = new THREE.SpriteMaterial({ map: speechTex, transparent: true, depthTest: false });
+         const speechSprite = new THREE.Sprite(speechMat);
+         speechSprite.scale.set(3.6, 0.9, 1);
+         speechSprite.position.set(0, 1.6, 0);
+         speechSprite.visible = false;
+         g.add(speechSprite);
+         g.userData.speech = { sprite: speechSprite, canvas: speechCanvas, ctx: speechCtx, tex: speechTex, phrases: speechPhrases, active: false, text: "", index: 0, timer: 0, nextTime: performance.now() + 2000 + Math.random() * 3000 };
       }, undefined, (err) => {
         console.error("GLTF load error", err);
       });
@@ -1577,6 +1577,30 @@ for (let i = 0; i < 6; i++) {
 // player mesh
 player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
 player.mesh.scale.setScalar(1);
+  const _sp = player.mesh.userData.speech;
+  if (_sp) {
+    const _now = performance.now();
+    if (!_sp.active && _now >= _sp.nextTime) { _sp.active = true; _sp.text = _sp.phrases[Math.floor(Math.random() * _sp.phrases.length)]; _sp.index = 0; _sp.timer = _now; _sp.sprite.visible = true; }
+    if (_sp.active) {
+      const _el = _now - _sp.timer;
+      const _chars = Math.min(_sp.text.length, Math.floor(_el / 45));
+      if (_chars !== _sp.index) {
+        _sp.index = _chars;
+        const _ctx = _sp.ctx;
+        _ctx.clearRect(0, 0, _sp.canvas.width, _sp.canvas.height);
+        _ctx.fillStyle = "rgba(0,0,0,0.65)";
+        _ctx.fillRect(0, 0, _sp.canvas.width, _sp.canvas.height);
+        _ctx.font = "bold 36px sans-serif";
+        _ctx.fillStyle = "#fff";
+        _ctx.textAlign = "center";
+        _ctx.textBaseline = "middle";
+        _ctx.fillText(_sp.text.substring(0, _sp.index), _sp.canvas.width / 2, _sp.canvas.height / 2);
+        _sp.tex.needsUpdate = true;
+      }
+      if (_sp.index >= _sp.text.length && _el > _sp.text.length * 45 + 2200) { _sp.active = false; _sp.sprite.visible = false; _sp.nextTime = _now + 3500 + Math.random() * 4000; }
+    }
+  }
+
   if (player.mesh.userData.eyes) {
     const et = performance.now() / 1000;
     const eyes = player.mesh.userData.eyes;
@@ -1584,16 +1608,6 @@ player.mesh.scale.setScalar(1);
     eyes[0].position.y = 0.6 + Math.cos(et * 1.5) * 0.02;
     eyes[1].position.x = 0.25 + Math.sin(et * 2 + 1) * 0.03;
     eyes[1].position.y = 0.6 + Math.cos(et * 1.5 + 1) * 0.02;
-  }
-  if (player.mesh.userData.phrases) {
-    const pt = performance.now() / 1000;
-    const ps = player.mesh.userData.phrases;
-    ps.forEach((sp, idx) => {
-      const ang = (idx / ps.length) * Math.PI * 2 + pt * 0.4;
-      sp.position.x = Math.cos(ang) * 2.6;
-      sp.position.z = Math.sin(ang) * 2.6;
-      sp.position.y = 1.2 + Math.sin(pt + idx) * 0.25;
-    });
   }
 
 playerLight.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 2);

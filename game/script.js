@@ -1592,6 +1592,30 @@ for (let i = 0; i < 6; i++) {
 // player mesh
 player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
 player.mesh.scale.setScalar(1);
+  const _sp = player.mesh.userData.speech;
+  if (_sp) {
+    const _now = performance.now();
+    if (!_sp.active && _now >= _sp.nextTime) { _sp.active = true; _sp.text = _sp.phrases[Math.floor(Math.random() * _sp.phrases.length)]; _sp.index = 0; _sp.timer = _now; _sp.sprite.visible = true; }
+    if (_sp.active) {
+      const _el = _now - _sp.timer;
+      const _chars = Math.min(_sp.text.length, Math.floor(_el / 45));
+      if (_chars !== _sp.index) {
+        _sp.index = _chars;
+        const _ctx = _sp.ctx;
+        _ctx.clearRect(0, 0, _sp.canvas.width, _sp.canvas.height);
+        _ctx.fillStyle = "rgba(0,0,0,0.65)";
+        _ctx.fillRect(0, 0, _sp.canvas.width, _sp.canvas.height);
+        _ctx.font = "bold 36px sans-serif";
+        _ctx.fillStyle = "#fff";
+        _ctx.textAlign = "center";
+        _ctx.textBaseline = "middle";
+        _ctx.fillText(_sp.text.substring(0, _sp.index), _sp.canvas.width / 2, _sp.canvas.height / 2);
+        _sp.tex.needsUpdate = true;
+      }
+      if (_sp.index >= _sp.text.length && _el > _sp.text.length * 45 + 2200) { _sp.active = false; _sp.sprite.visible = false; _sp.nextTime = _now + 3500 + Math.random() * 4000; }
+    }
+  }
+
   if (player.mesh.userData.eyes) {
     const et = performance.now() / 1000;
     const eyes = player.mesh.userData.eyes;
@@ -1599,16 +1623,6 @@ player.mesh.scale.setScalar(1);
     eyes[0].position.y = 0.6 + Math.cos(et * 1.5) * 0.02;
     eyes[1].position.x = 0.25 + Math.sin(et * 2 + 1) * 0.03;
     eyes[1].position.y = 0.6 + Math.cos(et * 1.5 + 1) * 0.02;
-  }
-  if (player.mesh.userData.phrases) {
-    const pt = performance.now() / 1000;
-    const ps = player.mesh.userData.phrases;
-    ps.forEach((sp, idx) => {
-      const ang = (idx / ps.length) * Math.PI * 2 + pt * 0.4;
-      sp.position.x = Math.cos(ang) * 2.6;
-      sp.position.z = Math.sin(ang) * 2.6;
-      sp.position.y = 1.2 + Math.sin(pt + idx) * 0.25;
-    });
   }
 
 playerLight.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 2);
