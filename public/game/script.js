@@ -547,6 +547,19 @@ for (let i = 0; i < 6; i++) {
     };
   }
   for (let i = 0; i < 7; i++) bats.push(makeBat());
+  const alienShips = [];
+  function makeAlienShip() {
+    const g = new THREE.Group();
+    const ship = makeSpaceship();
+    ship.scale.setScalar(0.3);
+    g.add(ship);
+    const alien = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), new THREE.MeshStandardMaterial({color:0x33ff66, emissive:0x11aa33, emissiveIntensity:0.4}));
+    alien.position.set(0, 0.6, 0);
+    g.add(alien);
+    scene.add(g);
+    return { g, x: Math.random()*W, y: Math.random()*H*0.3, vx: (Math.random()-0.5)*0.8, phase: Math.random()*Math.PI*2 };
+  }
+  for (let i = 0; i < 5; i++) alienShips.push(makeAlienShip());
 
   // Audio
   let audioCtx = null;
