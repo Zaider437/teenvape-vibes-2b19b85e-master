@@ -34,8 +34,8 @@
     renderer.setSize(W, H);
     camera.aspect = W / H;
     const cameraZ = (H * SCALE) / (2 * Math.tan((60 * Math.PI) / 180 / 2));
-    baseCameraZ = cameraZ;
-    if (!cinematic) camera.position.set(0, 0, cameraZ);
+    try { baseCameraZ = cameraZ; } catch (e) {}
+    try { if (!cinematic) camera.position.set(0, 0, cameraZ); } catch (e) { camera.position.set(0, 0, cameraZ); }
     camera.updateProjectionMatrix();
   }
   window.addEventListener("resize", resize);
