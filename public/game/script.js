@@ -1103,6 +1103,9 @@ for (let i = 0; i < 6; i++) {
      moon.material.emissive.set(0xfff5cc);
      moon.material.emissiveIntensity = 1.2;
      moon.scale.setScalar(1);
+     moon.position.set(40, 50, -80);
+     camera.position.set(0, Math.sin((25 * Math.PI) / 180) * baseCameraZ, Math.cos((25 * Math.PI) / 180) * baseCameraZ);
+     camera.lookAt(0, 0, 0);
      sky.material.color.set(0x0a0a2a);
      scene.fog.color.set(0x050510);
      scene.fog.near = 30;
@@ -1117,21 +1120,21 @@ for (let i = 0; i < 6; i++) {
       r = 24;
       mesh = makeSlime();
       label = makeTextSprite("Слизь");
-      speed = 1.0 + (sl - 1) * 0.1;
+      speed = Math.max(2.0, 2.2 + (sl - 1) * 0.12);
     } else if (spaceMode) {
       if (Math.random() < 0.35) {
         type = "meteor";
         r = 20;
         mesh = makeMeteorite();
         label = makeTextSprite("Метеорит");
-        speed = 2.0 + (sl - 1) * 0.12;
+        speed = Math.max(2.4, 2.6 + (sl - 1) * 0.12);
       } else {
         const isNun = Math.random() < 0.35;
         type = isNun ? "nun" : "zombie";
         r = isNun ? 22 : 28;
         mesh = isNun ? makeNun() : makeZombie();
         label = makeTextSprite(isNun ? "Монашка" : "Зомби");
-        speed = (isNun ? 2.2 : 1.0) + (sl - 1) * 0.1;
+        speed = Math.max(2.2, (isNun ? 2.8 : 2.2) + (sl - 1) * 0.12);
       }
     } else {
       const isNun = Math.random() < 0.35 + level * 0.02;
@@ -1139,7 +1142,8 @@ for (let i = 0; i < 6; i++) {
       r = isNun ? 22 : 28;
       mesh = isNun ? makeNun() : makeZombie();
       label = makeTextSprite(isNun ? "Монашка" : "Зомби");
-      speed = (isNun ? 2.2 : 1.0) + (level - 1) * 0.1;
+      // Одинаковая скорость на всех уровнях: повышенная база + рост с уровнем
+      speed = Math.max(1.8, (isNun ? 2.6 : 1.8) + (level - 1) * 0.12);
     }
     scene.add(label);
     enemies.push({
@@ -1227,7 +1231,8 @@ for (let i = 0; i < 6; i++) {
        kind,
        flavor,
        name,
-       speed: 1.4, // медленное падение бонуса (px/кадр при 60 FPS)
+       // Скорость падения бонуса растёт с уровнем — на ранних уровнях не ползёт
+       speed: 2.2 + Math.min(1.2, Math.floor(level / 5) * 0.2),
        spin: 0,
        mesh,
      });
@@ -1391,10 +1396,16 @@ for (let i = 0; i < 6; i++) {
          }
        if (t >= 4.2) {
          if (spaceship) { scene.remove(spaceship); spaceship = null; }
-          if (cinematicKind === "planet") { planetCinematicDone = true; enterPlanetMode(); } else { spaceCinematicDone = true; enterSpaceMode(); }
+          // СНАЧАЛА чистим декор старого мира, ПОТОМ входим в новый
+          scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
+          scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
+          const wasKind = cinematicKind;
+          if (wasKind === "planet") { planetCinematicDone = true; enterPlanetMode(); } else { spaceCinematicDone = true; enterSpaceMode(); }
           cinematicKind = null;
           cinematic = null;
+          cinematicStarted = false;
          camera.position.z = baseCameraZ;
+         camera.lookAt(0, 0, 0);
        }
        return;
      }
@@ -1765,6 +1776,29 @@ for (const h of houses) {
     dir.color.set(0xffffff);
     dir.intensity = 0.9;
     upgradeLine.textContent = "Космос: скафандры и реактивные ранцы! 🚀";
+    // Реалистичный космос: цветные туманности
+    const nebulaColors = [0x6633aa, 0x2255aa, 0xaa3366, 0x33aa88];
+    for (let i = 0; i < 5; i++) {
+      const nc = nebulaColors[i % nebulaColors.length];
+      const neb = new THREE.Mesh(
+        new THREE.SphereGeometry(12 + Math.random() * 10, 16, 16),
+        new THREE.MeshBasicMaterial({ color: nc, transparent: true, opacity: 0.12 })
+      );
+      neb.position.set((Math.random() - 0.5) * 140, 15 + Math.random() * 40, -120 - Math.random() * 80);
+      neb.userData.spaceDecor = true;
+      scene.add(neb);
+    }
+    // Кольцо астероидов вдалеке
+    const astMat = new THREE.MeshStandardMaterial({ color: 0x776655, roughness: 0.95 });
+    for (let i = 0; i < 22; i++) {
+      const ast = new THREE.Mesh(new THREE.DodecahedronGeometry(0.4 + Math.random() * 0.8, 0), astMat);
+      const aa = Math.random() * Math.PI * 2;
+      const ar = 60 + Math.random() * 40;
+      ast.position.set(Math.cos(aa) * ar, (Math.random() - 0.5) * 30, -100 - Math.random() * 60);
+      ast.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+      ast.userData.spaceDecor = true;
+      scene.add(ast);
+    }
     const pcolors = [0x2266aa, 0x338844, 0x886633, 0x44aaff, 0x66aa44];
     for (let i = 0; i < 7; i++) {
       const pl = new THREE.Mesh(new THREE.SphereGeometry(2 + Math.random()*5, 16, 16), new THREE.MeshStandardMaterial({color: pcolors[i % pcolors.length], emissive: pcolors[i % pcolors.length], emissiveIntensity: 0.25}));
@@ -1779,9 +1813,34 @@ for (const h of houses) {
     if (player && player.mesh) scene.remove(player.mesh);
     player.mesh = makePlayer();
     spaceMode = false;
-    const pground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({color:0x5a7a3a, roughness:0.9}));
+    // Земля: холмистое поле с травяной текстурой (реалистичный дневной вид)
+    const pgroundGeo = new THREE.PlaneGeometry(300, 300, 60, 60);
+    const ppos = pgroundGeo.attributes.position;
+    for (let i = 0; i < ppos.count; i++) {
+      ppos.setZ(i, Math.sin(ppos.getX(i) * 0.1) * Math.cos(ppos.getY(i) * 0.08) * 0.5);
+    }
+    pgroundGeo.computeVertexNormals();
+    const grassTex = (() => {
+      const c = document.createElement("canvas");
+      c.width = 512; c.height = 512;
+      const cx = c.getContext("2d");
+      cx.fillStyle = "#4a7a2a";
+      cx.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 6000; i++) {
+        const x = Math.random() * 512, y = Math.random() * 512;
+        const g = 100 + Math.random() * 70;
+        cx.fillStyle = "rgb(" + (g * 0.55 | 0) + "," + g + "," + (g * 0.4 | 0) + ")";
+        cx.fillRect(x, y, 2, 3);
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(12, 12);
+      return t;
+    })();
+    const pground = new THREE.Mesh(pgroundGeo, new THREE.MeshStandardMaterial({ map: grassTex, color: 0xffffff, roughness: 0.95 }));
     pground.rotation.x = -Math.PI/2;
     pground.position.y = -2;
+    pground.receiveShadow = true;
     pground.userData.planetDecor = true;
     scene.add(pground);
     const road = new THREE.Mesh(new THREE.PlaneGeometry(6, 200), new THREE.MeshStandardMaterial({color:0x8b7355, roughness:0.95}));
@@ -1789,48 +1848,172 @@ for (const h of houses) {
     road.position.y = -1.9;
     road.userData.planetDecor = true;
     scene.add(road);
-    scene.fog.color.set(0xff99cc);
-    scene.fog.near = 40;
-    scene.fog.far = 260;
-    sky.material.color.set(0xff66aa);
-    ambient.intensity = 0.6;
-    ambient.color.set(0xffcccc);
-    hemi.intensity = 0.3;
-    dir.color.set(0xff3322);
-    dir.intensity = 1.2;
-    moon.material.color.set(0xff3322);
-    moon.material.emissive.set(0xff3322);
-    moon.material.emissiveIntensity = 1.5;
-    moon.scale.setScalar(2.5);
-    // cornfield rows
-    const cornMat = new THREE.MeshStandardMaterial({color:0x2d8a3e, roughness:0.9});
-    for (let i = 0; i < 40; i++) {
-      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.12,1.6,6), cornMat);
-      c.position.set((Math.random()-0.5)*60, -2, (Math.random())*80 - 20);
-      scene.add(c);
-      c.userData.planetDecor = true;
-      c.userData.planetDecor = true;
+    // Дневное небо с облаками
+    scene.fog.color.set(0xbcd8f0);
+    scene.fog.near = 60;
+    scene.fog.far = 320;
+    sky.material.color.set(0x87b8e8);
+    ambient.intensity = 0.75;
+    ambient.color.set(0xffffff);
+    hemi.intensity = 0.55;
+    dir.color.set(0xfff2cc);
+    dir.intensity = 1.4;
+    moon.material.color.set(0xfff7e0);
+    moon.material.emissive.set(0xffeebb);
+    moon.material.emissiveIntensity = 0.4;
+    moon.scale.setScalar(1.3);
+    moon.position.set(-60, 65, -110);
+    // Облака
+    const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.85 });
+    for (let i = 0; i < 14; i++) {
+      const cloud = new THREE.Group();
+      for (let j = 0; j < 4; j++) {
+        const puff = new THREE.Mesh(new THREE.SphereGeometry(2.5 + Math.random() * 2.5, 10, 8), cloudMat);
+        puff.position.set(j * 2.5 - 4 + Math.random(), Math.random(), Math.random() * 2);
+        cloud.add(puff);
+      }
+      cloud.position.set((Math.random() - 0.5) * 140, 18 + Math.random() * 16, -80 - Math.random() * 60);
+      cloud.userData.planetDecor = true;
+      scene.add(cloud);
     }
-    // ancient stones
-    const stoneMat = new THREE.MeshStandardMaterial({color:0x887766, roughness:0.95});
-    for (let i = 0; i < 6; i++) {
-      const st = new THREE.Mesh(new THREE.BoxGeometry(1.2,3.5,1.2), stoneMat);
-      st.position.set((i-3)*8, -1, 30 + Math.random()*10);
-      st.rotation.y = Math.random()*0.4;
-      scene.add(st);
-      st.userData.planetDecor = true;
-      st.userData.planetDecor = true;
+    // Дальний лес
+    const dTreeMat = new THREE.MeshStandardMaterial({ color: 0x1e4a1e, roughness: 0.9 });
+    const dTrunkMat = new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 0.95 });
+    for (let i = 0; i < 90; i++) {
+      const fx = (Math.random() - 0.5) * 220;
+      const fz = -90 - Math.random() * 100;
+      const th = 3 + Math.random() * 4;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, th, 6), dTrunkMat);
+      trunk.position.set(fx, 0 + th / 2, fz);
+      trunk.userData.planetDecor = true;
+      scene.add(trunk);
+      const crown = new THREE.Mesh(new THREE.SphereGeometry(1.4 + Math.random(), 8, 6), dTreeMat);
+      crown.position.set(fx, th + 1, fz);
+      crown.userData.planetDecor = true;
+      scene.add(crown);
+    }
+    // ПОЛЕ КУКУРУЗЫ
+    const cornStalkMat = new THREE.MeshStandardMaterial({color:0x3a8a2a, roughness:0.85});
+    const cornLeafMat = new THREE.MeshStandardMaterial({color:0x4aa030, roughness:0.8, side:THREE.DoubleSide});
+    const cornCobMat = new THREE.MeshStandardMaterial({color:0xe8c840, roughness:0.7});
+    for (let row = 0; row < 6; row++) {
+      for (let i = 0; i < 16; i++) {
+        const cx2 = -22 + row * 3.2 + (Math.random() - 0.5);
+        const cz2 = -12 + i * 2.4 + (Math.random() - 0.5);
+        const stalkH = 1.6 + Math.random() * 0.7;
+        const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, stalkH, 5), cornStalkMat);
+        stalk.position.set(cx2, -2 + stalkH / 2, cz2);
+        stalk.rotation.z = (Math.random() - 0.5) * 0.08;
+        stalk.userData.planetDecor = true;
+        scene.add(stalk);
+        for (let l = 0; l < 3; l++) {
+          const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.7), cornLeafMat);
+          leaf.position.set(cx2, -2 + stalkH * (0.4 + l * 0.2), cz2);
+          leaf.rotation.z = (l % 2 ? 0.9 : -0.9);
+          leaf.rotation.y = Math.random() * Math.PI;
+          leaf.userData.planetDecor = true;
+          scene.add(leaf);
+        }
+        if (Math.random() < 0.4) {
+          const cob = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8), cornCobMat);
+          cob.position.set(cx2 + 0.1, -2 + stalkH * 0.6, cz2);
+          cob.rotation.z = 0.5;
+          cob.userData.planetDecor = true;
+          scene.add(cob);
+        }
+      }
     }
     upgradeLine.textContent = "Планета: слизь и древние камни! 🌽";
-    // royal castle in distance
-    const castleMat = new THREE.MeshStandardMaterial({color:0x8888aa, roughness:0.8});
-    const castleBase = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 8), castleMat);
-    castleBase.position.set(0, 2, 60);
-    scene.add(castleBase);
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2, 10, 8), castleMat);
-    tower.position.set(-4, 8, 60);
-    scene.add(tower);
-    const tower2 = tower.clone(); tower2.position.x = 4; scene.add(tower2);
+    // КАМЕННЫЕ МОНУМЕНТЫ (Стоунхендж)
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9a938a, roughness: 0.92, metalness: 0.02 });
+    const stoneCenterZ = 34;
+    const stoneCount = 8;
+    const stoneRadius = 10;
+    for (let i = 0; i < stoneCount; i++) {
+      const a = (i / stoneCount) * Math.PI * 2;
+      const sx = Math.cos(a) * stoneRadius;
+      const sz = stoneCenterZ + Math.sin(a) * stoneRadius;
+      const vertical = new THREE.Mesh(new THREE.BoxGeometry(1.3, 4.2, 1.0), stoneMat);
+      vertical.position.set(sx, 0.1, sz);
+      vertical.rotation.y = -a + Math.PI / 2;
+      vertical.rotation.z = (Math.random() - 0.5) * 0.04;
+      vertical.castShadow = true;
+      vertical.receiveShadow = true;
+      vertical.userData.planetDecor = true;
+      scene.add(vertical);
+      if (i % 2 === 0) {
+        const a2 = ((i + 1) / stoneCount) * Math.PI * 2;
+        const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.7, 1.1), stoneMat);
+        lintel.position.set((sx + Math.cos(a2) * stoneRadius) / 2, 2.4, (sz + stoneCenterZ + Math.sin(a2) * stoneRadius) / 2);
+        lintel.rotation.y = -a + Math.PI / 2;
+        lintel.castShadow = true;
+        lintel.userData.planetDecor = true;
+        scene.add(lintel);
+      }
+    }
+    const altar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, 1.6), stoneMat);
+    altar.position.set(0, -1.6, stoneCenterZ);
+    altar.userData.planetDecor = true;
+    scene.add(altar);
+    // ЗАМОК (стены, башни, ворота, флаги)
+    const castleWallMat = new THREE.MeshStandardMaterial({ color: 0x8a8a92, roughness: 0.85 });
+    const castleRoofMat = new THREE.MeshStandardMaterial({ color: 0x6a3050, roughness: 0.6 });
+    const castleWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2f18, roughness: 0.9 });
+    const cz = 62;
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(20, 7, 1.6), castleWallMat);
+    wall.position.set(0, 1.5, cz);
+    wall.castShadow = true;
+    wall.userData.planetDecor = true;
+    scene.add(wall);
+    for (let i = -5; i <= 5; i++) {
+      if (Math.abs(i) < 1.5) continue;
+      const merlon = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.0, 1.7), castleWallMat);
+      merlon.position.set(i * 1.9, 5.5, cz);
+      merlon.userData.planetDecor = true;
+      scene.add(merlon);
+    }
+    const gateL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 5, 1.8), castleWallMat);
+    gateL.position.set(-2.4, 0.5, cz);
+    gateL.userData.planetDecor = true;
+    scene.add(gateL);
+    const gateR = gateL.clone(); gateR.position.x = 2.4; gateR.userData.planetDecor = true; scene.add(gateR);
+    const gateTop = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.2, 1.8), castleWallMat);
+    gateTop.position.set(0, 3.2, cz);
+    gateTop.userData.planetDecor = true;
+    scene.add(gateTop);
+    const gateDoor = new THREE.Mesh(new THREE.BoxGeometry(2.8, 4.2, 0.3), castleWoodMat);
+    gateDoor.position.set(0, 1.0, cz);
+    gateDoor.userData.planetDecor = true;
+    scene.add(gateDoor);
+    for (const tx of [-9, 9]) {
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.2, 12, 10), castleWallMat);
+      tower.position.set(tx, 4, cz);
+      tower.castShadow = true;
+      tower.userData.planetDecor = true;
+      scene.add(tower);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.3, 3.4, 10), castleRoofMat);
+      roof.position.set(tx, 11.5, cz);
+      roof.userData.planetDecor = true;
+      scene.add(roof);
+      const flagpole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6), castleWoodMat);
+      flagpole.position.set(tx, 14.2, cz);
+      flagpole.userData.planetDecor = true;
+      scene.add(flagpole);
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.8), new THREE.MeshStandardMaterial({ color: 0xaa2244, side: THREE.DoubleSide, roughness: 0.8 }));
+      flag.position.set(tx + 0.75, 14.8, cz);
+      flag.userData.planetDecor = true;
+      scene.add(flag);
+    }
+    const keep = new THREE.Mesh(new THREE.BoxGeometry(6, 9, 5), castleWallMat);
+    keep.position.set(0, 4.5, cz + 4);
+    keep.castShadow = true;
+    keep.userData.planetDecor = true;
+    scene.add(keep);
+    const keepRoof = new THREE.Mesh(new THREE.ConeGeometry(4.4, 3.2, 4), castleRoofMat);
+    keepRoof.position.set(0, 10.4, cz + 4);
+    keepRoof.rotation.y = Math.PI / 4;
+    keepRoof.userData.planetDecor = true;
+    scene.add(keepRoof);
   }
   function startCinematic(kind) {
     if (kind === "space" && spaceCinematicDone) return;
@@ -1849,6 +2032,7 @@ for (const h of houses) {
     spaceship.scale.setScalar(0.001);
     spawnTimer = 1200;
     bonusTimer = 5000;
+    cinematicStarted = true;
     upgradeLine.textContent = kind === "planet" ? "Уровень 20: новый мир! 🪐" : "Уровень 5: запуск! 🚀";
   }
   function startGame() {
