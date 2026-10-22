@@ -1505,8 +1505,8 @@ for (let i = 0; i < 6; i++) {
       b.y += b.speed;
       b.spin += 0.1;
       b.mesh.position.set(screenToWorldX(b.x), screenToWorldY(b.y), 0);
-      b.mesh.rotation.y += b.kind === "buff" ? 0.22 : 0.08;
-      b.mesh.rotation.x += b.kind === "buff" ? 0.12 : 0;
+      b.mesh.rotation.y += b.kind === "buff" ? 0.12 : 0.08;
+      b.mesh.rotation.x += b.kind === "buff" ? 0.06 : 0;
       const px = player.x,
         py = player.y;
        if (Math.abs(b.x - px) < player.w / 2 + b.r && Math.abs(b.y - py) < player.h / 2 + b.r) {
