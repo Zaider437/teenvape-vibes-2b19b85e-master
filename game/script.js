@@ -571,38 +571,35 @@ for (let i = 0; i < 6; i++) {
       foot.rotation.x = 0.9;
       g.add(foot);
     }
+    // Крылья: перепонка с реальным контуром (изогнутая мембрана через Shape)
+    function batWingShape(mirror) {
+      const s = new THREE.Shape();
+      const m = mirror ? -1 : 1;
+      s.moveTo(0, 0.1);
+      s.quadraticCurveTo(m * 0.3, 0.28, m * 0.55, 0.1);
+      s.quadraticCurveTo(m * 0.75, 0.02, m * 0.9, -0.06);
+      s.quadraticCurveTo(m * 0.7, -0.16, m * 0.45, -0.18);
+      s.quadraticCurveTo(m * 0.25, -0.22, 0, -0.14);
+      s.closePath();
+      return s;
+    }
+    function makeMembrane(mirror) {
+      const geo = new THREE.ShapeGeometry(batWingShape(mirror));
+      const mesh = new THREE.Mesh(geo, membraneMat);
+      mesh.rotation.x = -Math.PI / 2;
+      return mesh;
+    }
     const wingPivotL = new THREE.Group();
     wingPivotL.position.set(-0.14, 0.02, 0);
+    wingPivotL.add(makeMembrane(true));
     g.add(wingPivotL);
-    const armL = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.32), membraneMat);
-    armL.position.x = -0.25;
-    armL.rotation.y = Math.PI / 2;
-    wingPivotL.add(armL);
-    const tipPivotL = new THREE.Group();
-    tipPivotL.position.set(-0.5, 0, 0);
-    wingPivotL.add(tipPivotL);
-    const tipL = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.26), membraneMat);
-    tipL.position.x = -0.21;
-    tipL.rotation.y = Math.PI / 2;
-    tipPivotL.add(tipL);
     const wingPivotR = new THREE.Group();
     wingPivotR.position.set(0.14, 0.02, 0);
+    wingPivotR.add(makeMembrane(false));
     g.add(wingPivotR);
-    const armR = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.32), membraneMat);
-    armR.position.x = 0.25;
-    armR.rotation.y = Math.PI / 2;
-    wingPivotR.add(armR);
-    const tipPivotR = new THREE.Group();
-    tipPivotR.position.set(0.5, 0, 0);
-    wingPivotR.add(tipPivotR);
-    const tipR = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.26), membraneMat);
-    tipR.position.x = 0.21;
-    tipR.rotation.y = Math.PI / 2;
-    tipPivotR.add(tipR);
     scene.add(g);
     return {
       g, wing: wingPivotL, wing2: wingPivotR,
-      tipPivotL, tipPivotR,
       x: Math.random() * W,
       y: Math.random() * H * 0.35,
       vx: (Math.random() - 0.5) * 1.2,
@@ -1456,11 +1453,12 @@ for (let i = 0; i < 6; i++) {
            player.mesh.position.y = screenToWorldY(player.y) + Math.sin(t * 8) * 0.15;
          }
        } else {
-         // УРОВЕНЬ 5: корабль стоит вдалеке на дороге, вейп подлетает к нему
+         // УРОВЕНЬ 5: корабль стоит вдалеке НА ЗЕМЛЕ, вейп подлетает к нему
          if (spaceship) {
-           const s = Math.min(1, t / 1.0);
-           spaceship.scale.setScalar(0.6 + s * 0.1);
-           spaceship.position.set(0, -2.2, -18);
+           const groundY = -(H / 2) * SCALE - 0.6;
+           const hover = Math.sin(t * 2) * 0.4;
+           spaceship.position.set(0, groundY + 1.5 + hover, -18);
+           spaceship.rotation.z = Math.sin(t * 1.5) * 0.05;
          }
          if (cinematicKind === "space" && player && player.mesh) {
            const bp = Math.min(1, Math.max(0, (t - 1) / 2.5));
@@ -1707,11 +1705,8 @@ for (let i = 0; i < 6; i++) {
       const wy = b.y + Math.sin(now / 800 + b.phase) * 8;
       b.g.position.set(screenToWorldX(b.x), screenToWorldY(wy), 0.5);
       const flap = Math.sin(now / (b.flapSpeed * 1000) + b.phase);
-      const tipFlap = Math.sin(now / (b.flapSpeed * 1000) + b.phase - 0.7);
       b.wing.rotation.z = flap * 0.85;
       b.wing2.rotation.z = -flap * 0.85;
-      if (b.tipPivotL) b.tipPivotL.rotation.z = tipFlap * 0.5;
-      if (b.tipPivotR) b.tipPivotR.rotation.z = -tipFlap * 0.5;
       b.g.rotation.z = -b.vx * 0.25 + flap * 0.06;
       b.g.rotation.y = Math.sin(now / 1200 + b.phase) * 0.25;
       b.g.rotation.x = flap * 0.12;
@@ -2172,7 +2167,7 @@ for (const h of houses) {
     for (const s of shots) { scene.remove(s.mesh); }
     shots = [];
     spaceship = makeSpaceship();
-    spaceship.position.set(0, kind === "planet" ? -4 : -2.2, kind === "planet" ? 0 : -18);
+    spaceship.position.set(0, kind === "planet" ? -4 : (-(H / 2) * SCALE - 0.6) + 1.5, kind === "planet" ? 0 : -18);
     spaceship.scale.setScalar(kind === "planet" ? 0.7 : 0.6);
     spawnTimer = 1200;
     bonusTimer = 5000;
