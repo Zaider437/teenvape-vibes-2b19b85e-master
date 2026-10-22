@@ -956,6 +956,7 @@ for (let i = 0; i < 6; i++) {
   }
   initPumpkins();
   scene.children.slice().forEach((o) => { if (o.userData && o.userData.isShip) scene.remove(o); if (o.children) o.children.slice().forEach((c) => { if (c.userData && c.userData.isShip) o.remove(c); }); });
+  if (typeof alienShips !== "undefined") alienShips.forEach((a) => scene.remove(a.g));
 
   function rand(a, b) {
     return a + Math.random() * (b - a);
