@@ -955,6 +955,7 @@ for (let i = 0; i < 6; i++) {
     pumpkins.push(makePumpkin(W - 50, H - 34));
   }
   initPumpkins();
+  scene.children.slice().forEach((o) => { if (o.userData && o.userData.isShip) scene.remove(o); if (o.children) o.children.slice().forEach((c) => { if (c.userData && c.userData.isShip) o.remove(c); }); });
 
   function rand(a, b) {
     return a + Math.random() * (b - a);
