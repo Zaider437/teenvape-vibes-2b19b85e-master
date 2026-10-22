@@ -35,7 +35,9 @@
     camera.aspect = W / H;
     const cameraZ = (H * SCALE) / (2 * Math.tan((60 * Math.PI) / 180 / 2));
     try { baseCameraZ = cameraZ; } catch (e) {}
-    try { if (!cinematic) camera.position.set(0, 0, cameraZ); } catch (e) { camera.position.set(0, 0, cameraZ); }
+    // Наклон камеры вниз на ~25° — как в играх, чтобы вращение предметов было видно в перспективе
+    const camAngle = (25 * Math.PI) / 180;
+    try { if (!cinematic) { camera.position.set(0, Math.sin(camAngle) * cameraZ, Math.cos(camAngle) * cameraZ); camera.lookAt(0, 0, 0); } } catch (e) { camera.position.set(0, Math.sin(camAngle) * cameraZ, Math.cos(camAngle) * cameraZ); camera.lookAt(0, 0, 0); }
     camera.updateProjectionMatrix();
   }
   window.addEventListener("resize", resize);
@@ -1227,7 +1229,7 @@ for (let i = 0; i < 6; i++) {
        kind,
        flavor,
        name,
-       speed: 2.8,
+       speed: 1.4, // медленное падение бонуса (px/кадр при 60 FPS)
        spin: 0,
        mesh,
      });
@@ -1511,12 +1513,13 @@ for (let i = 0; i < 6; i++) {
     for (let i = bonuses.length - 1; i >= 0; i--) {
       const b = bonuses[i];
       b.y += b.speed;
-      b.spin += 0.1;
-      // Вращение как в UE5: AddActorLocalRotation(RotationSpeed * DeltaTime)
-      b.spin += dt; // накапливаем время
+      const dtSec = dt / 1000; // dt в секундах — стабильная скорость на любом FPS
+      // Вращение как в играх: полный оборот 360° вокруг вертикальной оси мира (Y)
+      // Полный оборот за ~4.2 сек (2*PI/1.5), только вокруг Y — как пикапы в UE5/Mario
+      b.spin += dtSec;
       b.mesh.position.set(screenToWorldX(b.x), screenToWorldY(b.y), 0);
-      b.mesh.rotation.y += 1.2 * dt; // Yaw: 1.2 рад/сек
-      b.mesh.rotation.x += 0.55 * dt; // Pitch: медленный наклон
+      b.mesh.rotation.set(0, 0, 0); // сброс наклонов
+      b.mesh.rotation.y = (b.spin * 1.5) % (Math.PI * 2); // чистый Yaw: 360° вокруг вертикали
       const px = player.x,
         py = player.y;
        if (Math.abs(b.x - px) < player.w / 2 + b.r && Math.abs(b.y - py) < player.h / 2 + b.r) {
