@@ -1382,10 +1382,11 @@ for (let i = 0; i < 6; i++) {
      if (cinematic) {
        const t = (performance.now() - cinematic.start) / 1000;
        if (spaceship) {
-         const s = Math.min(1, t / 1.0);
-         spaceship.scale.setScalar(0.001 + s * 0.999);
-         spaceship.position.y = -8 + Math.min(1, t / 1.8) * 8;
-         spaceship.rotation.y += dt * 0.003;
+         // Корабль просто УЛЕТАЕТ ВДАЛЬ
+         const fly = Math.min(1, t / 3.6);
+         const ease = fly * fly;
+         spaceship.scale.setScalar(0.7 + ease * 0.3);
+         spaceship.position.set(0, -4 + ease * 2, -ease * 130);
        }
        const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
        camera.position.z = baseCameraZ * zoomFactor;
@@ -1467,6 +1468,8 @@ for (let i = 0; i < 6; i++) {
          e.x += Math.sin(performance.now() / 600 + e.wobble) * 0.4;
        }
        e.mesh.position.set(screenToWorldX(e.x), screenToWorldY(e.y), 0);
+       // на планете земля ниже — приподнимаем слизь, чтобы не проваливалась под землю
+       if (planetMode && e.type === "slime") e.mesh.position.y += 2.2;
         if (e.label) e.label.position.set(screenToWorldX(e.x), screenToWorldY(e.y) + (e.type === "nun" ? 3.0 : 2.6), 0);
        if (e.frozen && e.snowflakes) {
          e.snowflakes.rotation.y += 0.06;
@@ -2041,8 +2044,8 @@ for (const h of houses) {
     for (const s of shots) { scene.remove(s.mesh); }
     shots = [];
     spaceship = makeSpaceship();
-    spaceship.position.set(0, -8, 0);
-    spaceship.scale.setScalar(0.001);
+    spaceship.position.set(0, -4, 0);
+    spaceship.scale.setScalar(0.7);
     spawnTimer = 1200;
     bonusTimer = 5000;
     cinematicStarted = true;

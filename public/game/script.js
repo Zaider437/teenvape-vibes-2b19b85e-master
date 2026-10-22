@@ -644,8 +644,8 @@ for (let i = 0; i < 6; i++) {
     const speechTex = new THREE.CanvasTexture(speechCanvas);
     const speechMat = new THREE.SpriteMaterial({ map: speechTex, transparent: true, depthTest: false });
     const speechSprite = new THREE.Sprite(speechMat);
-    speechSprite.scale.set(3.6, 0.9, 1);
-    speechSprite.position.set(0, 1.6, 0);
+    speechSprite.scale.set(11, 2.75, 1); // крупно, чтобы читалось на любом ракурсе
+    speechSprite.position.set(0, 3.4, 0);
     speechSprite.visible = false;
     g.add(speechSprite);
     g.userData.speech = { sprite: speechSprite, canvas: speechCanvas, ctx: speechCtx, tex: speechTex, phrases: speechPhrases, active: false, text: "", index: 0, timer: 0, nextTime: performance.now() + 2000 + Math.random() * 3000 };
@@ -653,11 +653,23 @@ for (let i = 0; i < 6; i++) {
   function makePlayer() {
     const g = new THREE.Group();
     scene.add(g);
+    // Fallback-вейп: виден МГНОВЕННО, пока грузится GLTF-модель (иначе моделька «пропадает» при пересоздании игрока)
+    const fbBody = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.2, 0.55), new THREE.MeshStandardMaterial({ color: 0x2255aa, metalness: 0.6, roughness: 0.35 }));
+    fbBody.position.y = 0.6; fbBody.castShadow = true; g.add(fbBody);
+    const fbTank = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.0, 20), new THREE.MeshPhysicalMaterial({ color: 0x99ccff, transmission: 0.6, opacity: 0.7, transparent: true, roughness: 0.1 }));
+    fbTank.rotation.z = Math.PI / 2; fbTank.position.y = 1.0; g.add(fbTank);
+    const fbMouth = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.35, 16), new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9 }));
+    fbMouth.position.y = 1.85; g.add(fbMouth);
+    g.userData.fallback = true;
     // load GLTF vape
     if (typeof THREE.GLTFLoader !== "undefined") {
       const loader = new THREE.GLTFLoader();
       loader.load("geek_pulse.glb", (gltf) => {
         // remove placeholder
+        if (g.userData.fallback) {
+          g.remove(fbBody); g.remove(fbTank); g.remove(fbMouth);
+          g.userData.fallback = false;
+        }
         const model = gltf.scene;
         // scale to fit
         model.scale.set(3.5, 3.5, 3.5);
@@ -954,6 +966,68 @@ for (let i = 0; i < 6; i++) {
     pumpkins.push(makePumpkin(W - 50, H - 34));
   }
   initPumpkins();
+  // —— Детали фона уровней 1–4: гробницы, кресты, черепа, туман у земли ——
+  (function enrichHalloween() {
+    const gY = ground.position.y;
+    const graveMat = new THREE.MeshStandardMaterial({ color: 0x6a6a72, roughness: 0.92 });
+    const crossMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9 });
+    const skullMat = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.85 });
+    const deadMat = new THREE.MeshStandardMaterial({ color: 0x2a2418, roughness: 0.95 });
+    // Надгробия с крестами
+    for (let i = 0; i < 10; i++) {
+      const gx = (Math.random() > 0.5 ? 1 : -1) * (9 + Math.random() * 14);
+      const gz = -70 + (i / 10) * 140 + (Math.random() - 0.5) * 8;
+      const grp = new THREE.Group();
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.5, 0.25), graveMat);
+      slab.position.y = 0.75; slab.castShadow = true; grp.add(slab);
+      const cv = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.8, 0.1), crossMat);
+      cv.position.set(0, 1.05, 0.14); grp.add(cv);
+      const ch = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.13, 0.1), crossMat);
+      ch.position.set(0, 1.2, 0.14); grp.add(ch);
+      grp.position.set(gx, gY, gz);
+      grp.rotation.y = (Math.random() - 0.5) * 0.5;
+      scene.add(grp);
+    }
+    // Черепа на земле
+    for (let i = 0; i < 12; i++) {
+      const sx = (Math.random() - 0.5) * 50;
+      if (Math.abs(sx) < 7) continue;
+      const sz = (Math.random() - 0.5) * 160;
+      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), skullMat);
+      skull.scale.set(1, 0.8, 1.1);
+      skull.position.set(sx, gY + 0.14, sz);
+      skull.rotation.y = Math.random() * Math.PI;
+      const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.09, 0.14), skullMat);
+      jaw.position.set(0, -0.12, 0.12); skull.add(jaw);
+      scene.add(skull);
+    }
+    // Мёртвые деревья (голые ветви)
+    for (let i = 0; i < 8; i++) {
+      const dx = (Math.random() > 0.5 ? 1 : -1) * (13 + Math.random() * 16);
+      const dz = -80 + Math.random() * 160;
+      const dt = new THREE.Group();
+      const trunkH = 4 + Math.random() * 2.5;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.3, trunkH, 7), deadMat);
+      trunk.position.y = trunkH / 2; trunk.castShadow = true; dt.add(trunk);
+      for (let b = 0; b < 4; b++) {
+        const br = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, 1.3, 5), deadMat);
+        br.position.set(0, trunkH * (0.5 + b * 0.13), 0);
+        br.rotation.z = (b % 2 ? 1 : -1) * (0.7 + Math.random() * 0.4);
+        br.rotation.y = Math.random() * Math.PI;
+        br.translateY(0.5);
+        dt.add(br);
+      }
+      dt.position.set(dx, gY, dz);
+      scene.add(dt);
+    }
+    // Полосы тумана у земли
+    const fogMat = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.09, depthWrite: false });
+    for (let i = 0; i < 8; i++) {
+      const strip = new THREE.Mesh(new THREE.PlaneGeometry(30 + Math.random() * 20, 3), fogMat);
+      strip.position.set((Math.random() - 0.5) * 40, gY + 0.5 + i * 0.18, -20 - i * 12);
+      scene.add(strip);
+    }
+  })();
   scene.children.slice().forEach((o) => { if (o.userData && o.userData.isShip) scene.remove(o); if (o.children) o.children.slice().forEach((c) => { if (c.userData && c.userData.isShip) o.remove(c); }); });
   if (typeof alienShips !== "undefined") alienShips.forEach((a) => scene.remove(a.g));
   const groundDecor = scene.children.filter((o) => o !== stars && o !== sky && o !== moon && !(o.isLight));
@@ -1380,10 +1454,15 @@ for (let i = 0; i < 6; i++) {
      if (cinematic) {
        const t = (performance.now() - cinematic.start) / 1000;
        if (spaceship) {
-         const s = Math.min(1, t / 1.0);
-         spaceship.scale.setScalar(0.001 + s * 0.999);
-         spaceship.position.y = -8 + Math.min(1, t / 1.8) * 8;
-         spaceship.rotation.y += dt * 0.003;
+         // Корабль просто УЛЕТАЕТ ВДАЛЬ: растёт/приближается и уносится вглубь сцены
+         const fly = Math.min(1, t / 3.6);
+         const ease = fly * fly; // ускорение
+         spaceship.scale.setScalar(0.7 + ease * 0.3);
+         spaceship.position.set(0, -4 + ease * 2, -ease * 130); // уходит вдаль по -Z
+         // огненные сопла разгораются
+         if (spaceship.userData.engines) {
+           spaceship.userData.engines.forEach((eng) => { eng.scale.set(1 + ease * 1.5, 1 + ease * 2.2, 1 + ease * 1.5); });
+         }
        }
        const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
        camera.position.z = baseCameraZ * zoomFactor;
@@ -1464,6 +1543,8 @@ for (let i = 0; i < 6; i++) {
          e.x += Math.sin(performance.now() / 600 + e.wobble) * 0.4;
        }
        e.mesh.position.set(screenToWorldX(e.x), screenToWorldY(e.y), 0);
+       // на планете земля ниже — приподнимаем слизь, чтобы не проваливалась под землю
+       if (planetMode && e.type === "slime") e.mesh.position.y += 2.2;
         if (e.label) e.label.position.set(screenToWorldX(e.x), screenToWorldY(e.y) + (e.type === "nun" ? 3.0 : 2.6), 0);
        if (e.frozen && e.snowflakes) {
          e.snowflakes.rotation.y += 0.06;
@@ -1754,6 +1835,12 @@ for (const h of houses) {
     const wingR = wingL.clone(); wingR.position.x = 1.3; g.add(wingR);
     const glow = new THREE.Mesh(new THREE.SphereGeometry(0.35,16,16), new THREE.MeshBasicMaterial({color:0x66ccff}));
     glow.position.set(0,0.9,0); g.add(glow);
+    // двигатели: два огненных сопла сзади (для кинематика улёта)
+    const engMat = new THREE.MeshBasicMaterial({color:0xff8833, transparent:true, opacity:0.9});
+    const engL = new THREE.Mesh(new THREE.ConeGeometry(0.22,0.9,8), engMat);
+    engL.rotation.x = Math.PI/2; engL.position.set(-0.6,0,-1.9); g.add(engL);
+    const engR = engL.clone(); engR.position.x = 0.6; g.add(engR);
+    g.userData.engines = [engL, engR];
     g.rotation.x = -Math.PI / 2;
     g.userData.isShip = true;
     scene.add(g);
@@ -2028,8 +2115,8 @@ for (const h of houses) {
     for (const s of shots) { scene.remove(s.mesh); }
     shots = [];
     spaceship = makeSpaceship();
-    spaceship.position.set(0, -8, 0);
-    spaceship.scale.setScalar(0.001);
+    spaceship.position.set(0, -4, 0);
+    spaceship.scale.setScalar(0.7);
     spawnTimer = 1200;
     bonusTimer = 5000;
     cinematicStarted = true;
