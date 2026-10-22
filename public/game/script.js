@@ -1206,7 +1206,7 @@ for (let i = 0; i < 6; i++) {
           const _bloader = new THREE.GLTFLoader();
           _bloader.load("buff_can.glb", (gltf) => {
             const _bm = gltf.scene;
-            _bm.scale.set(0.5, 0.5, 0.5);
+            _bm.scale.set(0.3, 0.3, 0.3);
             _bm.traverse((o) => { if (o.isMesh && o.material) { if (o.material.emissiveIntensity !== undefined) o.material.emissiveIntensity = 0.9; } });
             mesh.add(_bm);
           });
