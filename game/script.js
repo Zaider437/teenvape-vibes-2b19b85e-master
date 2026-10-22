@@ -94,16 +94,13 @@
   // Ground (realistic terrain)
   const groundGeo = new THREE.PlaneGeometry(300, 300, 80, 80);
   const pos = groundGeo.attributes.position;
-  const colors = [];
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const y = pos.getY(i);
     const z = (Math.sin(x * 0.08) * Math.cos(y * 0.07) * 0.4) + (Math.random() - 0.5) * 0.15;
     pos.setZ(i, z);
-    const shade = 0.35 + Math.random() * 0.15;
-    colors.push(shade * 0.6, shade * 0.4, shade * 0.25);
   }
-  groundGeo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  // без vertex colors — убирает «цветные кружки» на земле
   groundGeo.computeVertexNormals();
   const groundTex = (() => {
     const c = document.createElement("canvas");
@@ -138,7 +135,7 @@
   })();
   const ground = new THREE.Mesh(
     groundGeo,
-    new THREE.MeshStandardMaterial({ map: groundTex, vertexColors: true, roughness: 0.95, metalness: 0.05 }),
+    new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.95, metalness: 0.05 }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -(H / 2) * SCALE - 0.6;
@@ -198,6 +195,36 @@ for (let i = 0; i < 30; i++) {
   rock.castShadow = true;
   scene.add(rock);
 }
+// Каменные булыжники (валуны) на игровом поле по краям
+const boulderMat = new THREE.MeshStandardMaterial({ color: 0x5c5c66, roughness: 0.96, metalness: 0.03 });
+for (let i = 0; i < 14; i++) {
+  const bx = (Math.random() > 0.5 ? 1 : -1) * (10 + Math.random() * 18);
+  const bz = -80 + Math.random() * 160;
+  const bs = 0.7 + Math.random() * 1.3;
+  const boulder = new THREE.Mesh(new THREE.DodecahedronGeometry(bs, 0), boulderMat);
+  boulder.scale.set(1, 0.65 + Math.random() * 0.3, 1.1);
+  boulder.rotation.set(Math.random() * 0.4, Math.random() * Math.PI, Math.random() * 0.4);
+  boulder.position.set(bx, ground.position.y + bs * 0.35, bz);
+  boulder.castShadow = true;
+  boulder.receiveShadow = true;
+  scene.add(boulder);
+}
+// Полосы тумана у земли (движущиеся)
+const groundFogStrips = [];
+const hFogMat = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.09, depthWrite: false });
+for (let i = 0; i < 10; i++) {
+  const strip = new THREE.Mesh(new THREE.PlaneGeometry(30 + Math.random() * 20, 3), hFogMat.clone());
+  strip.position.set((Math.random() - 0.5) * 40, ground.position.y + 0.5 + i * 0.18, -20 - i * 12);
+  strip.userData = {
+    vx: (Math.random() * 0.5 + 0.2) * (Math.random() > 0.5 ? 1 : -1),
+    baseX: strip.position.x,
+    phase: Math.random() * Math.PI * 2,
+    baseOpacity: 0.06 + Math.random() * 0.06,
+  };
+  scene.add(strip);
+  groundFogStrips.push(strip);
+}
+window.__groundFogStrips = groundFogStrips;
 
 // Environment: road + Halloween houses
   const road = new THREE.Mesh(
@@ -519,36 +546,71 @@ for (let i = 0; i < 6; i++) {
     return g;
   }
 
-  // Bats
+  // Bats (реалистичные: объёмное тело, перепончатые крылья с суставами, уши)
   const bats = [];
   function makeBat() {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 0.15, 0.15),
-      new THREE.MeshStandardMaterial({ color: 0x000000 }),
-    );
+    const furMat = new THREE.MeshStandardMaterial({ color: 0x14100e, roughness: 0.9 });
+    const membraneMat = new THREE.MeshStandardMaterial({ color: 0x1e1412, roughness: 0.75, side: THREE.DoubleSide, transparent: true, opacity: 0.94 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), furMat);
+    body.scale.set(1, 0.85, 1.5);
     g.add(body);
-    const wing = new THREE.Mesh(
-      new THREE.BoxGeometry(0.6, 0.05, 0.2),
-      new THREE.MeshStandardMaterial({ color: 0x000000 }),
-    );
-    wing.position.x = 0.4;
-    g.add(wing);
-    const wing2 = wing.clone();
-    wing2.position.x = -0.4;
-    g.add(wing2);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), furMat);
+    head.position.set(0, 0.06, 0.18);
+    g.add(head);
+    for (const ex of [-0.05, 0.05]) {
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.12, 5), furMat);
+      ear.position.set(ex, 0.15, 0.18);
+      ear.rotation.z = ex > 0 ? -0.2 : 0.2;
+      g.add(ear);
+    }
+    const feetMat = new THREE.MeshStandardMaterial({ color: 0x2a1c14, roughness: 0.85 });
+    for (const fx of [-0.06, 0.06]) {
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.09, 5), feetMat);
+      foot.position.set(fx, -0.14, 0.05);
+      foot.rotation.x = 0.9;
+      g.add(foot);
+    }
+    const wingPivotL = new THREE.Group();
+    wingPivotL.position.set(-0.14, 0.02, 0);
+    g.add(wingPivotL);
+    const armL = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.32), membraneMat);
+    armL.position.x = -0.25;
+    armL.rotation.y = Math.PI / 2;
+    wingPivotL.add(armL);
+    const tipPivotL = new THREE.Group();
+    tipPivotL.position.set(-0.5, 0, 0);
+    wingPivotL.add(tipPivotL);
+    const tipL = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.26), membraneMat);
+    tipL.position.x = -0.21;
+    tipL.rotation.y = Math.PI / 2;
+    tipPivotL.add(tipL);
+    const wingPivotR = new THREE.Group();
+    wingPivotR.position.set(0.14, 0.02, 0);
+    g.add(wingPivotR);
+    const armR = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.32), membraneMat);
+    armR.position.x = 0.25;
+    armR.rotation.y = Math.PI / 2;
+    wingPivotR.add(armR);
+    const tipPivotR = new THREE.Group();
+    tipPivotR.position.set(0.5, 0, 0);
+    wingPivotR.add(tipPivotR);
+    const tipR = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.26), membraneMat);
+    tipR.position.x = 0.21;
+    tipR.rotation.y = Math.PI / 2;
+    tipPivotR.add(tipR);
     scene.add(g);
     return {
-      g,
-      wing,
-      wing2,
+      g, wing: wingPivotL, wing2: wingPivotR,
+      tipPivotL, tipPivotR,
       x: Math.random() * W,
       y: Math.random() * H * 0.35,
       vx: (Math.random() - 0.5) * 1.2,
       phase: Math.random() * Math.PI * 2,
+      flapSpeed: 0.09 + Math.random() * 0.05,
     };
   }
-  for (let i = 0; i < 7; i++) bats.push(makeBat());
+  for (let i = 0; i < 9; i++) bats.push(makeBat());
   const alienShips = [];
   function makeAlienShip() {
     const g = new THREE.Group();
@@ -1381,12 +1443,31 @@ for (let i = 0; i < 6; i++) {
     if (state !== "playing") return;
      if (cinematic) {
        const t = (performance.now() - cinematic.start) / 1000;
-       if (spaceship) {
-         // Корабль просто УЛЕТАЕТ ВДАЛЬ
-         const fly = Math.min(1, t / 3.6);
-         const ease = fly * fly;
-         spaceship.scale.setScalar(0.7 + ease * 0.3);
-         spaceship.position.set(0, -4 + ease * 2, -ease * 130);
+       if (cinematicKind === "planet") {
+         // УРОВЕНЬ 20: корабль просто УЛЕТАЕТ ВДАЛЬ по -Z
+         if (spaceship) {
+           const fly = Math.min(1, t / 3.6);
+           const ease = fly * fly;
+           spaceship.scale.setScalar(0.7 + ease * 0.3);
+           spaceship.position.set(0, -4 + ease * 2, -ease * 130);
+         }
+         if (player && player.mesh) {
+           player.mesh.position.x = screenToWorldX(player.x);
+           player.mesh.position.y = screenToWorldY(player.y) + Math.sin(t * 8) * 0.15;
+         }
+       } else {
+         // УРОВЕНЬ 5: корабль стоит вдалеке на дороге, вейп подлетает к нему
+         if (spaceship) {
+           const s = Math.min(1, t / 1.0);
+           spaceship.scale.setScalar(0.6 + s * 0.1);
+           spaceship.position.set(0, -2.2, -18);
+         }
+         if (cinematicKind === "space" && player && player.mesh) {
+           const bp = Math.min(1, Math.max(0, (t - 1) / 2.5));
+           player.mesh.position.x = screenToWorldX(player.x) * (1 - bp);
+           player.mesh.position.y = screenToWorldY(player.y) * (1 - bp);
+           player.mesh.scale.setScalar(1 - bp * 0.8);
+         }
        }
        const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
        camera.position.z = baseCameraZ * zoomFactor;
@@ -1617,15 +1698,35 @@ for (let i = 0; i < 6; i++) {
       }
     }
 
-    // bats
+    // bats — реалистичный полёт: взмах с изгибом крыла, крен в поворотах
     for (const b of bats) {
       b.x += b.vx;
       if (b.x < -20) b.x = W + 20;
       if (b.x > W + 20) b.x = -20;
-      const wy = b.y + Math.sin(performance.now() / 800 + b.phase) * 8;
+      const now = performance.now();
+      const wy = b.y + Math.sin(now / 800 + b.phase) * 8;
       b.g.position.set(screenToWorldX(b.x), screenToWorldY(wy), 0.5);
-      b.wing.rotation.z = Math.sin(performance.now() / 120 + b.phase) * 0.6;
-      b.wing2.rotation.z = -Math.sin(performance.now() / 120 + b.phase) * 0.6;
+      const flap = Math.sin(now / (b.flapSpeed * 1000) + b.phase);
+      const tipFlap = Math.sin(now / (b.flapSpeed * 1000) + b.phase - 0.7);
+      b.wing.rotation.z = flap * 0.85;
+      b.wing2.rotation.z = -flap * 0.85;
+      if (b.tipPivotL) b.tipPivotL.rotation.z = tipFlap * 0.5;
+      if (b.tipPivotR) b.tipPivotR.rotation.z = -tipFlap * 0.5;
+      b.g.rotation.z = -b.vx * 0.25 + flap * 0.06;
+      b.g.rotation.y = Math.sin(now / 1200 + b.phase) * 0.25;
+      b.g.rotation.x = flap * 0.12;
+    }
+
+    // движущийся туман у земли
+    if (window.__groundFogStrips) {
+      const nowF = performance.now();
+      for (const strip of window.__groundFogStrips) {
+        const u = strip.userData;
+        strip.position.x = u.baseX + Math.sin(nowF / 4000 + u.phase) * 6 + Math.sin(nowF / 1700 + u.phase * 2) * 1.5;
+        strip.material.opacity = u.baseOpacity * (0.7 + 0.3 * Math.sin(nowF / 2500 + u.phase * 3));
+        strip.position.y += Math.sin(nowF / 3000 + u.phase) * 0.003;
+        strip.rotation.z = Math.sin(nowF / 5000 + u.phase) * 0.03;
+      }
     }
 
 // player mesh
@@ -1782,6 +1883,33 @@ for (const h of houses) {
     dir.color.set(0xffffff);
     dir.intensity = 0.9;
     upgradeLine.textContent = "Космос: скафандры и реактивные ранцы! 🚀";
+    // Гигантская планета с кольцом на горизонте
+    const gasGiant = new THREE.Mesh(
+      new THREE.SphereGeometry(16, 32, 32),
+      new THREE.MeshStandardMaterial({ color: 0xcc8844, emissive: 0x552200, emissiveIntensity: 0.3, roughness: 0.8 })
+    );
+    gasGiant.position.set(-55, 30, -160);
+    gasGiant.userData.spaceDecor = true;
+    scene.add(gasGiant);
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(20, 28, 48),
+      new THREE.MeshBasicMaterial({ color: 0xd8b070, transparent: true, opacity: 0.4, side: THREE.DoubleSide })
+    );
+    ring.position.copy(gasGiant.position);
+    ring.rotation.x = Math.PI / 2.4;
+    ring.rotation.y = 0.3;
+    ring.userData.spaceDecor = true;
+    scene.add(ring);
+    // Мерцающие цветные звёзды
+    const coloredStarsGeo = new THREE.BufferGeometry();
+    const cStarVerts = [];
+    for (let i = 0; i < 200; i++) {
+      cStarVerts.push((Math.random() - 0.5) * 220, Math.random() * 90 + 5, -100 - Math.random() * 120);
+    }
+    coloredStarsGeo.setAttribute("position", new THREE.Float32BufferAttribute(cStarVerts, 3));
+    const coloredStars = new THREE.Points(coloredStarsGeo, new THREE.PointsMaterial({ color: 0xaaddff, size: 0.4, transparent: true, opacity: 0.9 }));
+    coloredStars.userData.spaceDecor = true;
+    scene.add(coloredStars);
     // Реалистичный космос: цветные туманности
     const nebulaColors = [0x6633aa, 0x2255aa, 0xaa3366, 0x33aa88];
     for (let i = 0; i < 5; i++) {
@@ -2044,8 +2172,8 @@ for (const h of houses) {
     for (const s of shots) { scene.remove(s.mesh); }
     shots = [];
     spaceship = makeSpaceship();
-    spaceship.position.set(0, -4, 0);
-    spaceship.scale.setScalar(0.7);
+    spaceship.position.set(0, kind === "planet" ? -4 : -2.2, kind === "planet" ? 0 : -18);
+    spaceship.scale.setScalar(kind === "planet" ? 0.7 : 0.6);
     spawnTimer = 1200;
     bonusTimer = 5000;
     cinematicStarted = true;
