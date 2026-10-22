@@ -634,6 +634,20 @@ for (let i = 0; i < 6; i++) {
   let baseCameraZ = camera.position.z;
 
   // Player 3D
+  function attachSpeech(g) {
+    const speechPhrases = ["Получайте, твари!", "Ещё раз?", "Больше ни разу!", "Да как вы смеете!", "Да вы чё, серьёзно?", "Бывало и лучше", "А как тебе такое?"];
+    const speechCanvas = document.createElement("canvas");
+    speechCanvas.width = 512; speechCanvas.height = 128;
+    const speechCtx = speechCanvas.getContext("2d");
+    const speechTex = new THREE.CanvasTexture(speechCanvas);
+    const speechMat = new THREE.SpriteMaterial({ map: speechTex, transparent: true, depthTest: false });
+    const speechSprite = new THREE.Sprite(speechMat);
+    speechSprite.scale.set(3.6, 0.9, 1);
+    speechSprite.position.set(0, 1.6, 0);
+    speechSprite.visible = false;
+    g.add(speechSprite);
+    g.userData.speech = { sprite: speechSprite, canvas: speechCanvas, ctx: speechCtx, tex: speechTex, phrases: speechPhrases, active: false, text: "", index: 0, timer: 0, nextTime: performance.now() + 2000 + Math.random() * 3000 };
+  }
   function makePlayer() {
     const g = new THREE.Group();
     scene.add(g);
@@ -673,19 +687,7 @@ for (let i = 0; i < 6; i++) {
         g.add(mouth);
         g.userData.mouth = mouth;
         // phrases
-         // speech bubble
-         const speechPhrases = ["Получайте, твари!", "Ещё раз?", "Больше ни разу!", "Да как вы смеете!", "Да вы чё, серьёзно?", "Бывало и лучше", "А как тебе такое?"];
-         const speechCanvas = document.createElement("canvas");
-         speechCanvas.width = 512; speechCanvas.height = 128;
-         const speechCtx = speechCanvas.getContext("2d");
-         const speechTex = new THREE.CanvasTexture(speechCanvas);
-         const speechMat = new THREE.SpriteMaterial({ map: speechTex, transparent: true, depthTest: false });
-         const speechSprite = new THREE.Sprite(speechMat);
-         speechSprite.scale.set(3.6, 0.9, 1);
-         speechSprite.position.set(0, 1.6, 0);
-         speechSprite.visible = false;
-         g.add(speechSprite);
-         g.userData.speech = { sprite: speechSprite, canvas: speechCanvas, ctx: speechCtx, tex: speechTex, phrases: speechPhrases, active: false, text: "", index: 0, timer: 0, nextTime: performance.now() + 2000 + Math.random() * 3000 };
+         attachSpeech(g);
       }, undefined, (err) => {
         console.error("GLTF load error", err);
       });
@@ -1745,7 +1747,7 @@ for (const h of houses) {
     spaceMode = true;
     groundDecor.forEach((o) => { o.visible = false; });
     if (player && player.mesh) scene.remove(player.mesh);
-    const _ship = makeSpaceship(); _ship.scale.setScalar(0.6); player.mesh = _ship;
+    const _ship = makeSpaceship(); _ship.scale.setScalar(0.6); player.mesh = _ship; attachSpeech(player.mesh);
     scene.fog.color.set(0x000011);
     scene.fog.near = 120;
     scene.fog.far = 420;
