@@ -1772,6 +1772,16 @@ for (const h of houses) {
     if (player && player.mesh) scene.remove(player.mesh);
     player.mesh = makePlayer();
     spaceMode = false;
+    const pground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({color:0x5a7a3a, roughness:0.9}));
+    pground.rotation.x = -Math.PI/2;
+    pground.position.y = -2;
+    pground.userData.planetDecor = true;
+    scene.add(pground);
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(6, 200), new THREE.MeshStandardMaterial({color:0x8b7355, roughness:0.95}));
+    road.rotation.x = -Math.PI/2;
+    road.position.y = -1.9;
+    road.userData.planetDecor = true;
+    scene.add(road);
     scene.fog.color.set(0xff99cc);
     scene.fog.near = 40;
     scene.fog.far = 260;
