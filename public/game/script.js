@@ -1207,12 +1207,6 @@ for (let i = 0; i < 6; i++) {
           _bloader.load("buff_can.glb", (gltf) => {
             const _bm = gltf.scene;
             _bm.scale.set(0.5, 0.5, 0.5);
-            _bm.traverse((o) => {
-              if (o.isMesh && o.material) {
-                if (o.material.color) o.material.color.set(_buffColor);
-                if (o.material.emissive) o.material.emissive.set(_buffColor);
-              }
-            });
             mesh.add(_bm);
           });
         }
