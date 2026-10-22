@@ -1379,12 +1379,12 @@ for (let i = 0; i < 6; i++) {
        const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
        camera.position.z = baseCameraZ * zoomFactor;
        camera.lookAt(0, 0, 0);
-        if (player && player.mesh) {
+        if (cinematicKind === "space" && player && player.mesh) {
           const bp = Math.min(1, Math.max(0, (t - 1) / 2.5));
           player.mesh.position.x = screenToWorldX(player.x) * (1 - bp);
           player.mesh.position.y = screenToWorldY(player.y) * (1 - bp);
-          player.mesh.scale.setScalar(1 - bp * 0.8);
-        }
+           player.mesh.scale.setScalar(spaceMode ? 0.6 : 1 - bp * 0.8);
+         }
        if (t >= 4.2) {
          if (spaceship) { scene.remove(spaceship); spaceship = null; }
           if (cinematicKind === "planet") { planetCinematicDone = true; enterPlanetMode(); } else { spaceCinematicDone = true; enterSpaceMode(); }
