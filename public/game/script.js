@@ -17,6 +17,14 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // реалистичный отклик материалов: физически корректный рендер и ACES-тонмаппинг
+  if (THREE.ColorManagement) THREE.ColorManagement.enabled = true;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  // Защита от «белого экрана»: если GPU теряет контекст (перегруз), пробуем восстановить
+  renderer.domElement.addEventListener("webglcontextlost", (e) => { e.preventDefault(); console.warn("WebGL context lost — восстановление..."); });
+  renderer.domElement.addEventListener("webglcontextrestored", () => { console.warn("WebGL context restored"); });
   wrap.appendChild(renderer.domElement);
 
   let W = window.innerWidth,
@@ -746,7 +754,7 @@ for (let i = 0; i < 6; i++) {
     // Fallback-вейп: виден МГНОВЕННО, пока грузится GLTF-модель (иначе моделька «пропадает» при пересоздании игрока)
     const fbBody = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.2, 0.55), new THREE.MeshStandardMaterial({ color: 0x2255aa, metalness: 0.6, roughness: 0.35 }));
     fbBody.position.y = 0.6; fbBody.castShadow = true; g.add(fbBody);
-    const fbTank = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.0, 20), new THREE.MeshPhysicalMaterial({ color: 0x99ccff, transmission: 0.6, opacity: 0.7, transparent: true, roughness: 0.1 }));
+    const fbTank = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.0, 20), new THREE.MeshPhysicalMaterial({ color: 0x99ccff, opacity: 0.7, transparent: true, roughness: 0.1 }));
     fbTank.rotation.z = Math.PI / 2; fbTank.position.y = 1.0; g.add(fbTank);
     const fbMouth = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.35, 16), new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9 }));
     fbMouth.position.y = 1.85; g.add(fbMouth);
@@ -802,116 +810,122 @@ for (let i = 0; i < 6; i++) {
   }
 
   function makeZombie() {
+    // Реалистичный зомби: естественная анатомия (капсулы, шарнирные группы),
+    // мёртвая серо-зелёная кожа, рваная одежда, асимметрия, гниющие детали
     const g = new THREE.Group();
-    // legs
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x2a3a1a, roughness: 0.9 });
-    const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 1.1, 12), legMat);
-    legL.position.set(-0.22, -1.35, 0);
-    legL.castShadow = true;
-    g.add(legL);
-    const legR = legL.clone();
-    legR.position.x = 0.22;
-    g.add(legR);
-    // feet
-    const footMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
-    const footL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.4), footMat);
-    footL.position.set(-0.22, -1.95, 0.1);
-    g.add(footL);
-    const footR = footL.clone();
-    footR.position.x = 0.22;
-    g.add(footR);
-    // torso
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.95, 1.25, 0.5),
-      new THREE.MeshStandardMaterial({ color: 0x3a5a2a, roughness: 0.85 }),
-    );
-    body.position.y = -0.15;
-    body.castShadow = true;
-    g.add(body);
-    // torn shirt
-    const shirt = new THREE.Mesh(
-      new THREE.BoxGeometry(1.0, 0.75, 0.55),
-      new THREE.MeshStandardMaterial({ color: 0x5a2a2a, roughness: 0.9 }),
-    );
-    shirt.position.y = 0.15;
-    shirt.castShadow = true;
-    g.add(shirt);
-    // arms
-    const armMat = new THREE.MeshStandardMaterial({ color: 0x4a7a30, roughness: 0.8 });
-    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.95, 0.2), armMat);
-    armL.position.set(-0.68, 0.0, 0);
-    armL.rotation.z = 0.55;
-    armL.castShadow = true;
-    g.add(armL);
-    const armR = armL.clone();
-    armR.position.x = 0.68;
-    armR.rotation.z = -0.55;
-    g.add(armR);
-    // hands
-    const handMat = new THREE.MeshStandardMaterial({ color: 0x8fd46a, roughness: 0.7 });
-    const handL = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 10), handMat);
-    handL.position.set(-0.9, -0.4, 0);
-    g.add(handL);
-    const handR = handL.clone();
-    handR.position.x = 0.9;
-    g.add(handR);
-    // head
-    const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.68, 24, 24),
-      new THREE.MeshStandardMaterial({ color: 0x8fd46a, roughness: 0.7 }),
-    );
-    head.position.y = 1.05;
-    head.castShadow = true;
-    g.add(head);
-    // jaw
-    const jaw = new THREE.Mesh(
-      new THREE.BoxGeometry(0.62, 0.22, 0.45),
-      new THREE.MeshStandardMaterial({ color: 0x7ac45a, roughness: 0.7 }),
-    );
-    jaw.position.set(0, 0.72, 0.32);
-    g.add(jaw);
-    // eyes
-    const eyeMat = new THREE.MeshStandardMaterial({
-      color: 0xff2200,
-      emissive: 0xff2200,
-      emissiveIntensity: 1.0,
-    });
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), eyeMat);
-    eyeL.position.set(-0.2, 1.12, 0.6);
-    g.add(eyeL);
-    const eyeR = eyeL.clone();
-    eyeR.position.x = 0.2;
-    g.add(eyeR);
-    // mouth
-    const mouth = new THREE.Mesh(
-      new THREE.BoxGeometry(0.38, 0.1, 0.12),
-      new THREE.MeshStandardMaterial({ color: 0x1a0000, roughness: 0.5 }),
-    );
-    mouth.position.set(0, 0.84, 0.62);
-    g.add(mouth);
-    // teeth
-    const toothMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.4 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0x7f9a6a, roughness: 0.95, metalness: 0.0 });
+    const rotMat   = new THREE.MeshStandardMaterial({ color: 0x54663f, roughness: 1.0 });   // гниль/пятна
+    const clothMat = new THREE.MeshStandardMaterial({ color: 0x4a3f33, roughness: 1.0 });   // рваная рубашка
+    const pantsMat = new THREE.MeshStandardMaterial({ color: 0x2e2a26, roughness: 1.0 });
+    const shoeMat  = new THREE.MeshStandardMaterial({ color: 0x191512, roughness: 0.9 });
+
+    // ТАЗ и ТОРС: капсулы вместо кубов — плавные объёмы
+    const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.26, 18, 14), pantsMat);
+    pelvis.scale.set(1.15, 0.8, 0.85); pelvis.position.y = 0.1; pelvis.castShadow = true; g.add(pelvis);
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.27, 0.5, 6, 16), clothMat);
+    torso.scale.set(1.25, 1, 0.8); torso.position.y = 0.62; torso.rotation.x = 0.12; torso.castShadow = true; g.add(torso);
+    const chest = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 14), clothMat);
+    chest.scale.set(1.25, 0.9, 0.85); chest.position.set(0, 0.95, 0.02); chest.castShadow = true; g.add(chest);
+    // дыры в одежде + проблёскивающая гниль
+    const tear = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), rotMat);
+    tear.position.set(0.16, 0.55, 0.21); tear.scale.set(1, 0.7, 0.4); g.add(tear);
+    const tear2 = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), rotMat);
+    tear2.position.set(-0.2, 0.85, 0.2); tear2.scale.set(1.1, 0.6, 0.4); g.add(tear2);
+
+    // ШЕЯ
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.18, 10), skinMat);
+    neck.position.y = 1.22; neck.rotation.x = 0.1; g.add(neck);
+
+    // ГОЛОВА: вытянутая, с черепными буграми, челюсть отвисла
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.21, 24, 20), skinMat);
+    head.scale.set(0.92, 1.08, 1.05); head.position.set(0, 1.44, 0.02); head.castShadow = true; g.add(head);
+    const brow = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), skinMat);
+    brow.scale.set(1.8, 0.5, 0.8); brow.position.set(0, 1.5, 0.18); g.add(brow);
+    // пятна гнили на лице и голове
+    const rotSpot = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), rotMat);
+    rotSpot.position.set(0.13, 1.46, 0.16); rotSpot.scale.set(1, 0.8, 0.4); g.add(rotSpot);
+    const rotSpot2 = rotSpot.clone(); rotSpot2.position.set(-0.1, 1.56, 0.12); rotSpot2.scale.set(0.7, 0.9, 0.4); g.add(rotSpot2);
+    // впалые глазницы + мутные светящиеся зрачки
+    const socketMat = new THREE.MeshStandardMaterial({ color: 0x2a3320, roughness: 1.0 });
+    const eyeGlowMat = new THREE.MeshStandardMaterial({ color: 0xffd257, emissive: 0xffaa00, emissiveIntensity: 1.6 });
+    for (const ex of [-0.08, 0.08]) {
+      const socket = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 10), socketMat);
+      socket.position.set(ex, 1.49, 0.17); g.add(socket);
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeGlowMat);
+      pupil.position.set(ex, 1.49, 0.2); g.add(pupil);
+    }
+    // отвисшая челюсть с зубами
+    const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 12), skinMat);
+    jaw.scale.set(0.9, 0.7, 1.0); jaw.position.set(0, 1.31, 0.09); g.add(jaw);
+    const mouthCavity = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.07, 0.08), new THREE.MeshStandardMaterial({ color: 0x1a0d08, roughness: 1.0 }));
+    mouthCavity.position.set(0, 1.33, 0.2); g.add(mouthCavity);
+    const toothMat = new THREE.MeshStandardMaterial({ color: 0xd8cfa8, roughness: 0.5 });
+    for (let i = 0; i < 4; i++) {
+      const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.03, 0.015), toothMat);
+      tooth.position.set(-0.05 + i * 0.033, 1.355, 0.225); g.add(tooth);
+    }
+    // клочья волос
+    const hairMat = new THREE.MeshStandardMaterial({ color: 0x241c14, roughness: 1.0 });
+    for (let i = 0; i < 6; i++) {
+      const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.09, 4), hairMat);
+      const a = i * 1.05;
+      tuft.position.set(Math.sin(a) * 0.14, 1.62 + (i % 2) * 0.02, Math.cos(a) * 0.1 - 0.02);
+      tuft.rotation.set((Math.random() - 0.5) * 0.8, 0, (Math.random() - 0.5) * 0.8);
+      g.add(tuft);
+    }
+
+    // РУКИ: шарнирные группы (плечо -> локоть -> кисть), выставлены вперёд как у классического зомби
+    function makeArm(side) {
+      const pivot = new THREE.Group(); pivot.position.set(side * 0.33, 0.98, 0);
+      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.26, 4, 10), skinMat);
+      upper.position.y = -0.16; upper.castShadow = true; pivot.add(upper);
+      const elbow = new THREE.Group(); elbow.position.y = -0.32; pivot.add(elbow);
+      const fore = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.24, 4, 10), skinMat);
+      fore.position.y = -0.15; fore.castShadow = true; elbow.add(fore);
+      elbow.rotation.x = -1.15; // предплечье вперёд
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), skinMat);
+      hand.scale.set(0.9, 1.1, 0.7); hand.position.y = -0.3; elbow.add(hand);
+      for (let f = 0; f < 3; f++) {
+        const finger = new THREE.Mesh(new THREE.CapsuleGeometry(0.014, 0.05, 3, 6), skinMat);
+        finger.position.set(-0.03 + f * 0.03, -0.38, 0.02); finger.rotation.x = 0.4; elbow.add(finger);
+      }
+      pivot.rotation.x = -1.35; // вся рука вытянута вперёд
+      pivot.rotation.z = side * 0.12;
+      g.add(pivot);
+      return pivot;
+    }
+    makeArm(-1); makeArm(1);
+
+    // НОГИ: бедро -> колено -> ступня
+    function makeLeg(side) {
+      const pivot = new THREE.Group(); pivot.position.set(side * 0.15, 0.08, 0);
+      const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.3, 4, 10), pantsMat);
+      thigh.position.y = -0.2; thigh.castShadow = true; pivot.add(thigh);
+      const knee = new THREE.Group(); knee.position.y = -0.42; pivot.add(knee);
+      const shin = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.28, 4, 10), pantsMat);
+      shin.position.y = -0.18; shin.castShadow = true; knee.add(shin);
+      const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 10), shoeMat);
+      shoe.scale.set(1, 0.6, 1.6); shoe.position.set(0, -0.4, 0.04); knee.add(shoe);
+      knee.rotation.x = 0.15;
+      pivot.rotation.x = -0.08; g.add(pivot);
+      return pivot;
+    }
+    makeLeg(-1); makeLeg(1);
+
+    // ВИЛЫ: деревянное топорище + металлические зубцы с остриями
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.038, 1.7, 10), new THREE.MeshStandardMaterial({ color: 0x5a4028, roughness: 0.9 }));
+    handle.position.set(0.62, 0.35, 0.25); handle.rotation.z = -0.25; handle.castShadow = true; g.add(handle);
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.85, roughness: 0.35 });
+    const forkBase = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.045, 0.045), metalMat);
+    forkBase.position.set(0.74, 0.85, 0.25); forkBase.rotation.z = -0.25; g.add(forkBase);
     for (let i = -1; i <= 1; i++) {
-      const t = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.06), toothMat);
-      t.position.set(i * 0.1, 0.84, 0.68);
-      g.add(t);
-     }
-     // pitchfork
-     const handleMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.9 });
-     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.6, 8), handleMat);
-     handle.position.set(0.9, -0.2, 0.2);
-     handle.rotation.z = -0.3;
-     handle.castShadow = true;
-     g.add(handle);
-     const prongMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.6, roughness: 0.4 });
-     for (let i = -1; i <= 1; i++) {
-       const prong = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.04), prongMat);
-       prong.position.set(0.9 + i * 0.08, 0.55, 0.2);
-       g.add(prong);
-     }
-     const base = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.04), prongMat);
-     base.position.set(0.9, 0.38, 0.2);
-     g.add(base);
+      const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.006, 0.42, 8), metalMat);
+      prong.position.set(0.66 + i * 0.085, 1.07, 0.25); prong.rotation.z = -0.25; g.add(prong);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.07, 8), metalMat);
+      tip.position.set(0.615 + i * 0.085, 1.29, 0.25); tip.rotation.z = -0.25; g.add(tip);
+    }
+    // ВЫРАВНИВАНИЕ: как у старой модели, ступни на y ≈ -2.0 (контакт с землёй)
+    g.children.slice().forEach((c) => { c.position.y -= 1.2; });
       if (spaceMode) {
         const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.55,16,16), new THREE.MeshStandardMaterial({color:0xddddff, transparent:true, opacity:0.35, roughness:0.2}));
         helmet.position.y = 1.25; g.add(helmet);
@@ -926,100 +940,87 @@ for (let i = 0; i < 6; i++) {
    }
    function makeNun() {
      const g = new THREE.Group();
-    // robe
-    const robe = new THREE.Mesh(
-      new THREE.ConeGeometry(1.05, 2.5, 24),
-      new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95 }),
-    );
-    robe.position.y = 0.15;
-    robe.castShadow = true;
-    g.add(robe);
-    // veil
-    const veil = new THREE.Mesh(
-      new THREE.ConeGeometry(0.95, 1.7, 24),
-      new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 }),
-    );
-     veil.position.y = 1.35;
-     veil.castShadow = true;
-     g.add(veil);
-     // hat brim
-     const hatBrim = new THREE.Mesh(
-       new THREE.CylinderGeometry(0.75, 0.75, 0.08, 24),
-       new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8 }),
-     );
-     hatBrim.position.y = 2.05;
-     hatBrim.castShadow = true;
-     g.add(hatBrim);
-     // hat crown
-     const hatCrown = new THREE.Mesh(
-       new THREE.CylinderGeometry(0.45, 0.55, 0.5, 24),
-       new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8 }),
-     );
-     hatCrown.position.y = 2.35;
-     hatCrown.castShadow = true;
-     g.add(hatCrown);
-     // cross on hat
-     const hatCrossMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6, metalness: 0.3 });
-     const hatCrossV = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.35, 0.05), hatCrossMat);
-     hatCrossV.position.set(0, 2.75, 0);
-     g.add(hatCrossV);
-     const hatCrossH = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.05, 0.05), hatCrossMat);
-     hatCrossH.position.set(0, 2.85, 0);
-     g.add(hatCrossH);
-    // head
-    const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.46, 24, 24),
-      new THREE.MeshStandardMaterial({ color: 0xf5d6b3, roughness: 0.55 }),
-    );
-    head.position.y = 1.15;
-    head.castShadow = true;
-    g.add(head);
-    // wimple
-    const wimple = new THREE.Mesh(
-      new THREE.TorusGeometry(0.5, 0.08, 12, 24, Math.PI),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }),
-    );
-    wimple.rotation.x = Math.PI / 2;
-    wimple.position.y = 1.35;
-    g.add(wimple);
-    // face
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 });
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 10), eyeMat);
-    eyeL.position.set(-0.14, 1.2, 0.42);
-    g.add(eyeL);
-    const eyeR = eyeL.clone();
-    eyeR.position.x = 0.14;
-    g.add(eyeR);
-    const mouth = new THREE.Mesh(
-      new THREE.BoxGeometry(0.18, 0.04, 0.05),
-      new THREE.MeshStandardMaterial({ color: 0x8b3a3a, roughness: 0.5 }),
-    );
-    mouth.position.set(0, 1.08, 0.44);
-    g.add(mouth);
-    // hands
-    const handMat = new THREE.MeshStandardMaterial({ color: 0xf5d6b3, roughness: 0.6 });
-    const handL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), handMat);
-    handL.position.set(-0.62, 0.45, 0.3);
-    g.add(handL);
-    const handR = handL.clone();
-    handR.position.x = 0.62;
-    g.add(handR);
-    // cross
-    const crossMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      emissive: 0xffffff,
-      emissiveIntensity: 0.6,
-      metalness: 0.3,
-    });
-    const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.5, 0.06), crossMat);
-    crossV.position.set(0, 1.75, 0.55);
-    g.add(crossV);
-    const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.06, 0.06), crossMat);
-    crossH.position.set(0, 1.9, 0.55);
-    g.add(crossH);
+    // Реалистичная монашка: естественный силуэт одежды, шарнирные руки, настоящая голова
+    const habitMat = new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 1.0 });
+    const tunicMat = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.95 });
+    const skinMatN = new THREE.MeshStandardMaterial({ color: 0xeecfae, roughness: 0.55 });
+
+    // Ноги/подол: юбка колоколом + тела внизу
+    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.62, 1.15, 20), habitMat);
+    skirt.position.y = 0.58; skirt.castShadow = true; g.add(skirt);
+    const shoeMatN = new THREE.MeshStandardMaterial({ color: 0x14100c, roughness: 0.7 });
+    for (const sx of [-0.13, 0.13]) {
+      const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), shoeMatN);
+      shoe.scale.set(1, 0.6, 1.5); shoe.position.set(sx, 0.045, 0.04); g.add(shoe);
+    }
+    // Талия и торс (туника поверх)
+    const waist = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 14), habitMat);
+    waist.scale.set(1, 0.75, 0.85); waist.position.y = 1.18; g.add(waist);
+    const torsoN = new THREE.Mesh(new THREE.CapsuleGeometry(0.24, 0.42, 6, 16), tunicMat);
+    torsoN.scale.set(1.15, 1, 0.8); torsoN.position.y = 1.52; torsoN.castShadow = true; g.add(torsoN);
+    // пояс-верёвка (cincture францисканцев)
+    const rope = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.028, 10, 24), new THREE.MeshStandardMaterial({ color: 0x8a6a3a, roughness: 0.95 }));
+    rope.rotation.x = Math.PI / 2; rope.position.y = 1.32; rope.scale.set(1.1, 0.9, 0.9); g.add(rope);
+
+    // РУКИ: сложены в молитве перед грудью
+    function makeArmN(side) {
+      const pivot = new THREE.Group(); pivot.position.set(side * 0.28, 1.68, 0);
+      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.24, 4, 10), tunicMat);
+      upper.position.y = -0.15; upper.castShadow = true; pivot.add(upper);
+      pivot.rotation.z = side * 0.55;   // локти разведены
+      pivot.rotation.x = -0.35;
+      const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.09, 0.2, 10), habitMat);
+      sleeve.position.y = -0.32; pivot.add(sleeve);   // широкий манжет
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 10), skinMatN);
+      hand.position.set(-side * 0.12, -0.4, 0.12); pivot.add(hand); // кисти к центру
+      g.add(pivot);
+      return pivot;
+    }
+    makeArmN(-1); makeArmN(1);
+
+    // ГОЛОВА: овальная, с носом, глазами и ртом
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 24, 20), skinMatN);
+    head.scale.set(0.9, 1.1, 0.95); head.position.y = 2.0; head.castShadow = true; g.add(head);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.07, 8), skinMatN);
+    nose.rotation.x = Math.PI / 2; nose.position.set(0, 1.99, 0.185); g.add(nose);
+    const eyeMatN = new THREE.MeshStandardMaterial({ color: 0x241a12, roughness: 0.3 });
+    for (const ex of [-0.07, 0.07]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeMatN);
+      eye.position.set(ex, 2.05, 0.165); g.add(eye);
+    }
+    const mouthN = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.015, 0.02), new THREE.MeshStandardMaterial({ color: 0x9a5a4a, roughness: 0.6 }));
+    mouthN.position.set(0, 1.92, 0.175); g.add(mouthN);
+
+    // ХИД (плат, обрамляющий лицо): полусфера с вырезом лица + свободное полотно по бокам
+    const veilTop = new THREE.Mesh(new THREE.SphereGeometry(0.225, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2), habitMat);
+    veilTop.position.y = 2.02; veilTop.scale.set(1.05, 1.15, 1.05); veilTop.castShadow = true; g.add(veilTop);
+    const veilBack = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.3, 0.75, 16, 1, true), habitMat);
+    veilBack.position.set(0, 1.72, -0.05); veilBack.scale.set(1, 1, 0.9); veilBack.castShadow = true; g.add(veilBack);
+    // поле платa по бокам лица
+    const veilL = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12, Math.PI * 0.35, Math.PI * 0.3, 0, Math.PI), habitMat);
+    veilL.position.y = 2.0; veilL.scale.set(1, 1.1, 1); g.add(veilL);
+    const veilR = veilL.clone(); veilR.rotation.y = Math.PI; g.add(veilR);
+
+    // КАТОЛИЧЕСКИЙ ПИЛИГРИМНЫЙ КАПЕЛЮН: полоса ткани через лоб
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.045, 10, 24), habitMat);
+    band.rotation.x = Math.PI / 2 - 0.15; band.position.y = 2.1; band.scale.set(1, 1, 0.85); g.add(band);
+
+    // серебряный крест на груди
+    const crossMatN = new THREE.MeshStandardMaterial({ color: 0xd8d8e0, metalness: 0.9, roughness: 0.25 });
+    const cV = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.3, 0.03), crossMatN);
+    cV.position.set(0, 1.62, 0.24); g.add(cV);
+    const cH = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.05, 0.03), crossMatN);
+    cH.position.set(0, 1.68, 0.24); g.add(cH);
+    // чётки на поясе
+    const beadMat = new THREE.MeshStandardMaterial({ color: 0x4a1a1a, roughness: 0.4 });
+    for (let i = 0; i < 8; i++) {
+      const bead = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 8), beadMat);
+      const a = i / 8 * Math.PI;
+      bead.position.set(Math.cos(a) * 0.3, 1.32 - Math.sin(a) * 0.18, 0.26); g.add(bead);
+    }
     if (spaceMode) {
-      const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), new THREE.MeshStandardMaterial({color:0xddddff, transparent:true, opacity:0.35, roughness:0.2}));
-      helmet.position.y = 1.35; g.add(helmet);
+      const helmetN = new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16), new THREE.MeshStandardMaterial({color:0xddddff, transparent:true, opacity:0.35, roughness:0.2}));
+      helmetN.position.y = 2.02; g.add(helmetN);
       const jet = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.7,0.2), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
       jet.position.set(0,-0.2,-0.6); g.add(jet);
       const flame = new THREE.Mesh(new THREE.ConeGeometry(0.1,0.3,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
@@ -1692,6 +1693,9 @@ for (let i = 0; i < 6; i++) {
       const hasFrozen = enemies.some((e) => e.frozen);
       if (freezeActive && hasFrozen) {
         spawnTimer = 200;
+      } else if (enemies.length >= 14) {
+        // защита от перегруза: не даём толпе врагов заполнить экран (GPU и так нагружен)
+        spawnTimer = 500;
       } else {
         spawnEnemy();
         spawnTimer = Math.max(420, 1100 - (planetMode ? Math.max(1, level - 19) : level) * 30);
@@ -1999,17 +2003,75 @@ for (const h of houses) {
   }
 
   // ================= СУНДУК УЛУЧШЕНИЙ (35+ уровень) =================
-  function spawnChest() {
+  function makeChest() {
+    // Реалистичный сундук: деревянный корпус с металлической оковкой, полукруглая крышка,
+    // петли, замок с ключевой скважиной, золотое свечение из щели
     const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 1.0),
-      new THREE.MeshStandardMaterial({ color: 0x7a4a1a, roughness: 0.7, metalness: 0.2 }));
-    body.position.y = 0.45; body.castShadow = true; g.add(body);
-    const lid = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 1.0),
-      new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.65, metalness: 0.25 }));
-    lid.position.y = 1.05; lid.rotation.x = -0.5; g.add(lid);
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12),
-      new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 1.5 }));
-    glow.position.y = 1.2; g.add(glow);
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x6a4423, roughness: 0.8, metalness: 0.05 });
+    const woodDarkMat = new THREE.MeshStandardMaterial({ color: 0x54341a, roughness: 0.85, metalness: 0.05 });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x8a8a92, metalness: 0.9, roughness: 0.3 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 1.0, roughness: 0.25, emissive: 0xaa8800, emissiveIntensity: 0.35 });
+
+    // корпус: деревянный бокс из досок
+    const bodyBox = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.85, 1.0), woodMat);
+    bodyBox.position.y = 0.43; bodyBox.castShadow = true; bodyBox.receiveShadow = true; g.add(bodyBox);
+    // доски: тонкие тёмные полосы на корпусе
+    for (let i = 0; i < 3; i++) {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.03, 1.02), woodDarkMat);
+      plank.position.y = 0.15 + i * 0.28; g.add(plank);
+    }
+    // оковка: металлические уголки по вертикальным рёбрам и низ/верх
+    const bandMat = metalMat;
+    for (const sx of [-0.81, 0.81]) {
+      const band = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.9, 1.04), bandMat);
+      band.position.set(sx, 0.44, 0); g.add(band);
+    }
+    const bandTop = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.08, 1.04), bandMat);
+    bandTop.position.y = 0.86; g.add(bandTop);
+    const bandBottom = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.08, 1.04), bandMat);
+    bandBottom.position.y = 0.02; g.add(bandBottom);
+
+    // ПОЛУКРУГЛАЯ КРЫШКА: полудиск, выдавленный в дугу через цилиндр
+    const lid = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.5, 1.6, 24, 1, false, 0, Math.PI),
+      woodMat
+    );
+    lid.rotation.z = Math.PI / 2;      // ось вдоль X
+    lid.rotation.y = Math.PI / 2;      // полудуга кверху
+    lid.position.y = 0.86; lid.castShadow = true; g.add(lid);
+    // оковка крышки — два металлических полукольца
+    for (const lz of [-0.55, 0.55]) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.045, 8, 24, Math.PI), bandMat);
+      ring.rotation.y = Math.PI / 2; ring.rotation.z = Math.PI / 2;
+      ring.position.set(0, 0.86, lz); g.add(ring);
+    }
+
+    // ПЕТЛИ сзади
+    for (const hz of [-0.35, 0.35]) {
+      const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.18), bandMat);
+      hinge.position.set(0, 0.78, hz); g.add(hinge);
+    }
+    // ЗАМОК: золотая пластина спереди с ключевой скважиной
+    const lockPlate = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.36, 0.06), goldMat);
+    lockPlate.position.set(0, 0.82, 0.53); g.add(lockPlate);
+    const keyhole = new THREE.Mesh(new THREE.CircleGeometry(0.05, 12), new THREE.MeshStandardMaterial({ color: 0x1a1208, roughness: 0.9 }));
+    keyhole.position.set(0, 0.84, 0.565); g.add(keyhole);
+    const keyholeTail = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.09, 0.01), new THREE.MeshStandardMaterial({ color: 0x1a1208, roughness: 0.9 }));
+    keyholeTail.position.set(0, 0.79, 0.565); g.add(keyholeTail);
+
+    // свечение из-под крышки (щель между крышкой и корпусом)
+    const glow = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.9),
+      new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 2.0 }));
+    glow.position.y = 0.92; g.add(glow);
+    // золотые лучи-частицы над сундуком
+    const sparkle = new THREE.Mesh(new THREE.OctahedronGeometry(0.09), goldMat);
+    sparkle.position.y = 1.35; g.add(sparkle);
+    g.userData.chestSparkle = sparkle;
+    return g;
+  }
+  function spawnChest() {
+    const g = makeChest();
+    const glow = g.userData.chestSparkle;
     g.position.set(0, screenToWorldY(H / 2) + 4, 2);
     scene.add(g);
     chest = { mesh: g, glow };
@@ -2234,27 +2296,49 @@ for (const h of houses) {
   }
 
   function makePedestrian(shirtColor) {
+    // Реалистичный прохожий: шарнирные конечности, голова с лицом, куртка и штаны
     const g = new THREE.Group();
-    const skin = new THREE.MeshStandardMaterial({ color: 0xf5d6b3, roughness: 0.6 });
-    const shirt = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.35), new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.8 }));
-    shirt.position.y = 1.1; shirt.castShadow = true; g.add(shirt);
-    for (const lx of [-0.16, 0.16]) {
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.85, 8), new THREE.MeshStandardMaterial({ color: 0x223355, roughness: 0.9 }));
-      leg.position.set(lx, 0.45, 0);
-      g.add(leg);
+    const skin = new THREE.MeshStandardMaterial({ color: 0xeecfae, roughness: 0.55 });
+    const shirt = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 0.45, 6, 16), new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.85 }));
+    shirt.scale.set(1.15, 1, 0.8); shirt.position.y = 1.15; shirt.castShadow = true; g.add(shirt);
+    // куртка — нижняя часть торса, чуть шире
+    const jacket = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.24, 0.35, 14), new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.9 }));
+    jacket.position.y = 0.95; jacket.castShadow = true; g.add(jacket);
+    const pants = new THREE.MeshStandardMaterial({ color: 0x2a3040, roughness: 0.95 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: 0x14110e, roughness: 0.6 });
+    for (const lx of [-0.11, 0.11]) {
+      const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.3, 4, 10), pants);
+      thigh.position.set(lx, 0.62, 0); thigh.castShadow = true; g.add(thigh);
+      const shin = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.3, 4, 10), pants);
+      shin.position.set(lx, 0.25, 0); g.add(shin);
+      const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), shoeMat);
+      shoe.scale.set(1, 0.55, 1.5); shoe.position.set(lx, 0.04, 0.04); g.add(shoe);
     }
-    for (const ax of [-0.4, 0.4]) {
-      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.7, 8), skin);
-      arm.position.set(ax, 1.1, 0);
-      g.add(arm);
+    for (const ax of [-0.27, 0.27]) {
+      const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.42, 4, 10), new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.85 }));
+      arm.position.set(ax, 1.1, 0); arm.rotation.z = ax > 0 ? -0.12 : 0.12; arm.castShadow = true; g.add(arm);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), skin);
+      hand.position.set(ax * 1.12, 0.82, 0); g.add(hand);
     }
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 16), skin);
-    head.position.y = 1.85; head.castShadow = true; g.add(head);
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.29, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9 }));
-    hair.position.y = 1.88; g.add(hair);
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshBasicMaterial({ color: 0x111111 }));
-    eyeL.position.set(-0.1, 1.88, 0.26); g.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x = 0.1; g.add(eyeR);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 0.09, 10), skin);
+    neck.position.y = 1.49; g.add(neck);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 24, 20), skin);
+    head.scale.set(0.92, 1.1, 0.98); head.position.y = 1.68; head.castShadow = true; g.add(head);
+    // волосы: полусфера + короткая чёлка
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2e2018, roughness: 0.95 }));
+    hair.position.y = 1.72; hair.scale.set(1.02, 1, 1.02); g.add(hair);
+    const fringe = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 8, 0, Math.PI, Math.PI * 0.25, Math.PI * 0.3), new THREE.MeshStandardMaterial({ color: 0x2e2018, roughness: 0.95 }));
+    fringe.position.y = 1.7; fringe.rotation.z = Math.PI; g.add(fringe);
+    // нос, глаза с бликом, рот
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.06, 8), skin);
+    nose.rotation.x = Math.PI / 2; nose.position.set(0, 1.67, 0.185); g.add(nose);
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x241a12, roughness: 0.3 });
+    for (const ex of [-0.07, 0.07]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeMat);
+      eye.position.set(ex, 1.72, 0.16); g.add(eye);
+    }
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.014, 0.02), new THREE.MeshStandardMaterial({ color: 0x9a5a4a, roughness: 0.6 }));
+    mouth.position.set(0, 1.61, 0.17); g.add(mouth);
     return g;
   }
 
@@ -2326,41 +2410,157 @@ for (const h of houses) {
   }
 
   function makeMeteorite() {
+    // Реалистичный метеорит: неровный оплавленный камень, кратеры, тлеющие трещины
     const g = new THREE.Group();
-    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.9,0), new THREE.MeshStandardMaterial({color:0x665544, roughness:0.9}));
+    const rock = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.95, 2),
+      new THREE.MeshStandardMaterial({ color: 0x4a3a30, roughness: 0.95, metalness: 0.05, flatShading: true })
+    );
+    // неровность: случайные смещения вершин (обтекаемый неровный камень)
+    const pos = rock.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const n = 1 + (Math.sin(i * 12.9898) * 0.5 + 0.5) * 0.28;
+      pos.setXYZ(i, pos.getX(i) * n, pos.getY(i) * n * 0.85, pos.getZ(i) * n);
+    }
+    pos.needsUpdate = true;
+    rock.geometry.computeVertexNormals();
+    rock.castShadow = true;
     g.add(rock);
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.5,8,8), new THREE.MeshBasicMaterial({color:0xff6600}));
-    glow.position.set(0.3,0.3,0.3); g.add(glow);
+    // кратеры (тёмные вдавленности)
+    const craterMat = new THREE.MeshStandardMaterial({ color: 0x2e241d, roughness: 1.0 });
+    for (let i = 0; i < 4; i++) {
+      const a = i * 1.7, el = 0.5 + (i % 2) * 0.6;
+      const crater = new THREE.Mesh(new THREE.SphereGeometry(0.16 + (i % 2) * 0.08, 10, 8), craterMat);
+      crater.position.set(Math.cos(a) * 0.8 * el, Math.sin(el * 2) * 0.5, Math.sin(a) * 0.8 * el);
+      crater.scale.set(1, 0.35, 1);
+      g.add(crater);
+    }
+    // тлеющие трещины: маленькие светящиеся полосы на поверхности
+    const lavaMat = new THREE.MeshStandardMaterial({ color: 0xff5a00, emissive: 0xff4400, emissiveIntensity: 2.2, roughness: 0.7 });
+    for (let i = 0; i < 5; i++) {
+      const a = i * 1.25;
+      const crack = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.35 + Math.random() * 0.25, 3, 6), lavaMat);
+      crack.position.set(Math.cos(a) * 0.75, (Math.random() - 0.5) * 0.7, Math.sin(a) * 0.75);
+      crack.rotation.set(Math.random() * 2, a, Math.random() * 2);
+      g.add(crack);
+    }
+    // жар-ореол вокруг (слабое свечение, а не шар)
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(1.35, 16, 16), new THREE.MeshBasicMaterial({ color: 0xff5500, transparent: true, opacity: 0.10, side: THREE.BackSide }));
+    g.add(glow);
     scene.add(g);
     return g;
   }
   function makeSlime() {
+    // Реалистичная слизь: полупрозрачное желеобразное тело с внутренним ядром,
+    // капли по краю, влажный блеск, глаза внутри тела
     const g = new THREE.Group();
-    const blob = new THREE.Mesh(new THREE.SphereGeometry(0.9,16,16), new THREE.MeshStandardMaterial({color:0x33cc66, emissive:0x118833, emissiveIntensity:0.3, roughness:0.4, transparent:true, opacity:0.85}));
-    blob.scale.set(1,0.7,1); g.add(blob);
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8), new THREE.MeshBasicMaterial({color:0xffffff}));
-    eyeL.position.set(-0.25,0.15,0.7); g.add(eyeL);
-    const eyeR = eyeL.clone(); eyeR.position.x=0.25; g.add(eyeR);
+    const bodyMat = new THREE.MeshPhysicalMaterial({
+      color: 0x2fbf62, emissive: 0x0d5c2a, emissiveIntensity: 0.45,
+      roughness: 0.08, metalness: 0.0, transparent: true, opacity: 0.72,
+      clearcoat: 1.0, clearcoatRoughness: 0.06,
+      // ВАЖНО: без transmission! Преломление рендерится отдельным проходом на КАЖДЫЙ кадр
+      // для каждого меша — толпа слизней на высоких уровнях перегружала GPU
+      // (падение FPS до нуля и потеря WebGL-контекста => белый экран).
+    });
+    const blob = new THREE.Mesh(new THREE.SphereGeometry(0.92, 32, 24), bodyMat);
+    blob.scale.set(1, 0.68, 1); blob.castShadow = true; g.add(blob);
+    // «пузико» — упрощённая нижняя часть, чтобы сидело на земле
+    const baseBlob = new THREE.Mesh(new THREE.SphereGeometry(0.85, 24, 16), bodyMat);
+    baseBlob.scale.set(1.05, 0.35, 1.05); baseBlob.position.y = -0.35; g.add(baseBlob);
+    // внутреннее ядро (как у реальной слизи с «сердцем»)
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 12), new THREE.MeshStandardMaterial({ color: 0x8affaa, emissive: 0x44cc66, emissiveIntensity: 1.4, transparent: true, opacity: 0.5, roughness: 0.2 }));
+    core.position.y = 0.05; core.scale.set(1, 0.75, 1); g.add(core);
+    // глаза: белки + зрачки, чуть утоплены
+    const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf5fff5, roughness: 0.25 });
+    const pupilMat = new THREE.MeshStandardMaterial({ color: 0x0a2412, roughness: 0.2 });
+    for (const ex of [-0.26, 0.26]) {
+      const white = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 12), whiteMat);
+      white.position.set(ex, 0.14, 0.68); g.add(white);
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), pupilMat);
+      pupil.position.set(ex, 0.14, 0.79); g.add(pupil);
+      const shine = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      shine.position.set(ex + 0.03, 0.2, 0.83); g.add(shine);
+    }
+    // маленькие бугорки-блики на поверхности
+    const dripMat = bodyMat;
+    for (let i = 0; i < 3; i++) {
+      const a = i * 2.2;
+      const drip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), dripMat);
+      drip.position.set(Math.cos(a) * 0.8, -0.45, Math.sin(a) * 0.8);
+      drip.scale.set(1, 0.6, 1); g.add(drip);
+    }
     scene.add(g);
     return g;
   }
   function makeSpaceship() {
+    // Реалистичный шаттл: обтекаемый фюзеляж, кабина со стеклом, стреловидные крылья,
+    // двигатели-гондолы, шасси, заклёпочные панели
     const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.4,3.2,16), new THREE.MeshStandardMaterial({color:0xcccccc, metalness:0.7, roughness:0.3}));
-    body.rotation.x = Math.PI/2; body.castShadow = true; g.add(body);
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.9,1.6,16), new THREE.MeshStandardMaterial({color:0xff7a18, emissive:0xff3d00, emissiveIntensity:0.4}));
-    nose.rotation.x = -Math.PI/2; nose.position.z = 2.4; g.add(nose);
-    const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,2.2), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.6}));
-    wingL.position.set(-1.3,0,-0.4); g.add(wingL);
-    const wingR = wingL.clone(); wingR.position.x = 1.3; g.add(wingR);
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.35,16,16), new THREE.MeshBasicMaterial({color:0x66ccff}));
-    glow.position.set(0,0.9,0); g.add(glow);
-    // двигатели: два огненных сопла сзади (для кинематика улёта)
-    const engMat = new THREE.MeshBasicMaterial({color:0xff8833, transparent:true, opacity:0.9});
-    const engL = new THREE.Mesh(new THREE.ConeGeometry(0.22,0.9,8), engMat);
-    engL.rotation.x = Math.PI/2; engL.position.set(-0.6,0,-1.9); g.add(engL);
-    const engR = engL.clone(); engR.position.x = 0.6; g.add(engR);
+    const hullMat = new THREE.MeshStandardMaterial({ color: 0xcfd3d8, metalness: 0.85, roughness: 0.32 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b2f36, metalness: 0.7, roughness: 0.45 });
+    const accentMat = new THREE.MeshStandardMaterial({ color: 0xff7a18, metalness: 0.4, roughness: 0.4, emissive: 0xff3d00, emissiveIntensity: 0.25 });
+    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x88ccff, metalness: 0.1, roughness: 0.05, transparent: true, opacity: 0.55, clearcoat: 1.0 });
+
+    // фюзеляж: вытянутое веретено
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.75, 3.0, 8, 24), hullMat);
+    body.rotation.x = Math.PI / 2; body.scale.set(1, 1, 0.72); body.castShadow = true; g.add(body);
+    // брюхо/панель — тёмная нижняя часть
+    const belly = new THREE.Mesh(new THREE.CapsuleGeometry(0.7, 2.8, 6, 16), darkMat);
+    belly.rotation.x = Math.PI / 2; belly.scale.set(1, 1, 0.5); belly.position.y = -0.28; g.add(belly);
+    // кабина со стеклом (спереди, +Z)
+    const cockpit = new THREE.Mesh(new THREE.SphereGeometry(0.52, 20, 16, 0, Math.PI * 2, 0, Math.PI / 2), glassMat);
+    cockpit.rotation.x = Math.PI / 2; cockpit.position.set(0, 0.25, 1.35); cockpit.scale.set(1, 1, 1.3); g.add(cockpit);
+    const cockpitRim = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.06, 10, 24), darkMat);
+    cockpitRim.position.set(0, 0.22, 1.5); cockpitRim.rotation.x = Math.PI / 2 + 0.5; g.add(cockpitRim);
+    // носовой конус с антенной
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.5, 20), accentMat);
+    nose.rotation.x = -Math.PI / 2; nose.position.z = 2.5; nose.castShadow = true; g.add(nose);
+    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.01, 0.5, 6), darkMat);
+    antenna.position.set(0, 0.45, 2.2); antenna.rotation.x = -0.5; g.add(antenna);
+
+    // стреловидные крылья (скошенные боксы, закреплены под углом)
+    function makeWing(side) {
+      const pivot = new THREE.Group(); pivot.position.set(side * 0.7, 0, -0.3);
+      const shape = new THREE.Shape();
+      shape.moveTo(0, 0.55); shape.lineTo(side * 1.5, -0.55); shape.lineTo(side * 1.5, -0.85); shape.lineTo(0, -0.35); shape.closePath();
+      const wing = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.09, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.04, bevelSegments: 2 }), hullMat);
+      wing.rotation.x = -Math.PI / 2 + 0.08; wing.castShadow = true; pivot.add(wing);
+      // законцовка-огонёк
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0xff2222, emissiveIntensity: 1.5 }));
+      tip.position.set(side * 1.45, 0.1, -0.95); pivot.add(tip);
+      g.add(pivot);
+      return pivot;
+    }
+    makeWing(-1); makeWing(1);
+    // вертикальный киль
+    const finShape = new THREE.Shape();
+    finShape.moveTo(0, 0); finShape.lineTo(-0.75, 0); finShape.lineTo(-0.85, 0.85); finShape.lineTo(-0.45, 0.85); finShape.closePath();
+    const fin = new THREE.Mesh(new THREE.ExtrudeGeometry(finShape, { depth: 0.07, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.03, bevelSegments: 2 }), accentMat);
+    fin.rotation.y = Math.PI / 2; fin.position.set(0.035, 0.35, -1.15); fin.castShadow = true; g.add(fin);
+
+    // двигатели: две гондолы под крыльями + центральный блок, сопла с внутренним свечением
+    const glowInnerMat = new THREE.MeshBasicMaterial({ color: 0x99ddff });
+    function makeEngine(x) {
+      const pod = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 1.3, 16), darkMat);
+      pod.rotation.x = Math.PI / 2; pod.position.set(x, -0.25, -1.55); pod.castShadow = true; g.add(pod);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 8, 20), hullMat);
+      ring.position.set(x, -0.25, -2.2); g.add(ring);
+      const inner = new THREE.Mesh(new THREE.CircleGeometry(0.27, 16), glowInnerMat);
+      inner.position.set(x, -0.25, -2.2); g.add(inner);
+      const eng = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.9, 12), new THREE.MeshBasicMaterial({ color: 0xff8833, transparent: true, opacity: 0.85 }));
+      eng.rotation.x = -Math.PI / 2; eng.position.set(x, -0.25, -2.65); g.add(eng);
+      return eng;
+    }
+    const engL = makeEngine(-0.95), engR = makeEngine(0.95);
     g.userData.engines = [engL, engR];
+    // шасси: три опоры
+    const gearMat = darkMat;
+    for (const gp of [[-0.55, -0.5, 1.1], [0.55, -0.5, 1.1], [0, -0.5, -1.4]]) {
+      const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.45, 8), gearMat);
+      strut.position.set(gp[0], gp[1], gp[2]); g.add(strut);
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.09, 12), gearMat);
+      wheel.rotation.z = Math.PI / 2; wheel.position.set(gp[0], gp[1] - 0.24, gp[2]); g.add(wheel);
+    }
     g.rotation.x = -Math.PI / 2;
     g.userData.isShip = true;
     scene.add(g);
@@ -2748,16 +2948,7 @@ for (const h of houses) {
     { key: "slime", title: "Слизь", color: "#51cf66", make: () => makeSlime() },
     { key: "pedestrian", title: "Прохожий", color: "#ff8787", make: () => makePedestrian(0xdd4444) },
     { key: "ship", title: "Корабль", color: "#99e9f2", make: () => makeSpaceship() },
-    { key: "chest", title: "Сундук", color: "#ffd43b", make: () => {
-        const g = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 1.0), new THREE.MeshStandardMaterial({ color: 0x7a4a1a, roughness: 0.7, metalness: 0.2 }));
-        g.add(body);
-        const lid = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 1.0), new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.65, metalness: 0.25 }));
-        lid.position.y = 0.6; lid.rotation.x = -0.5; g.add(lid);
-        const glow = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 1.5 }));
-        glow.position.y = 0.75; g.add(glow);
-        return g;
-      } },
+    { key: "chest", title: "Сундук", color: "#ffd43b", make: () => makeChest() },
   ];
   const BESTIARY_LORE = {
     vape: "Последний живой вейп в городке Свит-Холлоу. Когда-то он был обычным клубничным подом с полки магазина, но однажды ночью призрак основателя завода вдохнул в него жизнь. Теперь он пара-дышащий герой, который стреляет ароматным паром и защищает свой магазин от нежити.",
