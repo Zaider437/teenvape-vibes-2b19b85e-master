@@ -26,7 +26,7 @@
     return (sx - W / 2) * SCALE;
   }
   function screenToWorldY(sy) {
-    return (H / 2 - sy) * SCALE;
+    return (H / 2 - sy) * SCALE + planetGroundLift;
   }
   function resize() {
     W = window.innerWidth;
@@ -675,6 +675,7 @@ for (let i = 0; i < 6; i++) {
   let cityDecor = [];
   let cityCars = [];
   let cityPedestrians = [];
+  let planetGroundLift = 0; // вертикальная надбавка мира: на планете земля на Y=-2
   const killPhrases = ["Выкуси!", "Теперь будешь знать, каково это — когда тебя сосут!", "Вы скурили мою семью!", "У мамы теперь пососи!", "Это был не картридж... а его голова!"];
   let lastPhrase = "";
   let spaceMode = false;
@@ -702,6 +703,17 @@ for (let i = 0; i < 6; i++) {
     speechSprite.visible = false;
     g.add(speechSprite);
     g.userData.speech = { sprite: speechSprite, canvas: speechCanvas, ctx: speechCtx, tex: speechTex, phrases: speechPhrases, active: false, text: "", index: 0, timer: 0, nextTime: performance.now() + 2000 + Math.random() * 3000 };
+  }
+  // Предзагрузка GLTF-модели вейпа: к моменту первого запуска vapeTemplate уже готов, фолбэк не мелькает
+  if (typeof THREE.GLTFLoader !== "undefined" && !vapeTemplate) {
+    new THREE.GLTFLoader().load("geek_pulse.glb", (gltf) => {
+      try {
+        vapeTemplate = gltf.scene;
+        vapeTemplate.scale.set(3.5, 3.5, 3.5);
+        vapeTemplate.position.set(0, -0.2, 0);
+        vapeTemplate.traverse((o) => { if (o.isMesh && o.material) { if (o.material.color) o.material.color.set(0x2255aa); if (o.material.emissive) o.material.emissive.set(0x113366); } });
+      } catch (e) {}
+    }, undefined, () => {});
   }
   function makePlayer() {
     const g = new THREE.Group();
@@ -1287,7 +1299,9 @@ for (let i = 0; i < 6; i++) {
      // а не только тем, у кого есть userData.decor — иначе после космоса
      // навсегда пропадают горы, лес, камни и валуны (баг «исчезающего фона»)
      scene.children.slice().forEach((o) => { if (o.userData && o.userData.cityDecor) scene.remove(o); });
-     cityDecor = []; cityCars = []; cityPedestrians = []; cityMode = false; cityCinematicDone = false;
+     cityDecor = []; cityCars = []; cityPedestrians = []; cityMode = false;
+     cityCinematicDone = false;
+     planetGroundLift = 0; // сброс надбавки
      groundDecor.forEach((o) => { o.visible = true; });
      scene.children.forEach((o) => { if (o.userData && o.userData.decor) o.visible = true; });
      // восстанавливаем освещение и атмосферу ночного Хэллоуина
@@ -1465,9 +1479,7 @@ for (let i = 0; i < 6; i++) {
 
   function fire() {
     if (state !== "playing") return;
-    if (!spaceMode && !cinematic) scene.children.slice().forEach((o) => { if (o.userData && o.userData.isShip) scene.remove(o); });
-    if (!spaceMode && spaceship) { scene.remove(spaceship); spaceship = null; }
-    if (spaceMode) scene.children.forEach((o) => { if (o.userData && o.userData.isShip) o.visible = true; });
+    if (cinematic) return; // во время кино не стреляем (и не удаляем корабль из кадра!)
     if (reloading) return;
     if (ammo <= 0) {
       startReload();
@@ -1632,9 +1644,11 @@ for (let i = 0; i < 6; i++) {
        camera.position.z = baseCameraZ * zoomFactor;
        camera.lookAt(0, 0, 0);
         if (t >= 4.2) {
-          // СНАЧАЛА чистим декор старого мира, ПОТОМ входим в новый
+          // СНАЧАЛА чистим декор старого мира и ВСЕ корабли, ПОТОМ входим в новый
           scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
           scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
+          scene.children.slice().forEach((o) => { if (o.userData && o.userData.isShip) scene.remove(o); }); // фикс: убираем старый корабль
+          spaceship = null; // старый корабль больше не «висит в фоне»
           const wasKind = cinematicKind;
           if (wasKind === "planet") { planetCinematicDone = true; enterPlanetMode(); }
            else if (wasKind === "city") { cityCinematicDone = true; enterCityMode(); }
@@ -1701,10 +1715,9 @@ for (let i = 0; i < 6; i++) {
          let _sp = e.speed; if (spaceMode && !planetMode && performance.now() < slowUntil) _sp *= 0.5; e.y += _sp;
          e.x += Math.sin(performance.now() / 600 + e.wobble) * 0.4;
        }
-       e.mesh.position.set(screenToWorldX(e.x), screenToWorldY(e.y) + (planetMode && e.type === "slime" ? 2.0 : 0), 0);
-       // на планете земля ниже — приподнимаем слизь, чтобы не проваливалась под землю
-       if (planetMode && e.type === "slime") e.mesh.position.y += 2.2;
-        if (e.label) e.label.position.set(screenToWorldX(e.x), screenToWorldY(e.y) + (e.type === "nun" ? 3.0 : 2.6), 0);
+       e.mesh.position.set(screenToWorldX(e.x), screenToWorldY(e.y), 0);
+       // подъем теперь глобальный через screenToWorldY (planetGroundLift)
+       if (e.label) e.label.position.set(screenToWorldX(e.x), screenToWorldY(e.y) + (e.type === "nun" ? 3.0 : e.type === "slime" ? 1.8 : 2.6), 0);
        if (e.frozen && e.snowflakes) {
          e.snowflakes.rotation.y += 0.06;
          e.snowflakes.rotation.x = Math.sin(performance.now() / 500 + e.wobble) * 0.25;
@@ -2358,6 +2371,7 @@ for (const h of houses) {
     spaceMode = true;
     groundDecor.forEach((o) => { o.visible = false; });
     if (spaceship) {
+      // переиспользуем ТОТ ЖЕ корабль, на котором мы уже летали — дубля не будет
       if (player && player.mesh && player.mesh !== spaceship) scene.remove(player.mesh);
       player.mesh = spaceship;
       spaceship = null;
@@ -2380,6 +2394,35 @@ for (const h of houses) {
     dir.color.set(0xffffff);
     dir.intensity = 0.9;
     upgradeLine.textContent = "Космос: скафандры и реактивные ранцы! 🚀";
+    // НИЖНЯЯ ЧАСТЬ ФОНА: космическая дымка/неуловимая атмосфера вместо пустоты
+    const hazeColors = [0x223355, 0x334488, 0x5544aa, 0x226699];
+    for (let i = 0; i < 8; i++) {
+      const haze = new THREE.Mesh(
+        new THREE.PlaneGeometry(90 + Math.random() * 60, 10 + Math.random() * 14),
+        new THREE.MeshBasicMaterial({ color: hazeColors[i % hazeColors.length], transparent: true, opacity: 0.07 + Math.random() * 0.06, depthWrite: false, side: THREE.DoubleSide })
+      );
+      haze.position.set((Math.random() - 0.5) * 120, -(10 + Math.random() * 18), -80 - Math.random() * 70);
+      haze.rotation.z = (Math.random() - 0.5) * 0.3;
+      haze.userData.spaceDecor = true;
+      scene.add(haze);
+    }
+    // Нижняя туманность-градиент (широкая, тёплая снизу — как горизонт планеты)
+    const horizonGlow = new THREE.Mesh(
+      new THREE.PlaneGeometry(220, 26),
+      new THREE.MeshBasicMaterial({ color: 0x4a3060, transparent: true, opacity: 0.16, depthWrite: false })
+    );
+    horizonGlow.position.set(0, -14, -150);
+    horizonGlow.userData.spaceDecor = true;
+    scene.add(horizonGlow);
+    // Астероиды внизу (мелкие, ближе)
+    const lowAstMat = new THREE.MeshStandardMaterial({ color: 0x665544, roughness: 0.95 });
+    for (let i = 0; i < 14; i++) {
+      const ast = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.7, 0), lowAstMat);
+      ast.position.set((Math.random() - 0.5) * 100, -(6 + Math.random() * 14), -60 - Math.random() * 60);
+      ast.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+      ast.userData.spaceDecor = true;
+      scene.add(ast);
+    }
     // Гигантская планета с кольцом на горизонте
     const gasGiant = new THREE.Mesh(
       new THREE.SphereGeometry(16, 32, 32),
@@ -2446,6 +2489,8 @@ for (const h of houses) {
     player.mesh.visible = true;
     player.mesh.scale.setScalar(1);
     spaceMode = false;
+    // фикс «проваливания»: игрок и слизь стоят на Y=-2 (уровень планетной земли), а не на мировом нуле
+    planetGroundLift = 2.0;
     // Земля: холмистое поле с травяной текстурой (реалистичный дневной вид)
     const pgroundGeo = new THREE.PlaneGeometry(300, 300, 60, 60);
     const ppos = pgroundGeo.attributes.position;
@@ -2664,6 +2709,9 @@ for (const h of houses) {
     spaceship = makeSpaceship();
     spaceship.position.set(0, kind === "planet" ? -4 : (-(H / 2) * SCALE - 0.6) + 1.5, kind === "planet" ? 0 : -18);
     spaceship.scale.setScalar(kind === "planet" ? 0.7 : 0.6);
+    // запоминаем, чей это корабль (для перехода 5→20) и скрываем игрока в режимах space/planet
+    spaceship.userData.shipFor = kind;
+    if (player && player.mesh && kind !== "space") player.mesh.visible = false;
     spawnTimer = 1200;
     bonusTimer = 5000;
     cinematicStarted = true;
