@@ -198,6 +198,55 @@
   box-shadow: var(--glow-soft);
 }
 
+/* Качающаяся лампочка-персонаж под кнопкой «Связь с нами» */
+@keyframes bulb-swing {
+  0% { transform: rotate(0deg); }
+  12% { transform: rotate(9deg); }
+  38% { transform: rotate(-7deg); }
+  62% { transform: rotate(5deg); }
+  84% { transform: rotate(-2.5deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes bulb-idle-sway {
+  0% { transform: rotate(-3.5deg); }
+  50% { transform: rotate(3.5deg); }
+  100% { transform: rotate(-3.5deg); }
+}
+@keyframes stick-wiggle-l {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(14deg); }
+}
+@keyframes stick-wiggle-r {
+  0%, 100% { transform: rotate(14deg); }
+  50% { transform: rotate(-14deg); }
+}
+.jiggle-swing {
+  animation:
+    bulb-swing 1.6s cubic-bezier(0.34, 1.4, 0.5, 1) 1,
+    bulb-idle-sway 3.4s ease-in-out 1.6s infinite;
+  transform-origin: top center;
+}
+.jiggle-swing.stick,
+button.jiggle-swing {
+  transform-origin: 50% -46px;
+}
+.stick-l { transform-origin: 100% 50%; animation: stick-wiggle-l 1.2s ease-in-out infinite; }
+.stick-r { transform-origin: 0% 50%; animation: stick-wiggle-r 1.2s ease-in-out infinite 0.15s; }
+.stick-fl { transform-origin: 50% 0%; animation: stick-wiggle-r 1.4s ease-in-out infinite 0.3s; }
+.stick-fr { transform-origin: 50% 0%; animation: stick-wiggle-l 1.4s ease-in-out infinite 0.45s; }
+.bulb-halo {
+  animation: bulb-halo-pulse 1.8s ease-in-out infinite;
+}
+@keyframes bulb-halo-pulse {
+  0%, 100% { opacity: 0.28; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jiggle-swing, .stick, .bulb-halo {
+    animation: none !important;
+  }
+}
+
 .event-ambient {
   background:
     radial-gradient(circle at 20% 20%, rgba(200, 90, 0, 0.16), transparent 45%),

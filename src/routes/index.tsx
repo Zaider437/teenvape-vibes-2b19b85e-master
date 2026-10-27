@@ -26,6 +26,7 @@ import { createOrder, debugEnv, getMeetingTimes, getCategoryOrder } from "../lib
 import { toast, Toaster } from "sonner";
 import { FallingEffects } from "../components/FallingEffects";
 import { LoveVapeLogo } from "../components/LoveVapeLogo";
+import { HangingBulbContact } from "../components/HangingBulbContact";
 import { NewsCarousel } from "../components/NewsCarousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet";
@@ -1210,7 +1211,11 @@ function Field({
 function Footer() {
   return (
     <footer className="mt-10 px-4 pb-4">
-      <div className="rounded-2xl border border-border bg-card p-5 text-center">
+      <div className="relative rounded-2xl border border-border bg-card p-5 text-center overflow-hidden">
+        {/* качающаяся лампочка-персонаж свисает сверху над фразой LoveVape */}
+        <div className="flex justify-center -mt-2 mb-1">
+          <HangingBulbContact />
+        </div>
         <div className="font-display text-3xl tracking-tight">
           <span className="text-primary">Love</span>
           <span className="text-foreground">Vape</span>

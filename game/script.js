@@ -100,7 +100,7 @@
     const z = (Math.sin(x * 0.08) * Math.cos(y * 0.07) * 0.4) + (Math.random() - 0.5) * 0.15;
     pos.setZ(i, z);
   }
-  // без vertex colors — убирает «цветные кружки» на земле
+  // без vertex colors — убирает «цветные кружки» на земле, остаётся чистая текстура
   groundGeo.computeVertexNormals();
   const groundTex = (() => {
     const c = document.createElement("canvas");
@@ -195,36 +195,6 @@ for (let i = 0; i < 30; i++) {
   rock.castShadow = true;
   scene.add(rock);
 }
-// Каменные булыжники (валуны) на игровом поле по краям
-const boulderMat = new THREE.MeshStandardMaterial({ color: 0x5c5c66, roughness: 0.96, metalness: 0.03 });
-for (let i = 0; i < 14; i++) {
-  const bx = (Math.random() > 0.5 ? 1 : -1) * (10 + Math.random() * 18);
-  const bz = -80 + Math.random() * 160;
-  const bs = 0.7 + Math.random() * 1.3;
-  const boulder = new THREE.Mesh(new THREE.DodecahedronGeometry(bs, 0), boulderMat);
-  boulder.scale.set(1, 0.65 + Math.random() * 0.3, 1.1);
-  boulder.rotation.set(Math.random() * 0.4, Math.random() * Math.PI, Math.random() * 0.4);
-  boulder.position.set(bx, ground.position.y + bs * 0.35, bz);
-  boulder.castShadow = true;
-  boulder.receiveShadow = true;
-  scene.add(boulder);
-}
-// Полосы тумана у земли (движущиеся)
-const groundFogStrips = [];
-const hFogMat = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.09, depthWrite: false });
-for (let i = 0; i < 10; i++) {
-  const strip = new THREE.Mesh(new THREE.PlaneGeometry(30 + Math.random() * 20, 3), hFogMat.clone());
-  strip.position.set((Math.random() - 0.5) * 40, ground.position.y + 0.5 + i * 0.18, -20 - i * 12);
-  strip.userData = {
-    vx: (Math.random() * 0.5 + 0.2) * (Math.random() > 0.5 ? 1 : -1),
-    baseX: strip.position.x,
-    phase: Math.random() * Math.PI * 2,
-    baseOpacity: 0.06 + Math.random() * 0.06,
-  };
-  scene.add(strip);
-  groundFogStrips.push(strip);
-}
-window.__groundFogStrips = groundFogStrips;
 
 // Environment: road + Halloween houses
   const road = new THREE.Mesh(
@@ -552,18 +522,22 @@ for (let i = 0; i < 6; i++) {
     const g = new THREE.Group();
     const furMat = new THREE.MeshStandardMaterial({ color: 0x14100e, roughness: 0.9 });
     const membraneMat = new THREE.MeshStandardMaterial({ color: 0x1e1412, roughness: 0.75, side: THREE.DoubleSide, transparent: true, opacity: 0.94 });
+    // тело: пухлое, обтекаемое
     const body = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), furMat);
     body.scale.set(1, 0.85, 1.5);
     g.add(body);
+    // голова
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), furMat);
     head.position.set(0, 0.06, 0.18);
     g.add(head);
+    // уши
     for (const ex of [-0.05, 0.05]) {
       const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.12, 5), furMat);
       ear.position.set(ex, 0.15, 0.18);
       ear.rotation.z = ex > 0 ? -0.2 : 0.2;
       g.add(ear);
     }
+    // лапки, поджатые под тело
     const feetMat = new THREE.MeshStandardMaterial({ color: 0x2a1c14, roughness: 0.85 });
     for (const fx of [-0.06, 0.06]) {
       const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.09, 5), feetMat);
@@ -571,21 +545,24 @@ for (let i = 0; i < 6; i++) {
       foot.rotation.x = 0.9;
       g.add(foot);
     }
-    // Крылья: перепонка с реальным контуром (изогнутая мембрана через Shape)
+    // крылья: две фаланги (плечо + кончик) на каждой стороне, вращаются от «сустава»
+    // pivot-группы позволяют махать крылом с естественным изгибом
+    // Крылья: перепонка с реальным контуром (изогнутая мембрана, как у летучей мыши)
     function batWingShape(mirror) {
       const s = new THREE.Shape();
       const m = mirror ? -1 : 1;
-      s.moveTo(0, 0.1);
-      s.quadraticCurveTo(m * 0.3, 0.28, m * 0.55, 0.1);
-      s.quadraticCurveTo(m * 0.75, 0.02, m * 0.9, -0.06);
-      s.quadraticCurveTo(m * 0.7, -0.16, m * 0.45, -0.18);
-      s.quadraticCurveTo(m * 0.25, -0.22, 0, -0.14);
+      s.moveTo(0, 0.1);            // у тела сверху
+      s.quadraticCurveTo(m * 0.3, 0.28, m * 0.55, 0.1);   // верхний край (плечевая кость)
+      s.quadraticCurveTo(m * 0.75, 0.02, m * 0.9, -0.06); // палец наружу
+      s.quadraticCurveTo(m * 0.7, -0.16, m * 0.45, -0.18); // нижняя перепонка (изгиб)
+      s.quadraticCurveTo(m * 0.25, -0.22, 0, -0.14);      // к телу
       s.closePath();
       return s;
     }
     function makeMembrane(mirror) {
       const geo = new THREE.ShapeGeometry(batWingShape(mirror));
       const mesh = new THREE.Mesh(geo, membraneMat);
+      // ShapeGeometry лежит в плоскости XY — поворачиваем, чтобы крыло было горизонтально
       mesh.rotation.x = -Math.PI / 2;
       return mesh;
     }
@@ -695,67 +672,76 @@ for (let i = 0; i < 6; i++) {
   let baseCameraZ = camera.position.z;
 
   // Player 3D
+  function attachSpeech(g) {
+    const speechPhrases = ["Получайте, твари!", "Ещё раз?", "Больше ни разу!", "Да как вы смеете!", "Да вы чё, серьёзно?", "Бывало и лучше", "А как тебе такое?"];
+    const speechCanvas = document.createElement("canvas");
+    speechCanvas.width = 512; speechCanvas.height = 128;
+    const speechCtx = speechCanvas.getContext("2d");
+    const speechTex = new THREE.CanvasTexture(speechCanvas);
+    const speechMat = new THREE.SpriteMaterial({ map: speechTex, transparent: true, depthTest: false });
+    const speechSprite = new THREE.Sprite(speechMat);
+    speechSprite.scale.set(11, 2.75, 1); // крупно, чтобы читалось на любом ракурсе
+    speechSprite.position.set(0, 3.4, 0);
+    speechSprite.visible = false;
+    g.add(speechSprite);
+    g.userData.speech = { sprite: speechSprite, canvas: speechCanvas, ctx: speechCtx, tex: speechTex, phrases: speechPhrases, active: false, text: "", index: 0, timer: 0, nextTime: performance.now() + 2000 + Math.random() * 3000 };
+  }
   function makePlayer() {
     const g = new THREE.Group();
-    // body / chassis
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(1.1, 1.3, 0.55),
-      new THREE.MeshStandardMaterial({ color: 0x1a1a22, metalness: 0.7, roughness: 0.35 }),
-    );
-    body.castShadow = true;
-    g.add(body);
-    // tank (glass)
-    const tank = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.32, 0.32, 1.0, 24),
-      new THREE.MeshPhysicalMaterial({ color: 0x99ccff, transmission: 0.6, opacity: 0.7, transparent: true, roughness: 0.1, metalness: 0.1 }),
-    );
-    tank.rotation.z = Math.PI / 2;
-    tank.position.y = 0.15;
-    tank.castShadow = true;
-    g.add(tank);
-    // liquid inside
-    const liquid = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.26, 0.26, 0.85, 24),
-      new THREE.MeshStandardMaterial({ color: 0xff6b9d, emissive: 0xff6b9d, emissiveIntensity: 0.35, roughness: 0.2 }),
-    );
-    liquid.rotation.z = Math.PI / 2;
-    liquid.position.y = 0.15;
-    g.add(liquid);
-    // mouthpiece
-    const mouth = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.13, 0.16, 0.35, 16),
-      new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9, roughness: 0.2 }),
-    );
-    mouth.position.y = 0.85;
-    mouth.castShadow = true;
-    g.add(mouth);
-    // drip tip
-    const tip = new THREE.Mesh(
-      new THREE.ConeGeometry(0.1, 0.18, 16),
-      new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.4 }),
-    );
-    tip.position.y = 1.08;
-    g.add(tip);
-    // fire button
-    const btn = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.12, 0.12, 0.08, 16),
-      new THREE.MeshStandardMaterial({ color: 0xff7a18, emissive: 0xff3d00, emissiveIntensity: 0.5, metalness: 0.6 }),
-    );
-    btn.rotation.x = Math.PI / 2;
-    btn.position.set(0, -0.1, 0.32);
-    g.add(btn);
-    // emitter glow
-    const emitter = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 16, 16),
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        emissive: 0x88ccff,
-        emissiveIntensity: 1.2,
-      }),
-    );
-    emitter.position.y = 1.25;
-    g.add(emitter);
     scene.add(g);
+    // Fallback-вейп: виден МГНОВЕННО, пока грузится GLTF-модель (иначе моделька «пропадает» при пересоздании игрока)
+    const fbBody = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.2, 0.55), new THREE.MeshStandardMaterial({ color: 0x2255aa, metalness: 0.6, roughness: 0.35 }));
+    fbBody.position.y = 0.6; fbBody.castShadow = true; g.add(fbBody);
+    const fbTank = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.0, 20), new THREE.MeshPhysicalMaterial({ color: 0x99ccff, transmission: 0.6, opacity: 0.7, transparent: true, roughness: 0.1 }));
+    fbTank.rotation.z = Math.PI / 2; fbTank.position.y = 1.0; g.add(fbTank);
+    const fbMouth = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.35, 16), new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9 }));
+    fbMouth.position.y = 1.85; g.add(fbMouth);
+    g.userData.fallback = true;
+    // load GLTF vape
+    if (typeof THREE.GLTFLoader !== "undefined") {
+      const loader = new THREE.GLTFLoader();
+      loader.load("geek_pulse.glb", (gltf) => {
+        // remove placeholder
+        if (g.userData.fallback) {
+          g.remove(fbBody); g.remove(fbTank); g.remove(fbMouth);
+          g.userData.fallback = false;
+        }
+        const model = gltf.scene;
+        // scale to fit
+        model.scale.set(3.5, 3.5, 3.5);
+        model.position.set(0, -0.2, 0);
+        // recolor materials
+        model.traverse((o) => {
+          if (o.isMesh && o.material) {
+            if (o.material.color) o.material.color.set(0x2255aa);
+            if (o.material.emissive) o.material.emissive.set(0x113366);
+          }
+        });
+        g.add(model);
+        g.userData.model = model;
+        // eyes
+        const eyeMat = new THREE.MeshBasicMaterial({color:0xffffff});
+        const pupilMat = new THREE.MeshBasicMaterial({color:0x000000});
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), eyeMat);
+        const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), pupilMat);
+        eyeL.position.set(-0.35, 0.7, 1.2);
+        pupilL.position.set(0, 0, 0.12);
+        eyeL.add(pupilL);
+        const eyeR = eyeL.clone();
+        eyeR.position.x = 0.35;
+        g.add(eyeL);
+        g.add(eyeR);
+        g.userData.eyes = [eyeL, eyeR];
+        const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.12), new THREE.MeshStandardMaterial({color:0x111111}));
+        mouth.position.set(0, 0.45, 1.3);
+        g.add(mouth);
+        g.userData.mouth = mouth;
+        // phrases
+         attachSpeech(g);
+      }, undefined, (err) => {
+        console.error("GLTF load error", err);
+      });
+    }
     return g;
   }
 
@@ -1016,8 +1002,94 @@ for (let i = 0; i < 6; i++) {
     pumpkins.push(makePumpkin(W - 50, H - 34));
   }
   initPumpkins();
+  // —— Детали фона уровней 1–4: гробницы, кресты, черепа, туман у земли ——
+  (function enrichHalloween() {
+    const gY = ground.position.y;
+    const graveMat = new THREE.MeshStandardMaterial({ color: 0x6a6a72, roughness: 0.92 });
+    const crossMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9 });
+    const skullMat = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.85 });
+    const deadMat = new THREE.MeshStandardMaterial({ color: 0x2a2418, roughness: 0.95 });
+    // Надгробия с крестами
+    for (let i = 0; i < 10; i++) {
+      const gx = (Math.random() > 0.5 ? 1 : -1) * (9 + Math.random() * 14);
+      const gz = -70 + (i / 10) * 140 + (Math.random() - 0.5) * 8;
+      const grp = new THREE.Group();
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.5, 0.25), graveMat);
+      slab.position.y = 0.75; slab.castShadow = true; grp.add(slab);
+      const cv = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.8, 0.1), crossMat);
+      cv.position.set(0, 1.05, 0.14); grp.add(cv);
+      const ch = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.13, 0.1), crossMat);
+      ch.position.set(0, 1.2, 0.14); grp.add(ch);
+      grp.position.set(gx, gY, gz);
+      grp.rotation.y = (Math.random() - 0.5) * 0.5;
+      scene.add(grp);
+    }
+    // Черепа на земле
+    for (let i = 0; i < 12; i++) {
+      const sx = (Math.random() - 0.5) * 50;
+      if (Math.abs(sx) < 7) continue;
+      const sz = (Math.random() - 0.5) * 160;
+      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), skullMat);
+      skull.scale.set(1, 0.8, 1.1);
+      skull.position.set(sx, gY + 0.14, sz);
+      skull.rotation.y = Math.random() * Math.PI;
+      const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.09, 0.14), skullMat);
+      jaw.position.set(0, -0.12, 0.12); skull.add(jaw);
+      scene.add(skull);
+    }
+    // Мёртвые деревья (голые ветви)
+    for (let i = 0; i < 8; i++) {
+      const dx = (Math.random() > 0.5 ? 1 : -1) * (13 + Math.random() * 16);
+      const dz = -80 + Math.random() * 160;
+      const dt = new THREE.Group();
+      const trunkH = 4 + Math.random() * 2.5;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.3, trunkH, 7), deadMat);
+      trunk.position.y = trunkH / 2; trunk.castShadow = true; dt.add(trunk);
+      for (let b = 0; b < 4; b++) {
+        const br = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, 1.3, 5), deadMat);
+        br.position.set(0, trunkH * (0.5 + b * 0.13), 0);
+        br.rotation.z = (b % 2 ? 1 : -1) * (0.7 + Math.random() * 0.4);
+        br.rotation.y = Math.random() * Math.PI;
+        br.translateY(0.5);
+        dt.add(br);
+      }
+      dt.position.set(dx, gY, dz);
+      scene.add(dt);
+    }
+    // Каменные булыжники (крупные валуны и мелкие камни)
+    const boulderMat = new THREE.MeshStandardMaterial({ color: 0x5c5c66, roughness: 0.96, metalness: 0.03 });
+    for (let i = 0; i < 14; i++) {
+      const bx = (Math.random() > 0.5 ? 1 : -1) * (10 + Math.random() * 18);
+      const bz = -80 + Math.random() * 160;
+      const bs = 0.7 + Math.random() * 1.3;
+      const boulder = new THREE.Mesh(new THREE.DodecahedronGeometry(bs, 0), boulderMat);
+      boulder.scale.set(1, 0.65 + Math.random() * 0.3, 1.1);
+      boulder.rotation.set(Math.random() * 0.4, Math.random() * Math.PI, Math.random() * 0.4);
+      boulder.position.set(bx, gY + bs * 0.35, bz);
+      boulder.castShadow = true;
+      boulder.receiveShadow = true;
+      scene.add(boulder);
+    }
+    // Полосы тумана у земли (движущиеся: медленно дрейфуют и колышутся)
+    const groundFogStrips = [];
+    const fogMat = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.09, depthWrite: false });
+    for (let i = 0; i < 10; i++) {
+      const strip = new THREE.Mesh(new THREE.PlaneGeometry(30 + Math.random() * 20, 3), fogMat.clone());
+      strip.position.set((Math.random() - 0.5) * 40, gY + 0.5 + i * 0.18, -20 - i * 12);
+      strip.userData = {
+        vx: (Math.random() * 0.5 + 0.2) * (Math.random() > 0.5 ? 1 : -1), // скорость дрейфа по X
+        baseX: strip.position.x,
+        phase: Math.random() * Math.PI * 2,
+        baseOpacity: 0.06 + Math.random() * 0.06,
+      };
+      scene.add(strip);
+      groundFogStrips.push(strip);
+    }
+    window.__groundFogStrips = groundFogStrips;
+  })();
   scene.children.slice().forEach((o) => { if (o.userData && o.userData.isShip) scene.remove(o); if (o.children) o.children.slice().forEach((c) => { if (c.userData && c.userData.isShip) o.remove(c); }); });
   if (typeof alienShips !== "undefined") alienShips.forEach((a) => scene.remove(a.g));
+  const groundDecor = scene.children.filter((o) => o !== stars && o !== sky && o !== moon && !(o.isLight));
 
   function rand(a, b) {
     return a + Math.random() * (b - a);
@@ -1151,13 +1223,29 @@ for (let i = 0; i < 6; i++) {
     upgradeLine.textContent = "Улучшения: нет";
      // reset world
      spaceMode = false;
-     groundDecor.forEach((o) => { o.visible = true; });
      planetMode = false;
      spaceCinematicDone = false;
      planetCinematicDone = false;
      cinematic = null;
      cinematicKind = null;
+     cinematicStarted = false;
+     slowUntil = 0;
+     buffUntil = 0;
+     freezeUntil = 0;
+     // ВАЖНО: возвращаем видимость ВСЕМ наземным объектам (groundDecor),
+     // а не только тем, у кого есть userData.decor — иначе после космоса
+     // навсегда пропадают горы, лес, камни и валуны (баг «исчезающего фона»)
+     groundDecor.forEach((o) => { o.visible = true; });
      scene.children.forEach((o) => { if (o.userData && o.userData.decor) o.visible = true; });
+     // восстанавливаем освещение и атмосферу ночного Хэллоуина
+     ambient.intensity = 0.35;
+     ambient.color.set(0x667799);
+     hemi.intensity = 0.4;
+     dir.color.set(0xffaa66);
+     dir.intensity = 1.1;
+     stars.material.opacity = 0.8;
+     stars.material.size = 0.25;
+     moonLight.position.copy(moon.position);
      scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
      scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
      moon.material.color.set(0xfff5cc);
@@ -1181,7 +1269,7 @@ for (let i = 0; i < 6; i++) {
       r = 24;
       mesh = makeSlime();
       label = makeTextSprite("Слизь");
-      speed = 1.0 + (sl - 1) * 0.1;
+      speed = Math.max(2.0, 2.2 + (sl - 1) * 0.12);
     } else if (spaceMode) {
       if (Math.random() < 0.35) {
         type = "meteor";
@@ -1273,31 +1361,39 @@ for (let i = 0; i < 6; i++) {
        name = names[flavor];
         mesh = new THREE.Group();
         const _buffColor = flavorColorHex(flavor);
+        // Фолбэк-баночка сразу: бонус не должен быть невидимым, пока грузится GLB
+        const _fallbackCan = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.3, 0.3, 0.8, 16),
+          new THREE.MeshStandardMaterial({ color: _buffColor, emissive: _buffColor, emissiveIntensity: 0.6, roughness: 0.35, metalness: 0.3 }),
+        );
+        _fallbackCan.castShadow = true;
+        mesh.add(_fallbackCan);
         if (typeof THREE.GLTFLoader !== "undefined") {
           const _bloader = new THREE.GLTFLoader();
           _bloader.load("buff_can.glb", (gltf) => {
             const _bm = gltf.scene;
             _bm.scale.set(0.3, 0.3, 0.3);
             _bm.traverse((o) => { if (o.isMesh && o.material) { if (o.material.emissiveIntensity !== undefined) o.material.emissiveIntensity = 0.9; } });
+            mesh.remove(_fallbackCan);
             mesh.add(_bm);
           });
         }
         mesh.castShadow = true;
      }
-      scene.add(mesh);
-      bonuses.push({
-        x: rand(30, W - 30),
-        y: -20,
-        r: 16,
-        kind,
-        flavor,
-        name,
-        // Скорость падения бонуса растёт с уровнем — на ранних уровнях не ползёт
-        speed: 2.2 + Math.min(1.2, Math.floor(level / 5) * 0.2),
-        spin: 0,
-        mesh,
-      });
-     }
+     scene.add(mesh);
+     bonuses.push({
+       x: rand(30, W - 30),
+       y: -20,
+       r: 16,
+       kind,
+       flavor,
+       name,
+       // Скорость падения бонуса растёт с уровнем — на ранних уровнях не ползёт
+       speed: 2.2 + Math.min(1.2, Math.floor(level / 5) * 0.2),
+       spin: 0,
+       mesh,
+     });
+   }
 
   function flavorColorHex(f) {
     return f === "strawberry" ? 0xff4d6d : f === "kiwi" ? 0x7bc950 : 0xffb347;
@@ -1351,7 +1447,7 @@ for (let i = 0; i < 6; i++) {
     for (let i = 0; i < 6; i++) {
       const m = new THREE.Mesh(
         new THREE.SphereGeometry(0.2, 8, 8),
-        new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false }),
       );
       scene.add(m);
       smoke.push({
@@ -1379,6 +1475,8 @@ for (let i = 0; i < 6; i++) {
           color: colorHex,
           emissive: colorHex,
           emissiveIntensity: 0.6,
+          transparent: true,
+          opacity: 1,
         }),
       );
       scene.add(m);
@@ -1444,21 +1542,25 @@ for (let i = 0; i < 6; i++) {
          // УРОВЕНЬ 20: корабль просто УЛЕТАЕТ ВДАЛЬ по -Z
          if (spaceship) {
            const fly = Math.min(1, t / 3.6);
-           const ease = fly * fly;
+           const ease = fly * fly; // ускорение
            spaceship.scale.setScalar(0.7 + ease * 0.3);
-           spaceship.position.set(0, -4 + ease * 2, -ease * 130);
+           spaceship.position.set(0, -4 + ease * 2, -ease * 130); // уходит вдаль
+           if (spaceship.userData.engines) {
+             spaceship.userData.engines.forEach((eng) => { eng.scale.set(1 + ease * 1.5, 1 + ease * 2.2, 1 + ease * 1.5); });
+           }
          }
+         // игрок-вейп смотрит вслед и чуть приседает от ветра реактивной струи
          if (player && player.mesh) {
            player.mesh.position.x = screenToWorldX(player.x);
            player.mesh.position.y = screenToWorldY(player.y) + Math.sin(t * 8) * 0.15;
          }
        } else {
-         // УРОВЕНЬ 5: корабль стоит вдалеке НА ЗЕМЛЕ, вейп подлетает к нему
+         // УРОВЕНЬ 5: корабль стоит вдалеке НА ЗЕМЛЕ (земля на ~-9), вейп подлетает к нему
          if (spaceship) {
            const groundY = -(H / 2) * SCALE - 0.6;
-           const hover = Math.sin(t * 2) * 0.4;
+           const hover = Math.sin(t * 2) * 0.4; // слегка парит над землёй
            spaceship.position.set(0, groundY + 1.5 + hover, -18);
-           spaceship.rotation.z = Math.sin(t * 1.5) * 0.05;
+           spaceship.rotation.z = Math.sin(t * 1.5) * 0.05; // лёгкое покачивание
          }
          if (cinematicKind === "space" && player && player.mesh) {
            const bp = Math.min(1, Math.max(0, (t - 1) / 2.5));
@@ -1470,23 +1572,16 @@ for (let i = 0; i < 6; i++) {
        const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
        camera.position.z = baseCameraZ * zoomFactor;
        camera.lookAt(0, 0, 0);
-        if (cinematicKind === "space" && player && player.mesh) {
-          const bp = Math.min(1, Math.max(0, (t - 1) / 2.5));
-          player.mesh.position.x = screenToWorldX(player.x) * (1 - bp);
-          player.mesh.position.y = screenToWorldY(player.y) * (1 - bp);
-           player.mesh.scale.setScalar(spaceMode ? 0.6 : 1 - bp * 0.8);
-         }
        if (t >= 4.2) {
          if (spaceship) { scene.remove(spaceship); spaceship = null; }
-         // СНАЧАЛА чистим декор старого мира, ПОТОМ входим в новый —
-         // иначе enterPlanetMode создаёт фон, и он тут же удаляется (баг «пропадающего» мира)
-         scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
-         scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
-         const wasKind = cinematicKind;
-         if (wasKind === "planet") { planetCinematicDone = true; enterPlanetMode(); } else { spaceCinematicDone = true; enterSpaceMode(); }
-         cinematicKind = null;
-         cinematic = null;
-         cinematicStarted = false;
+          // СНАЧАЛА чистим декор старого мира, ПОТОМ входим в новый
+          scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
+          scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
+          const wasKind = cinematicKind;
+          if (wasKind === "planet") { planetCinematicDone = true; enterPlanetMode(); } else { spaceCinematicDone = true; enterSpaceMode(); }
+          cinematicKind = null;
+          cinematic = null;
+          cinematicStarted = false;
          camera.position.z = baseCameraZ;
          camera.lookAt(0, 0, 0);
        }
@@ -1696,7 +1791,22 @@ for (let i = 0; i < 6; i++) {
       }
     }
 
-    // bats — реалистичный полёт: взмах с изгибом крыла, крен в поворотах
+    // движущийся туман у земли (только на начальных уровнях — полосы скрыты в космосе/на планете вместе с decor)
+    if (window.__groundFogStrips) {
+      const nowF = performance.now();
+      for (const strip of window.__groundFogStrips) {
+        const u = strip.userData;
+        // дрейф по X с плавным возвратом-гулянием вокруг базовой позиции
+        strip.position.x = u.baseX + Math.sin(nowF / 4000 + u.phase) * 6 + Math.sin(nowF / 1700 + u.phase * 2) * 1.5;
+        // колыхание плотности (туман «дышит»)
+        strip.material.opacity = u.baseOpacity * (0.7 + 0.3 * Math.sin(nowF / 2500 + u.phase * 3));
+        // лёгкое вертикальное парение
+        strip.position.y += Math.sin(nowF / 3000 + u.phase) * 0.003;
+        strip.rotation.z = Math.sin(nowF / 5000 + u.phase) * 0.03;
+      }
+    }
+
+    // bats — реалистичный полёт: взмах с изгибом крыла, крен в поворотах, вертикальное парение
     for (const b of bats) {
       b.x += b.vx;
       if (b.x < -20) b.x = W + 20;
@@ -1704,24 +1814,15 @@ for (let i = 0; i < 6; i++) {
       const now = performance.now();
       const wy = b.y + Math.sin(now / 800 + b.phase) * 8;
       b.g.position.set(screenToWorldX(b.x), screenToWorldY(wy), 0.5);
+      // взмах: основной сустав машет, кончик крыла отстаёт по фазе (естественная волна по мембране)
       const flap = Math.sin(now / (b.flapSpeed * 1000) + b.phase);
       b.wing.rotation.z = flap * 0.85;
       b.wing2.rotation.z = -flap * 0.85;
+      // тело кренится в сторону полёта и слегка рыскает
       b.g.rotation.z = -b.vx * 0.25 + flap * 0.06;
       b.g.rotation.y = Math.sin(now / 1200 + b.phase) * 0.25;
+      // лёгкое покачивание тела против взмаха (инерция)
       b.g.rotation.x = flap * 0.12;
-    }
-
-    // движущийся туман у земли
-    if (window.__groundFogStrips) {
-      const nowF = performance.now();
-      for (const strip of window.__groundFogStrips) {
-        const u = strip.userData;
-        strip.position.x = u.baseX + Math.sin(nowF / 4000 + u.phase) * 6 + Math.sin(nowF / 1700 + u.phase * 2) * 1.5;
-        strip.material.opacity = u.baseOpacity * (0.7 + 0.3 * Math.sin(nowF / 2500 + u.phase * 3));
-        strip.position.y += Math.sin(nowF / 3000 + u.phase) * 0.003;
-        strip.rotation.z = Math.sin(nowF / 5000 + u.phase) * 0.03;
-      }
     }
 
 // player mesh
@@ -1856,6 +1957,12 @@ for (const h of houses) {
     const wingR = wingL.clone(); wingR.position.x = 1.3; g.add(wingR);
     const glow = new THREE.Mesh(new THREE.SphereGeometry(0.35,16,16), new THREE.MeshBasicMaterial({color:0x66ccff}));
     glow.position.set(0,0.9,0); g.add(glow);
+    // двигатели: два огненных сопла сзади (для кинематика улёта)
+    const engMat = new THREE.MeshBasicMaterial({color:0xff8833, transparent:true, opacity:0.9});
+    const engL = new THREE.Mesh(new THREE.ConeGeometry(0.22,0.9,8), engMat);
+    engL.rotation.x = Math.PI/2; engL.position.set(-0.6,0,-1.9); g.add(engL);
+    const engR = engL.clone(); engR.position.x = 0.6; g.add(engR);
+    g.userData.engines = [engL, engR];
     g.rotation.x = -Math.PI / 2;
     g.userData.isShip = true;
     scene.add(g);
@@ -1865,7 +1972,7 @@ for (const h of houses) {
     spaceMode = true;
     groundDecor.forEach((o) => { o.visible = false; });
     if (player && player.mesh) scene.remove(player.mesh);
-    const _ship = makeSpaceship(); _ship.scale.setScalar(0.6); player.mesh = _ship;
+    const _ship = makeSpaceship(); _ship.scale.setScalar(0.6); player.mesh = _ship; attachSpeech(player.mesh);
     scene.fog.color.set(0x000011);
     scene.fog.near = 120;
     scene.fog.far = 420;
@@ -1895,7 +2002,7 @@ for (const h of houses) {
     ring.rotation.y = 0.3;
     ring.userData.spaceDecor = true;
     scene.add(ring);
-    // Мерцающие цветные звёзды
+    // Мерцающие цветные звёзды (два слоя)
     const coloredStarsGeo = new THREE.BufferGeometry();
     const cStarVerts = [];
     for (let i = 0; i < 200; i++) {
@@ -1942,7 +2049,7 @@ for (const h of houses) {
     if (player && player.mesh) scene.remove(player.mesh);
     player.mesh = makePlayer();
     spaceMode = false;
-    // Земля: холмистое зелёное поле с текстурой травы (реалистичный дневной вид)
+    // Земля: холмистое поле с травяной текстурой (реалистичный дневной вид)
     const pgroundGeo = new THREE.PlaneGeometry(300, 300, 60, 60);
     const ppos = pgroundGeo.attributes.position;
     for (let i = 0; i < ppos.count; i++) {
@@ -1967,21 +2074,21 @@ for (const h of houses) {
       return t;
     })();
     const pground = new THREE.Mesh(pgroundGeo, new THREE.MeshStandardMaterial({ map: grassTex, color: 0xffffff, roughness: 0.95 }));
-    pground.rotation.x = -Math.PI / 2;
+    pground.rotation.x = -Math.PI/2;
     pground.position.y = -2;
     pground.receiveShadow = true;
     pground.userData.planetDecor = true;
     scene.add(pground);
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(6, 200), new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.95 }));
-    road.rotation.x = -Math.PI / 2;
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(6, 200), new THREE.MeshStandardMaterial({color:0x8b7355, roughness:0.95}));
+    road.rotation.x = -Math.PI/2;
     road.position.y = -1.9;
     road.userData.planetDecor = true;
     scene.add(road);
-    // Дневное небо с облаками вместо розового марсианского
+    // Дневное небо с облаками
     scene.fog.color.set(0xbcd8f0);
     scene.fog.near = 60;
     scene.fog.far = 320;
-    sky.material.color.set(0x87b8e8); // голубое дневное небо
+    sky.material.color.set(0x87b8e8);
     ambient.intensity = 0.75;
     ambient.color.set(0xffffff);
     hemi.intensity = 0.55;
@@ -1989,10 +2096,10 @@ for (const h of houses) {
     dir.intensity = 1.4;
     moon.material.color.set(0xfff7e0);
     moon.material.emissive.set(0xffeebb);
-    moon.material.emissiveIntensity = 0.4; // днём луна — просто бледный диск
+    moon.material.emissiveIntensity = 0.4;
     moon.scale.setScalar(1.3);
     moon.position.set(-60, 65, -110);
-    // Облака (плоские полупрозрачные сферы вдалеке)
+    // Облака
     const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.85 });
     for (let i = 0; i < 14; i++) {
       const cloud = new THREE.Group();
@@ -2005,7 +2112,7 @@ for (const h of houses) {
       cloud.userData.planetDecor = true;
       scene.add(cloud);
     }
-    // Дальний лес по краям
+    // Дальний лес
     const dTreeMat = new THREE.MeshStandardMaterial({ color: 0x1e4a1e, roughness: 0.9 });
     const dTrunkMat = new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 0.95 });
     for (let i = 0; i < 90; i++) {
@@ -2021,10 +2128,10 @@ for (const h of houses) {
       crown.userData.planetDecor = true;
       scene.add(crown);
     }
-    // ПОЛЕ КУКУРУЗЫ (реалистичные ряды с початками)
-    const cornStalkMat = new THREE.MeshStandardMaterial({ color: 0x3a8a2a, roughness: 0.85 });
-    const cornLeafMat = new THREE.MeshStandardMaterial({ color: 0x4aa030, roughness: 0.8, side: THREE.DoubleSide });
-    const cornCobMat = new THREE.MeshStandardMaterial({ color: 0xe8c840, roughness: 0.7 });
+    // ПОЛЕ КУКУРУЗЫ
+    const cornStalkMat = new THREE.MeshStandardMaterial({color:0x3a8a2a, roughness:0.85});
+    const cornLeafMat = new THREE.MeshStandardMaterial({color:0x4aa030, roughness:0.8, side:THREE.DoubleSide});
+    const cornCobMat = new THREE.MeshStandardMaterial({color:0xe8c840, roughness:0.7});
     for (let row = 0; row < 6; row++) {
       for (let i = 0; i < 16; i++) {
         const cx2 = -22 + row * 3.2 + (Math.random() - 0.5);
@@ -2035,7 +2142,6 @@ for (const h of houses) {
         stalk.rotation.z = (Math.random() - 0.5) * 0.08;
         stalk.userData.planetDecor = true;
         scene.add(stalk);
-        // листья
         for (let l = 0; l < 3; l++) {
           const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.7), cornLeafMat);
           leaf.position.set(cx2, -2 + stalkH * (0.4 + l * 0.2), cz2);
@@ -2044,9 +2150,8 @@ for (const h of houses) {
           leaf.userData.planetDecor = true;
           scene.add(leaf);
         }
-        // початок на некоторых стеблях
         if (Math.random() < 0.4) {
-          const cob = new THREE.Mesh(new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.08, 0.22, 4, 8) : new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8), cornCobMat);
+          const cob = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8), cornCobMat);
           cob.position.set(cx2 + 0.1, -2 + stalkH * 0.6, cz2);
           cob.rotation.z = 0.5;
           cob.userData.planetDecor = true;
@@ -2055,7 +2160,7 @@ for (const h of houses) {
       }
     }
     upgradeLine.textContent = "Планета: слизь и древние камни! 🌽";
-    // КАМЕННЫЕ МОНУМЕНТЫ (Стоунхендж-стиль: вертикали + перекладины, реалистичный камень)
+    // КАМЕННЫЕ МОНУМЕНТЫ (Стоунхендж)
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9a938a, roughness: 0.92, metalness: 0.02 });
     const stoneCenterZ = 34;
     const stoneCount = 8;
@@ -2072,7 +2177,6 @@ for (const h of houses) {
       vertical.receiveShadow = true;
       vertical.userData.planetDecor = true;
       scene.add(vertical);
-      // перекладина на каждой второй паре
       if (i % 2 === 0) {
         const a2 = ((i + 1) / stoneCount) * Math.PI * 2;
         const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.7, 1.1), stoneMat);
@@ -2083,31 +2187,27 @@ for (const h of houses) {
         scene.add(lintel);
       }
     }
-    // Центральный алтарь
     const altar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, 1.6), stoneMat);
     altar.position.set(0, -1.6, stoneCenterZ);
     altar.userData.planetDecor = true;
     scene.add(altar);
-    // РОЯЛЬСКИЙ ЗАМОК (более реалистичный: стены, башни с коническими крышами, ворота, флаги)
+    // ЗАМОК (стены, башни, ворота, флаги)
     const castleWallMat = new THREE.MeshStandardMaterial({ color: 0x8a8a92, roughness: 0.85 });
     const castleRoofMat = new THREE.MeshStandardMaterial({ color: 0x6a3050, roughness: 0.6 });
     const castleWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2f18, roughness: 0.9 });
     const cz = 62;
-    // главная стена
     const wall = new THREE.Mesh(new THREE.BoxGeometry(20, 7, 1.6), castleWallMat);
     wall.position.set(0, 1.5, cz);
     wall.castShadow = true;
     wall.userData.planetDecor = true;
     scene.add(wall);
-    // зубцы стены
     for (let i = -5; i <= 5; i++) {
-      if (Math.abs(i) < 1.5) continue; // проём для ворот
+      if (Math.abs(i) < 1.5) continue;
       const merlon = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.0, 1.7), castleWallMat);
       merlon.position.set(i * 1.9, 5.5, cz);
       merlon.userData.planetDecor = true;
       scene.add(merlon);
     }
-    // ворота (арка)
     const gateL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 5, 1.8), castleWallMat);
     gateL.position.set(-2.4, 0.5, cz);
     gateL.userData.planetDecor = true;
@@ -2121,7 +2221,6 @@ for (const h of houses) {
     gateDoor.position.set(0, 1.0, cz);
     gateDoor.userData.planetDecor = true;
     scene.add(gateDoor);
-    // боковые башни с коническими крышами
     for (const tx of [-9, 9]) {
       const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.2, 12, 10), castleWallMat);
       tower.position.set(tx, 4, cz);
@@ -2132,7 +2231,6 @@ for (const h of houses) {
       roof.position.set(tx, 11.5, cz);
       roof.userData.planetDecor = true;
       scene.add(roof);
-      // флаг
       const flagpole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6), castleWoodMat);
       flagpole.position.set(tx, 14.2, cz);
       flagpole.userData.planetDecor = true;
@@ -2142,7 +2240,6 @@ for (const h of houses) {
       flag.userData.planetDecor = true;
       scene.add(flag);
     }
-    // центральный донжон
     const keep = new THREE.Mesh(new THREE.BoxGeometry(6, 9, 5), castleWallMat);
     keep.position.set(0, 4.5, cz + 4);
     keep.castShadow = true;

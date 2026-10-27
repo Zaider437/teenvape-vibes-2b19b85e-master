@@ -1223,13 +1223,29 @@ for (let i = 0; i < 6; i++) {
     upgradeLine.textContent = "Улучшения: нет";
      // reset world
      spaceMode = false;
-     groundDecor.forEach((o) => { o.visible = true; });
      planetMode = false;
      spaceCinematicDone = false;
      planetCinematicDone = false;
      cinematic = null;
      cinematicKind = null;
+     cinematicStarted = false;
+     slowUntil = 0;
+     buffUntil = 0;
+     freezeUntil = 0;
+     // ВАЖНО: возвращаем видимость ВСЕМ наземным объектам (groundDecor),
+     // а не только тем, у кого есть userData.decor — иначе после космоса
+     // навсегда пропадают горы, лес, камни и валуны (баг «исчезающего фона»)
+     groundDecor.forEach((o) => { o.visible = true; });
      scene.children.forEach((o) => { if (o.userData && o.userData.decor) o.visible = true; });
+     // восстанавливаем освещение и атмосферу ночного Хэллоуина
+     ambient.intensity = 0.35;
+     ambient.color.set(0x667799);
+     hemi.intensity = 0.4;
+     dir.color.set(0xffaa66);
+     dir.intensity = 1.1;
+     stars.material.opacity = 0.8;
+     stars.material.size = 0.25;
+     moonLight.position.copy(moon.position);
      scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
      scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
      moon.material.color.set(0xfff5cc);
@@ -1345,12 +1361,20 @@ for (let i = 0; i < 6; i++) {
        name = names[flavor];
         mesh = new THREE.Group();
         const _buffColor = flavorColorHex(flavor);
+        // Фолбэк-баночка сразу: бонус не должен быть невидимым, пока грузится GLB
+        const _fallbackCan = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.3, 0.3, 0.8, 16),
+          new THREE.MeshStandardMaterial({ color: _buffColor, emissive: _buffColor, emissiveIntensity: 0.6, roughness: 0.35, metalness: 0.3 }),
+        );
+        _fallbackCan.castShadow = true;
+        mesh.add(_fallbackCan);
         if (typeof THREE.GLTFLoader !== "undefined") {
           const _bloader = new THREE.GLTFLoader();
           _bloader.load("buff_can.glb", (gltf) => {
             const _bm = gltf.scene;
             _bm.scale.set(0.3, 0.3, 0.3);
             _bm.traverse((o) => { if (o.isMesh && o.material) { if (o.material.emissiveIntensity !== undefined) o.material.emissiveIntensity = 0.9; } });
+            mesh.remove(_fallbackCan);
             mesh.add(_bm);
           });
         }
@@ -1423,7 +1447,7 @@ for (let i = 0; i < 6; i++) {
     for (let i = 0; i < 6; i++) {
       const m = new THREE.Mesh(
         new THREE.SphereGeometry(0.2, 8, 8),
-        new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false }),
       );
       scene.add(m);
       smoke.push({
@@ -1451,6 +1475,8 @@ for (let i = 0; i < 6; i++) {
           color: colorHex,
           emissive: colorHex,
           emissiveIntensity: 0.6,
+          transparent: true,
+          opacity: 1,
         }),
       );
       scene.add(m);
