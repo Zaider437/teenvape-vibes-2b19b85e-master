@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import logoImg from "@/assets/5363874353084309359.jpg";
 
 /**
@@ -24,30 +24,22 @@ function usePrefersReducedMotion() {
 
 export const HangingBulbContact = () => {
   const [lit, setLit] = useState(false);
-  const [jiggle, setJiggle] = useState(0); // инкремент-ключ перезапуска spring-анимации
+  // счётчик кликов: 0 = покачиваемся вхолостую, >0 = короткий импульс-«толчок»
+  const [impulse, setImpulse] = useState(0);
   const reduced = usePrefersReducedMotion();
-  const firstRef = useRef(true);
-
-  // при первом рендере — небольшое покачивание «вжух»
-  useEffect(() => {
-    if (firstRef.current) {
-      firstRef.current = false;
-      setJiggle((n) => n + 1);
-    }
-  }, []);
 
   const toggle = useCallback(() => {
     setLit((v) => !v);
-    setJiggle((n) => n + 1);
+    setImpulse((n) => n + 1);
   }, []);
 
   const accent = "var(--primary)"; // magenta из буквы L логотипа
 
+  const active = impulse > 0;
   const ropeStyle: React.CSSProperties = {
     width: 2,
     height: ROPE_LEN,
     background: "linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.55))",
-    transformOrigin: "top center",
   };
 
   const bulbStyle: React.CSSProperties = {
@@ -61,8 +53,8 @@ export const HangingBulbContact = () => {
       <span
         aria-hidden
         style={ropeStyle}
-        className="jiggle-swing block"
-        key={`rope-${jiggle}`}
+        className={`block bulb-sway${active ? " bulb-impulse" : ""}`}
+        key={`rope-${impulse}`}
       />
 
       <button
@@ -70,9 +62,9 @@ export const HangingBulbContact = () => {
         onClick={toggle}
         aria-pressed={lit}
         aria-label={lit ? "Выключить светильник" : "Включить светильник"}
-        className="jiggle-swing relative block outline-none cursor-pointer bg-transparent border-0 p-0"
+        className={`relative block outline-none cursor-pointer bg-transparent border-0 p-0 bulb-sway${active ? " bulb-impulse" : ""}`}
         style={bulbStyle}
-        key={`bulb-${jiggle}`}
+        key={`bulb-${impulse}`}
       >
         {/* свечения */}
         {lit && !reduced && (

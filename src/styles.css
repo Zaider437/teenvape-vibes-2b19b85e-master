@@ -198,18 +198,18 @@
   box-shadow: var(--glow-soft);
 }
 
-/* Качающаяся лампочка-персонаж под кнопкой «Связь с нами» */
-@keyframes bulb-swing {
-  0% { transform: rotate(0deg); }
-  12% { transform: rotate(9deg); }
-  38% { transform: rotate(-7deg); }
-  62% { transform: rotate(5deg); }
-  84% { transform: rotate(-2.5deg); }
-  100% { transform: rotate(0deg); }
-}
+/* Качающаяся лампочка-персонаж (внизу сайта, над LoveVape) */
 @keyframes bulb-idle-sway {
   0% { transform: rotate(-3.5deg); }
   50% { transform: rotate(3.5deg); }
+  100% { transform: rotate(-3.5deg); }
+}
+/* Короткий лёгкий «толчок» при клике (~0.35с, без долгого дёргания) */
+@keyframes bulb-impulse-swing {
+  0% { transform: rotate(-3.5deg); }
+  25% { transform: rotate(7deg); }
+  55% { transform: rotate(-5deg); }
+  80% { transform: rotate(1.5deg); }
   100% { transform: rotate(-3.5deg); }
 }
 @keyframes stick-wiggle-l {
@@ -220,14 +220,16 @@
   0%, 100% { transform: rotate(14deg); }
   50% { transform: rotate(-14deg); }
 }
-.jiggle-swing {
-  animation:
-    bulb-swing 1.6s cubic-bezier(0.34, 1.4, 0.5, 1) 1,
-    bulb-idle-sway 3.4s ease-in-out 1.6s infinite;
+.bulb-sway {
+  animation: bulb-idle-sway 3.4s ease-in-out infinite;
   transform-origin: top center;
 }
-.jiggle-swing.stick,
-button.jiggle-swing {
+.bulb-sway.bulb-impulse {
+  animation: bulb-impulse-swing 0.35s cubic-bezier(0.34, 1.4, 0.5, 1) 1 both,
+    bulb-idle-sway 3.4s ease-in-out 0.35s infinite;
+  transform-origin: top center;
+}
+button.bulb-sway {
   transform-origin: 50% -46px;
 }
 .stick-l { transform-origin: 100% 50%; animation: stick-wiggle-l 1.2s ease-in-out infinite; }
@@ -242,7 +244,7 @@ button.jiggle-swing {
   50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.12); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .jiggle-swing, .stick, .bulb-halo {
+  .bulb-sway, .stick, .bulb-halo {
     animation: none !important;
   }
 }
