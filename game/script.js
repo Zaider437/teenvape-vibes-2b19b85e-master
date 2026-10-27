@@ -2814,9 +2814,13 @@ for (const h of houses) {
     model.position.x -= center.x;
     model.position.z -= center.z;
     model.position.y -= center.y - halfH; // низ = 0 (верх подиума)
-    v.scene.add(model);
-    v.current = model;
-    v.turntable = model;
+    // обёртка: вращаем её, а не саму модель — у некоторых моделей (корабль) запечён
+    // собственный rotation.x, и вращение по Y давало странный «кувырок» вместо ровного оборота
+    const wrap = new THREE.Group();
+    wrap.add(model);
+    v.scene.add(wrap);
+    v.current = wrap;
+    v.turntable = wrap;
     // лор и заголовок
     document.getElementById("bestiaryTitle").innerHTML = entry.title + " <span style='color:" + entry.color + "'>●</span>";
     document.getElementById("bestiaryLore").textContent = BESTIARY_LORE[entry.key] || "";
