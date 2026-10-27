@@ -2732,43 +2732,161 @@ for (const h of houses) {
     overlay.classList.add("hidden");
   }
 
-  // ================= БЕСТИАРИЙ / ЛОР (иконка ℹ️ в меню) =================
+  // ================= БЕСТИАРИЙ / ЛОР (иконка ℹ️ в меню) — 3D-версия =================
+  // 3D-витрина: своя камера/сцена на overlay-канвасе, модель крутится на 360° как пикап-бонус.
+  let bestiaryViewer = null; // { scene, camera, renderer, current, turntable }
+  const BESTIARY_ENTRIES = [
+    { key: "vape", title: "Вейп (ты)", color: "#7dd3fc", make: () => {
+        // реальная модель игрока (GLTF) или фолбэк
+        if (vapeTemplate) return vapeTemplate.clone(true);
+        const g = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.2, 0.55), new THREE.MeshStandardMaterial({ color: 0x2255aa, metalness: 0.6, roughness: 0.35 }));
+        g.add(body);
+        return g;
+      } },
+    { key: "zombie", title: "Зомби", color: "#7bc950", make: () => makeZombie() },
+    { key: "nun", title: "Монашка", color: "#c77dff", make: () => makeNun() },
+    { key: "meteor", title: "Метеорит", color: "#ffa94d", make: () => makeMeteorite() },
+    { key: "slime", title: "Слизь", color: "#51cf66", make: () => makeSlime() },
+    { key: "pedestrian", title: "Прохожий", color: "#ff8787", make: () => makePedestrian(0xdd4444) },
+    { key: "ship", title: "Корабль", color: "#99e9f2", make: () => makeSpaceship() },
+    { key: "chest", title: "Сундук", color: "#ffd43b", make: () => {
+        const g = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 1.0), new THREE.MeshStandardMaterial({ color: 0x7a4a1a, roughness: 0.7, metalness: 0.2 }));
+        g.add(body);
+        const lid = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 1.0), new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.65, metalness: 0.25 }));
+        lid.position.y = 0.6; lid.rotation.x = -0.5; g.add(lid);
+        const glow = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 1.5 }));
+        glow.position.y = 0.75; g.add(glow);
+        return g;
+      } },
+  ];
+  const BESTIARY_LORE = {
+    vape: "Последний живой вейп в городке Свит-Холлоу. Когда-то он был обычным клубничным подом с полки магазина, но однажды ночью призрак основателя завода вдохнул в него жизнь. Теперь он пара-дышащий герой, который стреляет ароматным паром и защищает свой магазин от нежити.",
+    zombie: "Бывшие покупатели магазина, которые накурились просрочки и превратились в ходячих сладкоежек. Выходят с кладбища за городом и тянутся грызть витрины со сладостями. Медленные, но их много. Появляются с 1 уровня, ночью на старом шоссе.",
+    nun: "Настоятельница заброшенного монастыря на холме. Под её привычкой — древний культ Вейп-Бога, и она несёт не спасение, а сбор пара для своих тёмных обрядов. Быстрее зомби и наглее. Появляется с 1 уровня, идёт по центру дороги.",
+    meteor: "Обломок астероида, который упал вместе с кораблём инопланетян. Горячий, злой и пахнет горелым картриджем. В космосе (с 5 уровня) метеориты летят прямо на тебя — их приносит магнитная буря.",
+    slime: "Живая слизь с планеты Вейп-Прайм. Съедает всё, что пахнет фруктами. Появляется на планете (с 20 уровня) из древних раскопок рядом со Стоунхенджем.",
+    pedestrian: "Обычные жители города Неон-Сити (с 50 уровня). Они ни в чём не виноваты! Если задеть их паром — теряешь очки, а они кричат всякое. Машины ездят сами по себе — у них автопилот от Sweethollow Motors.",
+    ship: "Корабль инопланетян, который забрал тебя на космический уровень (5+), а на 20-м улетел в сторону планеты Вейп-Прайм. Гражданский транспорт Sweethollow Motors, модель «Пион-7».",
+    chest: "Появляется на 35-м уровне. Даёт ОДИН предмет навсегда: 4 жизни, 4 пули или 20 очков за монстра (но тогда монстры бьют вдвое больнее). В рюкзак влезает до 3 предметов.",
+  };
+
+  function ensureBestiaryViewer() {
+    if (bestiaryViewer) return bestiaryViewer;
+    const cnv = document.createElement("canvas");
+    cnv.id = "bestiaryCanvas";
+    cnv.style.cssText = "width:100%;height:260px;border-radius:12px;background:#0a0a18;display:block;";
+    const r = new THREE.WebGLRenderer({ canvas: cnv, antialias: true, alpha: true });
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const sc = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    cam.position.set(0, 2.2, 6);
+    cam.lookAt(0, 0.8, 0);
+    sc.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const key = new THREE.DirectionalLight(0xffffff, 1.1);
+    key.position.set(3, 6, 5);
+    sc.add(key);
+    const rim = new THREE.PointLight(0x6699ff, 1.0, 30);
+    rim.position.set(-4, 2, -4);
+    sc.add(rim);
+    // подиум
+    const podium = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.6, 0.25, 40), new THREE.MeshStandardMaterial({ color: 0x2a2a3a, metalness: 0.5, roughness: 0.4 }));
+    podium.position.y = -0.12;
+    sc.add(podium);
+    bestiaryViewer = { renderer: r, scene: sc, camera: cam, canvas: cnv, current: null, turntable: null, raf: null };
+    return bestiaryViewer;
+  }
+
+  function bestiaryShow(index) {
+    const v = ensureBestiaryViewer();
+    const entry = BESTIARY_ENTRIES[index];
+    if (v.current) { v.scene.remove(v.current); v.current = null; }
+    const model = entry.make();
+    // нормализация размера: вписываем модель в ~2 юнита
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    const scale = 2.2 / maxDim;
+    model.scale.setScalar(scale);
+    const box2 = new THREE.Box3().setFromObject(model);
+    const center = box2.getCenter(new THREE.Vector3());
+    model.position.sub(center); // центрируем на подиуме
+    model.position.y += (box2.getSize(new THREE.Vector3()).y / 2) * 0.0; // стоит на подиуме
+    v.scene.add(model);
+    v.current = model;
+    v.turntable = model;
+    // лор и заголовок
+    document.getElementById("bestiaryTitle").innerHTML = entry.title + " <span style='color:" + entry.color + "'>●</span>";
+    document.getElementById("bestiaryLore").textContent = BESTIARY_LORE[entry.key] || "";
+    // подсветка активной кнопки
+    const tabs = document.querySelectorAll(".bestiary-tab");
+    tabs.forEach((b, i) => { b.style.borderColor = i === index ? entry.color : "rgba(255,255,255,0.15)"; b.style.background = i === index ? "rgba(255,122,24,0.25)" : "rgba(255,255,255,0.05)"; });
+    // запоминаем активный индекс для перезапуска анимации
+    v.activeIndex = index;
+  }
+
+  function bestiaryTick() {
+    const v = bestiaryViewer;
+    if (!v) return;
+    const now = performance.now();
+    // крутится как пикап-бонус: полный оборот за ~4 сек вокруг вертикали
+    if (v.turntable) v.turntable.rotation.y = (now / 1000) * 1.5 % (Math.PI * 2);
+    const cw = v.canvas.clientWidth || 300, ch = v.canvas.clientHeight || 260;
+    if (v.canvas.width !== cw * v.renderer.getPixelRatio() || v.canvas.height !== ch * v.renderer.getPixelRatio()) {
+      v.renderer.setSize(cw, ch, false);
+      v.camera.aspect = cw / ch;
+      v.camera.updateProjectionMatrix();
+    }
+    v.renderer.render(v.scene, v.camera);
+    v.raf = requestAnimationFrame(bestiaryTick);
+  }
+
+  function stopBestiaryViewer() {
+    const v = bestiaryViewer;
+    if (!v) return;
+    if (v.raf) cancelAnimationFrame(v.raf);
+    v.raf = null;
+  }
+
   function showBestiary() {
+    stopBestiaryViewer();
     overlay.classList.remove("hidden");
     overlayInner.innerHTML = "";
     const h1 = document.createElement("h1");
     h1.textContent = "📖 Бестиарий и лор";
     overlayInner.appendChild(h1);
-    const scroll = document.createElement("div");
-    scroll.style.cssText = "max-height:52vh;overflow-y:auto;width:100%;text-align:left;padding:4px;";
-    const sections = [
-      { icon: "🥎", title: "Вейп (ты)", color: "#7dd3fc", text: "Последний живой вейп в городке Свит-Холлоу. Когда-то он был обычным клубничным подом с полки магазина, но однажды ночью призрак основателя завода вдохнул в него жизнь. Теперь он пара-дышащий герой, который стреляет ароматным паром и защищает свой магазин от нежити. Мечтает однажды снова просто спокойно лежать на витрине." },
-      { icon: "🧟", title: "Зомби", color: "#7bc950", text: "Бывшие покупатели магазина, которые накурились просрочки и превратились в ходячих сладкоежек. Выходят с кладбища за городом и тянутся к магазину, григы грызть витрины со сладостями. Медленные, но их много. Появляются с 1 уровня, ночью на старом шоссе." },
-      { icon: "⛪", title: "Монашка", color: "#c77dff", text: "Настоятельница заброшенного монастыря на холме. Никто не знает, что под её привычкой — древний культ Вейп-Бога, и она несёт не спасение, а сбор пара для своих тёмных обрядов. Быстрее зомби и наглее. Появляется с 1 уровня (шанс растёт с уровнем), идёт по центру дороги." },
-      { icon: "☄️", title: "Метеорит", color: "#ffa94d", text: "Обломок астероида, который упал вместе с кораблём инопланетян. Горячий, злой и пахнет горелым картриджем. В космосе (с 5 уровня) метеориты летят прямо на тебя — их приносит магнитная буря." },
-      { icon: "🟢", title: "Слизь", color: "#51cf66", text: "Живая слизь с планеты Вейп-Прайм. Съедает всё, что пахнет фруктами. Размножается делением (но у нас это уже чрезмерно — поэтому просто липнет к экрану). Появляется на планете (с 20 уровня) из древних раскопок рядом со Стоунхенджем." },
-      { icon: "🏙️", title: "Прохожий", color: "#ff8787", text: "Обычные жители города Неон-Сити (с 50 уровня). Они ни в чём не виноваты! Если задеть их паром — теряешь очки, а они кричат всякое. Машины тоже ездят сами по себе — у них автопилот от Sweethollow Motors." },
-      { icon: "🎁", title: "Бонусы", color: "#ffd43b", text: "ДИНАМИТ 💥 — взрывает всех монстров на экране. ЗАМОРОЗКА ❄️ — замораживает врагов на 15 секунд. АРОМАТИЧЕСКАЯ БАНКА 🥫 — усиливает пар вдвое на 6 секунд. Падают с неба каждые ~6 секунд." },
-      { icon: "🧰", title: "Сундук улучшений", color: "#ffa94d", text: "Появляется на 35-м уровне. Даёт ОДИН предмет навсегда: 4 жизни, 4 пули или 20 очков за монстра (но тогда монстры бьют вдвое больнее). В рюкзак влезает до 3 предметов." },
-    ];
-    for (const s of sections) {
-      const card = document.createElement("div");
-      card.style.cssText = "background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-left:3px solid " + s.color + ";border-radius:10px;padding:10px 12px;margin:8px 0;";
-      const tt = document.createElement("div");
-      tt.innerHTML = s.icon + " <b style='color:" + s.color + "'>" + s.title + "</b>";
-      tt.style.cssText = "font-size:15px;margin-bottom:4px;";
-      card.appendChild(tt);
-      const tx = document.createElement("div");
-      tx.textContent = s.text;
-      tx.style.cssText = "font-size:13px;color:#bbb;line-height:1.45;";
-      card.appendChild(tx);
-      scroll.appendChild(card);
-    }
-    overlayInner.appendChild(scroll);
+    // 3D-витрина
+    const v = ensureBestiaryViewer();
+    overlayInner.appendChild(v.canvas);
+    const title = document.createElement("div");
+    title.id = "bestiaryTitle";
+    title.style.cssText = "font-size:16px;font-weight:700;margin-top:8px;";
+    overlayInner.appendChild(title);
+    const lore = document.createElement("div");
+    lore.id = "bestiaryLore";
+    lore.style.cssText = "font-size:13px;color:#bbb;line-height:1.45;max-width:100%;";
+    overlayInner.appendChild(lore);
+    // табы-персонажи
+    const tabs = document.createElement("div");
+    tabs.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0;";
+    const icons = { vape: "🥎", zombie: "🧟", nun: "⛪", meteor: "☄️", slime: "🟢", pedestrian: "🏙️", ship: "🚀", chest: "🧰" };
+    BESTIARY_ENTRIES.forEach((e, i) => {
+      const b = document.createElement("button");
+      b.className = "bestiary-tab";
+      b.textContent = icons[e.key] || "•";
+      b.title = e.title;
+      b.style.cssText = "width:40px;height:40px;font-size:19px;border-radius:10px;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);";
+      b.onclick = (ev) => { ev.stopPropagation(); bestiaryShow(i); };
+      tabs.appendChild(b);
+    });
+    overlayInner.appendChild(tabs);
     const btn = document.createElement("button");
     btn.textContent = "← Назад в меню";
-    btn.onclick = (e) => { e.stopPropagation(); buildMenu(); };
+    btn.onclick = (e) => { e.stopPropagation(); stopBestiaryViewer(); buildMenu(); };
     overlayInner.appendChild(btn);
+    bestiaryShow(0);
+    bestiaryTick();
   }
 
   function buildMenu() {
@@ -2810,7 +2928,7 @@ for (const h of houses) {
     const infoBtn = document.createElement("button");
     infoBtn.textContent = "ℹ️";
     infoBtn.title = "Бестиарий и лор игры";
-    infoBtn.style.cssText = "margin-left:8px;width:44px;height:44px;font-size:22px;background:rgba(122,162,255,0.15);border:1px solid rgba(122,162,255,0.5);border-radius:12px;cursor:pointer;flex-shrink:0;";
+    infoBtn.style.cssText = "margin-left:auto;width:44px;height:44px;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;background:rgba(122,162,255,0.15);border:1px solid rgba(122,162,255,0.5);border-radius:12px;cursor:pointer;flex-shrink:0;";
     infoBtn.onclick = (e) => { e.stopPropagation(); showBestiary(); };
     bpWrap.appendChild(infoBtn);
     overlayInner.appendChild(bpWrap);
