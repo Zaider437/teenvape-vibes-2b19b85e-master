@@ -2856,6 +2856,7 @@ for (const h of houses) {
     overlayInner.innerHTML = "";
     const h1 = document.createElement("h1");
     h1.textContent = "📖 Бестиарий и лор";
+    h1.style.cssText = "font-size:20px;margin-bottom:0;"; // компактный заголовок (обычный h1 40px не влезает)
     overlayInner.appendChild(h1);
     // 3D-витрина
     const v = ensureBestiaryViewer();
