@@ -26,7 +26,7 @@
     return (sx - W / 2) * SCALE;
   }
   function screenToWorldY(sy) {
-    return (H / 2 - sy) * SCALE + planetGroundLift;
+    return (H / 2 - sy) * SCALE;
   }
   function resize() {
     W = window.innerWidth;
@@ -675,7 +675,7 @@ for (let i = 0; i < 6; i++) {
   let cityDecor = [];
   let cityCars = [];
   let cityPedestrians = [];
-  let planetGroundLift = 0; // вертикальная надбавка мира: на планете земля на Y=-2
+  // planetGroundLift удалён: земля планеты теперь на уровне базовой земли
   const killPhrases = ["Выкуси!", "Теперь будешь знать, каково это — когда тебя сосут!", "Вы скурили мою семью!", "У мамы теперь пососи!", "Это был не картридж... а его голова!"];
   let lastPhrase = "";
   let spaceMode = false;
@@ -1301,7 +1301,6 @@ for (let i = 0; i < 6; i++) {
      scene.children.slice().forEach((o) => { if (o.userData && o.userData.cityDecor) scene.remove(o); });
      cityDecor = []; cityCars = []; cityPedestrians = []; cityMode = false;
      cityCinematicDone = false;
-     planetGroundLift = 0; // сброс надбавки
      groundDecor.forEach((o) => { o.visible = true; });
      scene.children.forEach((o) => { if (o.userData && o.userData.decor) o.visible = true; });
      // восстанавливаем освещение и атмосферу ночного Хэллоуина
@@ -1716,7 +1715,7 @@ for (let i = 0; i < 6; i++) {
          e.x += Math.sin(performance.now() / 600 + e.wobble) * 0.4;
        }
        e.mesh.position.set(screenToWorldX(e.x), screenToWorldY(e.y), 0);
-       // подъем теперь глобальный через screenToWorldY (planetGroundLift)
+       // позиция врага
        if (e.label) e.label.position.set(screenToWorldX(e.x), screenToWorldY(e.y) + (e.type === "nun" ? 3.0 : e.type === "slime" ? 1.8 : 2.6), 0);
        if (e.frozen && e.snowflakes) {
          e.snowflakes.rotation.y += 0.06;
@@ -2109,7 +2108,7 @@ for (const h of houses) {
     })();
     const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(300, 300, 40, 40), new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.9 }));
     cityGround.rotation.x = -Math.PI / 2;
-    cityGround.position.y = -2;
+    cityGround.position.y = ground.position.y;
     cityGround.receiveShadow = true;
     cityGround.userData.cityDecor = true;
     scene.add(cityGround);
@@ -2131,7 +2130,7 @@ for (const h of houses) {
         const bx = side * (14 + Math.random() * 14);
         const bz = -20 - i * 24;
         const b = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bw), new THREE.MeshStandardMaterial({ color: buildingMats[i % buildingMats.length], roughness: 0.85 }));
-        b.position.set(bx, -2 + bh / 2, bz);
+        b.position.set(bx, ground.position.y + bh / 2, bz);
         b.castShadow = true;
         b.userData.cityDecor = true;
         scene.add(b);
@@ -2141,7 +2140,7 @@ for (const h of houses) {
           for (let wx = -bw / 2 + 1; wx < bw / 2 - 0.5; wx += 1.6) {
             if (Math.random() < 0.55) {
               const win = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.0), winMat);
-              win.position.set(bx + wx * side, -2 + wy, bz + side * (bw / 2 + 0.05));
+              win.position.set(bx + wx * side, ground.position.y + wy, bz + side * (bw / 2 + 0.05));
               win.userData.cityDecor = true;
               scene.add(win);
               cityDecor.push(win);
@@ -2152,14 +2151,14 @@ for (const h of houses) {
     }
     const cityRoad = new THREE.Mesh(new THREE.PlaneGeometry(18, 300), new THREE.MeshStandardMaterial({ color: 0x222226, roughness: 0.85 }));
     cityRoad.rotation.x = -Math.PI / 2;
-    cityRoad.position.y = -1.98;
+    cityRoad.position.y = ground.position.y + 0.02;
     cityRoad.userData.cityDecor = true;
     scene.add(cityRoad);
     cityDecor.push(cityRoad);
     for (let z = -140; z <= 140; z += 10) {
       const line = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 4), new THREE.MeshStandardMaterial({ color: 0xdddddd, emissive: 0x888888, emissiveIntensity: 0.3 }));
       line.rotation.x = -Math.PI / 2;
-      line.position.set(0, -1.96, z);
+      line.position.set(0, ground.position.y + 0.04, z);
       line.userData.cityDecor = true;
       scene.add(line);
       cityDecor.push(line);
@@ -2168,13 +2167,13 @@ for (const h of houses) {
       for (let i = -7; i <= 7; i += 1.4) {
         const zebra = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 3.5), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbbbbbb, emissiveIntensity: 0.2 }));
         zebra.rotation.x = -Math.PI / 2;
-        zebra.position.set(i, -1.95, cz);
+        zebra.position.set(i, ground.position.y + 0.05, cz);
         zebra.userData.cityDecor = true;
         scene.add(zebra);
         cityDecor.push(zebra);
       }
       const sign = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3, 6), new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.6 }));
-      sign.position.set(9.5, -0.5, cz);
+      sign.position.set(9.5, ground.position.y + 1.5, cz);
       sign.userData.cityDecor = true;
       scene.add(sign);
       cityDecor.push(sign);
@@ -2182,12 +2181,12 @@ for (const h of houses) {
     for (let z = -120; z <= 120; z += 24) {
       for (const lx of [-10, 10]) {
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 7, 8), new THREE.MeshStandardMaterial({ color: 0x444448, metalness: 0.7 }));
-        pole.position.set(lx, 1.5, z);
+        pole.position.set(lx, ground.position.y + 3.5, z);
         pole.userData.cityDecor = true;
         scene.add(pole);
         cityDecor.push(pole);
         const lampHead = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 10), new THREE.MeshStandardMaterial({ color: 0xffeebb, emissive: 0xffcc66, emissiveIntensity: 1.5 }));
-        lampHead.position.set(lx, 5.2, z);
+        lampHead.position.set(lx, ground.position.y + 7.2, z);
         lampHead.userData.cityDecor = true;
         scene.add(lampHead);
         cityDecor.push(lampHead);
@@ -2219,7 +2218,7 @@ for (const h of houses) {
         car.add(hl);
       }
       const dirSign = Math.random() > 0.5 ? 1 : -1;
-      car.position.set(dirSign > 0 ? -4.5 : 4.5, -1.6, -60 - i * 40);
+      car.position.set(dirSign > 0 ? -4.5 : 4.5, ground.position.y + 0.4, -60 - i * 40);
       if (dirSign < 0) car.rotation.y = Math.PI;
       scene.add(car);
       cityCars.push({ mesh: car, dir: dirSign, speed: 0.3 + Math.random() * 0.3 });
@@ -2228,7 +2227,7 @@ for (const h of houses) {
     const pedShirts = [0xdd4444, 0x4466dd, 0x44aa66, 0xddaa44, 0x8844dd, 0xdd66aa];
     for (let i = 0; i < 8; i++) {
       const ped = makePedestrian(pedShirts[i % pedShirts.length]);
-      ped.position.set(rand(-14, 14), -1.6, rand(-80, 20));
+      ped.position.set(rand(-14, 14), ground.position.y + 0.1, rand(-80, 20));
       scene.add(ped);
       cityPedestrians.push({ mesh: ped, x: ped.position.x, z: ped.position.z, vx: rand(-0.08, 0.08), vz: rand(-0.08, 0.08), alive: true });
     }
@@ -2271,7 +2270,7 @@ for (const h of houses) {
       p.z += p.vz;
       if (Math.abs(p.x) > 15) p.vx *= -1;
       if (p.z > 30 || p.z < -100) p.vz *= -1;
-      p.mesh.position.set(p.x, -1.6, p.z);
+      p.mesh.position.set(p.x, ground.position.y + 0.1, p.z);
       p.mesh.rotation.y = Math.atan2(p.vx, p.vz);
     }
   }
@@ -2490,7 +2489,6 @@ for (const h of houses) {
     player.mesh.scale.setScalar(1);
     spaceMode = false;
     // фикс «проваливания»: игрок и слизь стоят на Y=-2 (уровень планетной земли), а не на мировом нуле
-    planetGroundLift = 2.0;
     // Земля: холмистое поле с травяной текстурой (реалистичный дневной вид)
     const pgroundGeo = new THREE.PlaneGeometry(300, 300, 60, 60);
     const ppos = pgroundGeo.attributes.position;
@@ -2517,13 +2515,13 @@ for (const h of houses) {
     })();
     const pground = new THREE.Mesh(pgroundGeo, new THREE.MeshStandardMaterial({ map: grassTex, color: 0xffffff, roughness: 0.95 }));
     pground.rotation.x = -Math.PI/2;
-    pground.position.y = -2;
+    pground.position.y = ground.position.y;
     pground.receiveShadow = true;
     pground.userData.planetDecor = true;
     scene.add(pground);
     const road = new THREE.Mesh(new THREE.PlaneGeometry(6, 200), new THREE.MeshStandardMaterial({color:0x8b7355, roughness:0.95}));
     road.rotation.x = -Math.PI/2;
-    road.position.y = -1.9;
+    road.position.y = ground.position.y + 0.1;
     road.userData.planetDecor = true;
     scene.add(road);
     // Дневное небо с облаками
@@ -2562,11 +2560,11 @@ for (const h of houses) {
       const fz = -90 - Math.random() * 100;
       const th = 3 + Math.random() * 4;
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, th, 6), dTrunkMat);
-      trunk.position.set(fx, 0 + th / 2, fz);
+      trunk.position.set(fx, ground.position.y + th / 2, fz);
       trunk.userData.planetDecor = true;
       scene.add(trunk);
       const crown = new THREE.Mesh(new THREE.SphereGeometry(1.4 + Math.random(), 8, 6), dTreeMat);
-      crown.position.set(fx, th + 1, fz);
+      crown.position.set(fx, ground.position.y + th + 1, fz);
       crown.userData.planetDecor = true;
       scene.add(crown);
     }
@@ -2580,13 +2578,13 @@ for (const h of houses) {
         const cz2 = -12 + i * 2.4 + (Math.random() - 0.5);
         const stalkH = 1.6 + Math.random() * 0.7;
         const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, stalkH, 5), cornStalkMat);
-        stalk.position.set(cx2, -2 + stalkH / 2, cz2);
+        stalk.position.set(cx2, ground.position.y + stalkH / 2, cz2);
         stalk.rotation.z = (Math.random() - 0.5) * 0.08;
         stalk.userData.planetDecor = true;
         scene.add(stalk);
         for (let l = 0; l < 3; l++) {
           const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.7), cornLeafMat);
-          leaf.position.set(cx2, -2 + stalkH * (0.4 + l * 0.2), cz2);
+          leaf.position.set(cx2, ground.position.y + stalkH * (0.4 + l * 0.2), cz2);
           leaf.rotation.z = (l % 2 ? 0.9 : -0.9);
           leaf.rotation.y = Math.random() * Math.PI;
           leaf.userData.planetDecor = true;
@@ -2594,7 +2592,7 @@ for (const h of houses) {
         }
         if (Math.random() < 0.4) {
           const cob = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8), cornCobMat);
-          cob.position.set(cx2 + 0.1, -2 + stalkH * 0.6, cz2);
+          cob.position.set(cx2 + 0.1, ground.position.y + stalkH * 0.6, cz2);
           cob.rotation.z = 0.5;
           cob.userData.planetDecor = true;
           scene.add(cob);
@@ -2612,7 +2610,7 @@ for (const h of houses) {
       const sx = Math.cos(a) * stoneRadius;
       const sz = stoneCenterZ + Math.sin(a) * stoneRadius;
       const vertical = new THREE.Mesh(new THREE.BoxGeometry(1.3, 4.2, 1.0), stoneMat);
-      vertical.position.set(sx, 0.1, sz);
+      vertical.position.set(sx, ground.position.y + 0.1, sz);
       vertical.rotation.y = -a + Math.PI / 2;
       vertical.rotation.z = (Math.random() - 0.5) * 0.04;
       vertical.castShadow = true;
@@ -2630,7 +2628,7 @@ for (const h of houses) {
       }
     }
     const altar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, 1.6), stoneMat);
-    altar.position.set(0, -1.6, stoneCenterZ);
+    altar.position.set(0, ground.position.y + 0.4, stoneCenterZ);
     altar.userData.planetDecor = true;
     scene.add(altar);
     // ЗАМОК (стены, башни, ворота, флаги)
@@ -2639,56 +2637,56 @@ for (const h of houses) {
     const castleWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2f18, roughness: 0.9 });
     const cz = 62;
     const wall = new THREE.Mesh(new THREE.BoxGeometry(20, 7, 1.6), castleWallMat);
-    wall.position.set(0, 1.5, cz);
+    wall.position.set(0, ground.position.y + 1.5, cz);
     wall.castShadow = true;
     wall.userData.planetDecor = true;
     scene.add(wall);
     for (let i = -5; i <= 5; i++) {
       if (Math.abs(i) < 1.5) continue;
       const merlon = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.0, 1.7), castleWallMat);
-      merlon.position.set(i * 1.9, 5.5, cz);
+      merlon.position.set(i * 1.9, ground.position.y + 5.5, cz);
       merlon.userData.planetDecor = true;
       scene.add(merlon);
     }
     const gateL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 5, 1.8), castleWallMat);
-    gateL.position.set(-2.4, 0.5, cz);
+    gateL.position.set(-2.4, ground.position.y + 0.5, cz);
     gateL.userData.planetDecor = true;
     scene.add(gateL);
-    const gateR = gateL.clone(); gateR.position.x = 2.4; gateR.userData.planetDecor = true; scene.add(gateR);
+    const gateR = gateL.clone(); gateR.position.set(2.4, ground.position.y + 0.5, cz); gateR.userData.planetDecor = true; scene.add(gateR);
     const gateTop = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.2, 1.8), castleWallMat);
-    gateTop.position.set(0, 3.2, cz);
+    gateTop.position.set(0, ground.position.y + 3.2, cz);
     gateTop.userData.planetDecor = true;
     scene.add(gateTop);
     const gateDoor = new THREE.Mesh(new THREE.BoxGeometry(2.8, 4.2, 0.3), castleWoodMat);
-    gateDoor.position.set(0, 1.0, cz);
+    gateDoor.position.set(0, ground.position.y + 1.0, cz);
     gateDoor.userData.planetDecor = true;
     scene.add(gateDoor);
     for (const tx of [-9, 9]) {
       const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.2, 12, 10), castleWallMat);
-      tower.position.set(tx, 4, cz);
+      tower.position.set(tx, ground.position.y + 4, cz);
       tower.castShadow = true;
       tower.userData.planetDecor = true;
       scene.add(tower);
       const roof = new THREE.Mesh(new THREE.ConeGeometry(2.3, 3.4, 10), castleRoofMat);
-      roof.position.set(tx, 11.5, cz);
+      roof.position.set(tx, ground.position.y + 11.5, cz);
       roof.userData.planetDecor = true;
       scene.add(roof);
       const flagpole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6), castleWoodMat);
-      flagpole.position.set(tx, 14.2, cz);
+      flagpole.position.set(tx, ground.position.y + 14.2, cz);
       flagpole.userData.planetDecor = true;
       scene.add(flagpole);
       const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.8), new THREE.MeshStandardMaterial({ color: 0xaa2244, side: THREE.DoubleSide, roughness: 0.8 }));
-      flag.position.set(tx + 0.75, 14.8, cz);
+      flag.position.set(tx + 0.75, ground.position.y + 14.8, cz);
       flag.userData.planetDecor = true;
       scene.add(flag);
     }
     const keep = new THREE.Mesh(new THREE.BoxGeometry(6, 9, 5), castleWallMat);
-    keep.position.set(0, 4.5, cz + 4);
+    keep.position.set(0, ground.position.y + 4.5, cz + 4);
     keep.castShadow = true;
     keep.userData.planetDecor = true;
     scene.add(keep);
     const keepRoof = new THREE.Mesh(new THREE.ConeGeometry(4.4, 3.2, 4), castleRoofMat);
-    keepRoof.position.set(0, 10.4, cz + 4);
+    keepRoof.position.set(0, ground.position.y + 10.4, cz + 4);
     keepRoof.rotation.y = Math.PI / 4;
     keepRoof.userData.planetDecor = true;
     scene.add(keepRoof);
