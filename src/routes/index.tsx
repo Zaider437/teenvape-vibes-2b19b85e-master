@@ -571,28 +571,28 @@ function Header({ onOpenCart, snowActive, products = [] }: { onOpenCart: () => v
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-lg border-b border-border">
       <div className="px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3 relative">
-          {/* Пасхалка: дождь букв LoveVape + банки по бокам + туман */}
+          {/* Пасхалка: дождь букв LoveVape + банки летят по бокам + туман — по центру экрана */}
           {phase !== "idle" && (
-            <div className="pointer-events-none absolute left-0 right-0 top-full z-50" style={{ height: 300 }} aria-hidden>
-              {/* банки жидкостей по бокам (обрезаны до банок) */}
+            <div className="pointer-events-none fixed inset-0 z-[80]" aria-hidden>
+              {/* банки жидкостей летят по бокам (обрезаны до банок) */}
               {bottles.map((p, i) => {
                 const side = i < 3 ? ("left" as const) : ("right" as const);
                 const k = i % 3;
                 return (
                   <div
                     key={`${p.id}-${phase}`}
-                    className={`ee-item absolute ${phase === "fog" ? "ee-fog-out" : "ee-pop"}`}
+                    className={`ee-item ${phase === "fog" ? "ee-fog-out" : i < 3 ? "ee-fly-l" : "ee-fly-r"}`}
                     style={{
-                      [side]: 12 + k * 60,
-                      top: 40 + k * 78,
-                      width: 56,
-                      height: 56,
+                      [side]: "6vw",
+                      top: `calc(50vh + ${(k - 1) * 110 - 32}px)`,
+                      width: 64,
+                      height: 64,
                       borderRadius: "50%",
                       overflow: "hidden",
                       border: "2px solid color-mix(in oklab, var(--primary) 45%, transparent)",
                       background: "#0b0b14",
                       boxShadow: "0 0 14px color-mix(in oklab, var(--primary) 35%, transparent)",
-                      animationDelay: phase === "fog" ? "0s" : `${1.1 + i * 0.14}s`,
+                      animationDelay: phase === "fog" ? "0s" : `${0.25 + i * 0.16}s`,
                     } as React.CSSProperties}
                   >
                     <img
@@ -607,12 +607,12 @@ function Header({ onOpenCart, snowActive, products = [] }: { onOpenCart: () => v
                 );
               })}
 
-              {/* дождь из букв слова LoveVape */}
-              <div className="absolute inset-x-0 top-6 flex justify-center gap-0.5 sm:gap-1">
+              {/* дождь из букв слова LoveVape — по центру экрана */}
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center gap-0.5 sm:gap-1">
                 {word.map((ch, i) => (
                   <span
                     key={`${i}-${phase}`}
-                    className={`ee-item font-display font-black text-3xl sm:text-5xl ${i < 4 ? "text-primary" : "text-foreground"} ${phase === "fog" ? "ee-fog-out" : "ee-drop"}`}
+                    className={`ee-item font-display font-black text-4xl sm:text-6xl ${i < 4 ? "text-primary" : "text-foreground"} ${phase === "fog" ? "ee-fog-out" : "ee-drop"}`}
                     style={{
                       animationDelay: phase === "fog" ? "0s" : `${i * 0.12}s`,
                       textShadow: i < 4 ? "0 0 14px var(--primary)" : "0 2px 8px rgba(0,0,0,0.6)",
