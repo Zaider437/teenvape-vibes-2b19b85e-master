@@ -573,47 +573,42 @@ function Header({ onOpenCart, snowActive, products = [] }: { onOpenCart: () => v
         <div className="flex items-center gap-2 sm:gap-3 relative">
           {/* Пасхалка: дождь букв LoveVape + банки по бокам + туман */}
           {phase !== "idle" && (
-            <div className="pointer-events-none absolute -bottom-1 left-0 right-0 top-full z-50 h-[260px] overflow-hidden" aria-hidden>
-              {/* боковые буквы L и E */}
-              <span
-                className={`ee-item absolute left-2 sm:left-8 top-[45%] font-display text-primary text-4xl sm:text-6xl font-black ${phase === "fog" ? "ee-fog-out" : "ee-pop"}`}
-                style={{ animationDelay: phase === "fog" ? "0s" : "0.9s", textShadow: "0 0 18px var(--primary)" }}
-              >
-                L
-              </span>
-              <span
-                className={`ee-item absolute right-2 sm:right-8 top-[45%] font-display text-primary text-4xl sm:text-6xl font-black ${phase === "fog" ? "ee-fog-out" : "ee-pop"}`}
-                style={{ animationDelay: phase === "fog" ? "0s" : "1.05s", textShadow: "0 0 18px var(--primary)" }}
-              >
-                E
-              </span>
-
+            <div className="pointer-events-none absolute left-0 right-0 top-full z-50" style={{ height: 300 }} aria-hidden>
               {/* банки жидкостей по бокам (обрезаны до банок) */}
               {bottles.map((p, i) => {
-                const side = i < 3 ? "left" : "right";
+                const side = i < 3 ? ("left" as const) : ("right" as const);
                 const k = i % 3;
                 return (
-                  <img
+                  <div
                     key={`${p.id}-${phase}`}
-                    src={p.image!}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className={`ee-item absolute rounded-full object-cover border-2 border-primary/40 bg-background ${phase === "fog" ? "ee-fog-out" : "ee-pop"}`}
+                    className={`ee-item absolute ${phase === "fog" ? "ee-fog-out" : "ee-pop"}`}
                     style={{
-                      width: 52,
-                      height: 52,
-                      [side]: 14 + k * 62,
-                      top: `calc(45% + ${(k - 1) * 72}px)`,
-                      transform: "translateY(-50%)",
-                      animationDelay: phase === "fog" ? "0s" : `${1.2 + i * 0.12}s`,
+                      [side]: 12 + k * 60,
+                      top: 40 + k * 78,
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      overflow: "hidden",
+                      border: "2px solid color-mix(in oklab, var(--primary) 45%, transparent)",
+                      background: "#0b0b14",
+                      boxShadow: "0 0 14px color-mix(in oklab, var(--primary) 35%, transparent)",
+                      animationDelay: phase === "fog" ? "0s" : `${1.1 + i * 0.14}s`,
                     } as React.CSSProperties}
-                  />
+                  >
+                    <img
+                      src={p.image!}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  </div>
                 );
               })}
 
               {/* дождь из букв слова LoveVape */}
-              <div className="absolute inset-x-0 top-[38%] flex justify-center gap-0.5 sm:gap-1">
+              <div className="absolute inset-x-0 top-6 flex justify-center gap-0.5 sm:gap-1">
                 {word.map((ch, i) => (
                   <span
                     key={`${i}-${phase}`}
