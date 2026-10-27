@@ -2807,10 +2807,13 @@ for (const h of houses) {
     const maxDim = Math.max(size.x, size.y, size.z) || 1;
     const scale = 2.2 / maxDim;
     model.scale.setScalar(scale);
+    // центрируем по X/Z и ставим НИЗ модели ровно на подиум (не проваливается)
     const box2 = new THREE.Box3().setFromObject(model);
     const center = box2.getCenter(new THREE.Vector3());
-    model.position.sub(center); // центрируем на подиуме
-    model.position.y += (box2.getSize(new THREE.Vector3()).y / 2) * 0.0; // стоит на подиуме
+    const halfH = (box2.max.y - box2.min.y) / 2;
+    model.position.x -= center.x;
+    model.position.z -= center.z;
+    model.position.y -= center.y - halfH; // низ = 0 (верх подиума)
     v.scene.add(model);
     v.current = model;
     v.turntable = model;
@@ -2859,12 +2862,16 @@ for (const h of houses) {
     overlayInner.appendChild(v.canvas);
     const title = document.createElement("div");
     title.id = "bestiaryTitle";
-    title.style.cssText = "font-size:16px;font-weight:700;margin-top:8px;";
+    title.style.cssText = "font-size:15px;font-weight:700;margin-top:6px;flex-shrink:0;";
     overlayInner.appendChild(title);
+    // скроллируемая область лора — длинный текст не вылезает за экран
+    const loreWrap = document.createElement("div");
+    loreWrap.style.cssText = "flex:1;min-height:0;overflow-y:auto;width:100%;";
     const lore = document.createElement("div");
     lore.id = "bestiaryLore";
-    lore.style.cssText = "font-size:13px;color:#bbb;line-height:1.45;max-width:100%;";
-    overlayInner.appendChild(lore);
+    lore.style.cssText = "font-size:12px;color:#bbb;line-height:1.4;";
+    loreWrap.appendChild(lore);
+    overlayInner.appendChild(loreWrap);
     // табы-персонажи
     const tabs = document.createElement("div");
     tabs.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0;";
