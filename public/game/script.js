@@ -2732,6 +2732,45 @@ for (const h of houses) {
     overlay.classList.add("hidden");
   }
 
+  // ================= БЕСТИАРИЙ / ЛОР (иконка ℹ️ в меню) =================
+  function showBestiary() {
+    overlay.classList.remove("hidden");
+    overlayInner.innerHTML = "";
+    const h1 = document.createElement("h1");
+    h1.textContent = "📖 Бестиарий и лор";
+    overlayInner.appendChild(h1);
+    const scroll = document.createElement("div");
+    scroll.style.cssText = "max-height:52vh;overflow-y:auto;width:100%;text-align:left;padding:4px;";
+    const sections = [
+      { icon: "🥎", title: "Вейп (ты)", color: "#7dd3fc", text: "Последний живой вейп в городке Свит-Холлоу. Когда-то он был обычным клубничным подом с полки магазина, но однажды ночью призрак основателя завода вдохнул в него жизнь. Теперь он пара-дышащий герой, который стреляет ароматным паром и защищает свой магазин от нежити. Мечтает однажды снова просто спокойно лежать на витрине." },
+      { icon: "🧟", title: "Зомби", color: "#7bc950", text: "Бывшие покупатели магазина, которые накурились просрочки и превратились в ходячих сладкоежек. Выходят с кладбища за городом и тянутся к магазину, григы грызть витрины со сладостями. Медленные, но их много. Появляются с 1 уровня, ночью на старом шоссе." },
+      { icon: "⛪", title: "Монашка", color: "#c77dff", text: "Настоятельница заброшенного монастыря на холме. Никто не знает, что под её привычкой — древний культ Вейп-Бога, и она несёт не спасение, а сбор пара для своих тёмных обрядов. Быстрее зомби и наглее. Появляется с 1 уровня (шанс растёт с уровнем), идёт по центру дороги." },
+      { icon: "☄️", title: "Метеорит", color: "#ffa94d", text: "Обломок астероида, который упал вместе с кораблём инопланетян. Горячий, злой и пахнет горелым картриджем. В космосе (с 5 уровня) метеориты летят прямо на тебя — их приносит магнитная буря." },
+      { icon: "🟢", title: "Слизь", color: "#51cf66", text: "Живая слизь с планеты Вейп-Прайм. Съедает всё, что пахнет фруктами. Размножается делением (но у нас это уже чрезмерно — поэтому просто липнет к экрану). Появляется на планете (с 20 уровня) из древних раскопок рядом со Стоунхенджем." },
+      { icon: "🏙️", title: "Прохожий", color: "#ff8787", text: "Обычные жители города Неон-Сити (с 50 уровня). Они ни в чём не виноваты! Если задеть их паром — теряешь очки, а они кричат всякое. Машины тоже ездят сами по себе — у них автопилот от Sweethollow Motors." },
+      { icon: "🎁", title: "Бонусы", color: "#ffd43b", text: "ДИНАМИТ 💥 — взрывает всех монстров на экране. ЗАМОРОЗКА ❄️ — замораживает врагов на 15 секунд. АРОМАТИЧЕСКАЯ БАНКА 🥫 — усиливает пар вдвое на 6 секунд. Падают с неба каждые ~6 секунд." },
+      { icon: "🧰", title: "Сундук улучшений", color: "#ffa94d", text: "Появляется на 35-м уровне. Даёт ОДИН предмет навсегда: 4 жизни, 4 пули или 20 очков за монстра (но тогда монстры бьют вдвое больнее). В рюкзак влезает до 3 предметов." },
+    ];
+    for (const s of sections) {
+      const card = document.createElement("div");
+      card.style.cssText = "background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-left:3px solid " + s.color + ";border-radius:10px;padding:10px 12px;margin:8px 0;";
+      const tt = document.createElement("div");
+      tt.innerHTML = s.icon + " <b style='color:" + s.color + "'>" + s.title + "</b>";
+      tt.style.cssText = "font-size:15px;margin-bottom:4px;";
+      card.appendChild(tt);
+      const tx = document.createElement("div");
+      tx.textContent = s.text;
+      tx.style.cssText = "font-size:13px;color:#bbb;line-height:1.45;";
+      card.appendChild(tx);
+      scroll.appendChild(card);
+    }
+    overlayInner.appendChild(scroll);
+    const btn = document.createElement("button");
+    btn.textContent = "← Назад в меню";
+    btn.onclick = (e) => { e.stopPropagation(); buildMenu(); };
+    overlayInner.appendChild(btn);
+  }
+
   function buildMenu() {
     overlay.classList.remove("hidden");
     overlayInner.innerHTML = "";
@@ -2767,6 +2806,13 @@ for (const h of houses) {
       bpSlots.appendChild(slot);
     }
     bpWrap.appendChild(bpSlots);
+    // —— ИКОНКА ИНФО (справа от рюкзака) ——
+    const infoBtn = document.createElement("button");
+    infoBtn.textContent = "ℹ️";
+    infoBtn.title = "Бестиарий и лор игры";
+    infoBtn.style.cssText = "margin-left:8px;width:44px;height:44px;font-size:22px;background:rgba(122,162,255,0.15);border:1px solid rgba(122,162,255,0.5);border-radius:12px;cursor:pointer;flex-shrink:0;";
+    infoBtn.onclick = (e) => { e.stopPropagation(); showBestiary(); };
+    bpWrap.appendChild(infoBtn);
     overlayInner.appendChild(bpWrap);
     const info = document.createElement("p");
     info.textContent =
