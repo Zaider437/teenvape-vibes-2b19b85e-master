@@ -563,7 +563,7 @@ function Header({ onOpenCart, snowActive }: { onOpenCart: () => void; snowActive
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
           <a
-            href="https://t.me/Love_Vape1"
+            href="https://t.me/LV6634"
             target="_blank"
             rel="noopener noreferrer"
             className="h-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary text-primary-foreground px-3 sm:px-3 flex items-center gap-1.5 glow-soft active:translate-y-0.5 text-xs sm:text-xs font-bold"

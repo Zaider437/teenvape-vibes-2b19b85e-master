@@ -200,6 +200,6 @@ describe("Shop Component", () => {
 
     const contactLink = screen.getByRole("link", { name: /Связь с нами в Telegram/i });
     expect(contactLink).toBeDefined();
-    expect(contactLink).toHaveAttribute("href", "https://t.me/Love_Vape1");
+    expect(contactLink).toHaveAttribute("href", "https://t.me/LV6634");
   });
 });
