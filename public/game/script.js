@@ -661,6 +661,22 @@ for (let i = 0; i < 6; i++) {
     playerName = tgUser.first_name || tgUser.username || playerName;
   }
   let leaderboard = [];
+  // —— Перки / рюкзак / сундук / город ——
+  let _permPerks = [];
+  try { _permPerks = JSON.parse(localStorage.getItem("szh_perm_perks") || "[]"); } catch (e) { _permPerks = []; }
+  let chest = null;
+  let chestTakenThisRun = false; // 1 предмет за забег
+  let perks = [];
+  let extraLives = 0;
+  let bulletSpread = 0;
+  let scoreBoost = false;
+  let cityMode = false;
+  let cityCinematicDone = false;
+  let cityDecor = [];
+  let cityCars = [];
+  let cityPedestrians = [];
+  const killPhrases = ["Выкуси!", "Теперь будешь знать, каково это — когда тебя сосут!", "Вы скурили мою семью!", "У мамы теперь пососи!", "Это был не картридж... а его голова!"];
+  let lastPhrase = "";
   let spaceMode = false;
   let planetMode = false;
   let cinematicKind = null;
@@ -1237,7 +1253,14 @@ for (let i = 0; i < 6; i++) {
     smoke = [];
     score = 0;
     level = 1;
-    lives = 3;
+    try { _permPerks = JSON.parse(localStorage.getItem("szh_perm_perks") || "[]"); } catch (e) { _permPerks = []; }
+    perks = _permPerks.slice(0, 3);
+    extraLives = perks.includes("lives") ? 1 : 0;
+    bulletSpread = perks.includes("bullets") ? 1 : 0;
+    scoreBoost = perks.includes("score");
+    lives = 3 + extraLives;
+    chestTakenThisRun = false;
+    chest = null;
     player = { x: W / 2, y: H - 90, w: 60, h: 46, speed: 7, mesh: makePlayer() };
     spawnTimer = 0;
     bonusTimer = 3000;
@@ -1263,6 +1286,8 @@ for (let i = 0; i < 6; i++) {
      // ВАЖНО: возвращаем видимость ВСЕМ наземным объектам (groundDecor),
      // а не только тем, у кого есть userData.decor — иначе после космоса
      // навсегда пропадают горы, лес, камни и валуны (баг «исчезающего фона»)
+     scene.children.slice().forEach((o) => { if (o.userData && o.userData.cityDecor) scene.remove(o); });
+     cityDecor = []; cityCars = []; cityPedestrians = []; cityMode = false; cityCinematicDone = false;
      groundDecor.forEach((o) => { o.visible = true; });
      scene.children.forEach((o) => { if (o.userData && o.userData.decor) o.visible = true; });
      // восстанавливаем освещение и атмосферу ночного Хэллоуина
@@ -1471,6 +1496,7 @@ for (let i = 0; i < 6; i++) {
     makeShot(0);
     makeShot(-0.7);
     makeShot(0.7);
+    if (bulletSpread) { makeShot(-1.4); makeShot(1.4); }
     // muzzle smoke
     for (let i = 0; i < 6; i++) {
       const m = new THREE.Mesh(
@@ -1610,7 +1636,9 @@ for (let i = 0; i < 6; i++) {
           scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
           scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
           const wasKind = cinematicKind;
-          if (wasKind === "planet") { planetCinematicDone = true; enterPlanetMode(); } else { spaceCinematicDone = true; enterSpaceMode(); }
+          if (wasKind === "planet") { planetCinematicDone = true; enterPlanetMode(); }
+           else if (wasKind === "city") { cityCinematicDone = true; enterCityMode(); }
+           else { spaceCinematicDone = true; enterSpaceMode(); }
           cinematicKind = null;
           cinematic = null;
           cinematicStarted = false;
@@ -1673,7 +1701,7 @@ for (let i = 0; i < 6; i++) {
          let _sp = e.speed; if (spaceMode && !planetMode && performance.now() < slowUntil) _sp *= 0.5; e.y += _sp;
          e.x += Math.sin(performance.now() / 600 + e.wobble) * 0.4;
        }
-       e.mesh.position.set(screenToWorldX(e.x), screenToWorldY(e.y), 0);
+       e.mesh.position.set(screenToWorldX(e.x), screenToWorldY(e.y) + (planetMode && e.type === "slime" ? 2.0 : 0), 0);
        // на планете земля ниже — приподнимаем слизь, чтобы не проваливалась под землю
        if (planetMode && e.type === "slime") e.mesh.position.y += 2.2;
         if (e.label) e.label.position.set(screenToWorldX(e.x), screenToWorldY(e.y) + (e.type === "nun" ? 3.0 : 2.6), 0);
@@ -1694,7 +1722,7 @@ for (let i = 0; i < 6; i++) {
           scene.remove(e.mesh);
           if (e.label) scene.remove(e.label);
           scene.remove(s.mesh);
-           const gained = e.type === "nun" ? 25 : e.type === "meteor" ? 15 : e.type === "slime" ? 12 : 10;
+           const gained = e.type === "nun" ? 25 : e.type === "meteor" ? 15 : e.type === "slime" ? 12 : (scoreBoost ? 20 : 10);
            score += gained;
           scoreEl.textContent = score;
           addParticles(e.x, e.y, e.type === "nun" ? 0xc77dff : 0x7bc950, 20);
@@ -1707,17 +1735,41 @@ for (let i = 0; i < 6; i++) {
             beep(920, 0.18, "triangle", 0.09);
             if (level >= 5 && !spaceMode && !cinematicStarted) startCinematic("space");
             if (level >= 20 && !planetCinematicDone && !cinematic) startCinematic("planet");
+             if (level >= 35 && !chest && !chestTakenThisRun) spawnChest();
+             if (level >= 50 && !cityCinematicDone && !cinematic) startCinematic("city");
           }
           hit = true;
           break;
         }
       }
       if (hit) continue;
+      if (cityMode) {
+        for (let j = cityPedestrians.length - 1; j >= 0; j--) {
+          const p = cityPedestrians[j];
+          if (!p.alive) continue;
+          for (let k = shots.length - 1; k >= 0; k--) {
+            const s = shots[k];
+            const sWX = screenToWorldX(s.x), sWY = screenToWorldY(s.y);
+            const dxw = sWX - p.mesh.position.x;
+            const dyw = sWY - (p.mesh.position.y + 1.0);
+            if (dxw * dxw + dyw * dyw < 2.2) {
+              p.alive = false;
+              scene.remove(p.mesh);
+              shots.splice(k, 1);
+              scene.remove(s.mesh);
+              score = Math.max(0, score - 5);
+              scoreEl.textContent = score;
+              showKillPhrase(s.x, s.y);
+              break;
+            }
+          }
+        }
+      }
       if (e.y + e.r >= H - 70) {
         enemies.splice(i, 1);
         scene.remove(e.mesh);
         if (e.label) scene.remove(e.label);
-         lives--;
+         lives -= (perks.includes("score") ? 2 : 1);
          if (e.frozen && !enemies.some((x) => x.frozen)) freezeUntil = 0;
         addParticles(e.x, H - 70, 0xff4d4d, 24);
         beep(160, 0.3, "sawtooth", 0.12);
@@ -1762,6 +1814,8 @@ for (let i = 0; i < 6; i++) {
              beep(920, 0.18, "triangle", 0.09);
              if (level >= 5 && !spaceMode && !cinematicStarted) startCinematic("space");
              if (level >= 20 && !planetCinematicDone && !cinematic) startCinematic("planet");
+             if (level >= 35 && !chest && !chestTakenThisRun) spawnChest();
+             if (level >= 50 && !cityCinematicDone && !cinematic) startCinematic("city");
            }
            addParticles(b.x, b.y, 0xff6600, 45);
            beep(120, 0.4, "sawtooth", 0.15);
@@ -1823,6 +1877,7 @@ for (let i = 0; i < 6; i++) {
       }
     }
 
+     if (cityMode) updateCity(dt);
     // движущийся туман у земли (только на начальных уровнях — полосы скрыты в космосе/на планете вместе с decor)
     if (window.__groundFogStrips) {
       const nowF = performance.now();
@@ -1929,6 +1984,305 @@ for (const h of houses) {
      } else {
        upgradeLine.textContent = "Улучшения: нет";
      }
+  }
+
+  // ================= СУНДУК УЛУЧШЕНИЙ (35+ уровень) =================
+  function spawnChest() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 1.0),
+      new THREE.MeshStandardMaterial({ color: 0x7a4a1a, roughness: 0.7, metalness: 0.2 }));
+    body.position.y = 0.45; body.castShadow = true; g.add(body);
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 1.0),
+      new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.65, metalness: 0.25 }));
+    lid.position.y = 1.05; lid.rotation.x = -0.5; g.add(lid);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12),
+      new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 1.5 }));
+    glow.position.y = 1.2; g.add(glow);
+    g.position.set(0, screenToWorldY(H / 2) + 4, 2);
+    scene.add(g);
+    chest = { mesh: g, glow };
+    chestTakenThisRun = true; // один сундук за забег
+    state = "chest"; // ПАУЗА
+    showChestChoice();
+    beep(700, 0.3, "triangle", 0.1);
+  }
+
+  function showChestChoice() {
+    overlay.classList.remove("hidden");
+    overlayInner.innerHTML = "";
+    const h1 = document.createElement("h1");
+    h1.textContent = "🎁 Сундук улучшений!";
+    overlayInner.appendChild(h1);
+    const p = document.createElement("p");
+    p.textContent = "Выбери ОДИН предмет — он будет работать НАВСЕГДА:";
+    overlayInner.appendChild(p);
+    const allOptions = [
+      { key: "lives", title: "❤️ 4 жизни навсегда", desc: "Базовое здоровье увеличено до 4" },
+      { key: "bullets", title: "🔫 4 пули вместо 3", desc: "Выстрел рассыпается на 4 пули" },
+      { key: "score", title: "💰 20 очков за монстра", desc: "НО: монстры отнимают сразу 2 жизни!" },
+    ];
+    // в сундуке только предметы, которых ещё НЕТ в рюкзаке — прошлые исчезают навсегда
+    const options = allOptions.filter((o) => !_permPerks.includes(o.key));
+    if (!options.length) {
+      const all = document.createElement("p");
+      all.textContent = "Все предметы уже собраны! 🎉";
+      all.style.color = "#ffd700";
+      overlayInner.appendChild(all);
+      const btn = document.createElement("button");
+      btn.textContent = "Продолжить";
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        if (chest) { scene.remove(chest.mesh); chest = null; }
+        overlay.classList.add("hidden");
+        overlayInner.innerHTML = "";
+        state = "playing";
+      };
+      overlayInner.appendChild(btn);
+      return;
+    }
+    for (const o of options) {
+      const btn = document.createElement("button");
+      btn.textContent = o.title;
+      btn.style.cssText = "display:block;width:100%;margin:8px 0;padding:12px;border-radius:10px;border:2px solid #ff7a18;background:#1a1a2a;color:#fff;font-weight:700;cursor:pointer;font-size:16px;";
+      const desc = document.createElement("div");
+      desc.textContent = o.desc;
+      desc.style.cssText = "font-size:12px;color:#999;font-weight:400;margin-top:4px;";
+      btn.appendChild(desc);
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        chooseChestPerk(o.key);
+      };
+      overlayInner.appendChild(btn);
+    }
+  }
+
+  function chooseChestPerk(key) {
+    let perms = [];
+    try { perms = JSON.parse(localStorage.getItem("szh_perm_perks") || "[]"); } catch (e) {}
+    if (!perms.includes(key)) perms.push(key); // только 1 предмет за раз
+    localStorage.setItem("szh_perm_perks", JSON.stringify(perms));
+    _permPerks = perms;
+    perks = perms.slice(0, 3);
+    extraLives = perks.includes("lives") ? 1 : 0;
+    bulletSpread = perks.includes("bullets") ? 1 : 0;
+    scoreBoost = perks.includes("score");
+    if (key === "lives") lives = 3 + extraLives;
+    if (chest) { scene.remove(chest.mesh); chest = null; }
+    overlay.classList.add("hidden");
+    overlayInner.innerHTML = "";
+    state = "playing";
+    upgradeLine.textContent = "Рюкзак: " + perks.length + "/3 — " + key;
+    beep(880, 0.2, "triangle", 0.1);
+  }
+
+  // ================= УРОВЕНЬ 50: ГОРОД =================
+  function enterCityMode() {
+    cityMode = true;
+    groundDecor.forEach((o) => { o.visible = false; });
+    const asphaltTex = (() => {
+      const c = document.createElement("canvas");
+      c.width = 256; c.height = 256;
+      const cx = c.getContext("2d");
+      cx.fillStyle = "#333338";
+      cx.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 1500; i++) {
+        cx.fillStyle = "rgba(255,255,255," + (Math.random() * 0.05) + ")";
+        cx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+      }
+      const tx = new THREE.CanvasTexture(c);
+      tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
+      tx.repeat.set(10, 10);
+      return tx;
+    })();
+    const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(300, 300, 40, 40), new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.9 }));
+    cityGround.rotation.x = -Math.PI / 2;
+    cityGround.position.y = -2;
+    cityGround.receiveShadow = true;
+    cityGround.userData.cityDecor = true;
+    scene.add(cityGround);
+    cityDecor.push(cityGround);
+    scene.fog.color.set(0x0a0a18);
+    scene.fog.near = 50;
+    scene.fog.far = 350;
+    sky.material.color.set(0x141428);
+    ambient.intensity = 0.45;
+    ambient.color.set(0x8899bb);
+    hemi.intensity = 0.3;
+    dir.color.set(0xffeecc);
+    dir.intensity = 0.8;
+    const buildingMats = [0x2a2a3a, 0x3a2a2a, 0x2a3a2a, 0x3a3a2a];
+    for (let side = -1; side <= 1; side += 2) {
+      for (let i = 0; i < 10; i++) {
+        const bw = 6 + Math.random() * 4;
+        const bh = 10 + Math.random() * 18;
+        const bx = side * (14 + Math.random() * 14);
+        const bz = -20 - i * 24;
+        const b = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bw), new THREE.MeshStandardMaterial({ color: buildingMats[i % buildingMats.length], roughness: 0.85 }));
+        b.position.set(bx, -2 + bh / 2, bz);
+        b.castShadow = true;
+        b.userData.cityDecor = true;
+        scene.add(b);
+        cityDecor.push(b);
+        const winMat = new THREE.MeshStandardMaterial({ color: 0xffcc66, emissive: 0xffaa33, emissiveIntensity: 0.8 });
+        for (let wy = 1; wy < bh - 1; wy += 2.2) {
+          for (let wx = -bw / 2 + 1; wx < bw / 2 - 0.5; wx += 1.6) {
+            if (Math.random() < 0.55) {
+              const win = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.0), winMat);
+              win.position.set(bx + wx * side, -2 + wy, bz + side * (bw / 2 + 0.05));
+              win.userData.cityDecor = true;
+              scene.add(win);
+              cityDecor.push(win);
+            }
+          }
+        }
+      }
+    }
+    const cityRoad = new THREE.Mesh(new THREE.PlaneGeometry(18, 300), new THREE.MeshStandardMaterial({ color: 0x222226, roughness: 0.85 }));
+    cityRoad.rotation.x = -Math.PI / 2;
+    cityRoad.position.y = -1.98;
+    cityRoad.userData.cityDecor = true;
+    scene.add(cityRoad);
+    cityDecor.push(cityRoad);
+    for (let z = -140; z <= 140; z += 10) {
+      const line = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 4), new THREE.MeshStandardMaterial({ color: 0xdddddd, emissive: 0x888888, emissiveIntensity: 0.3 }));
+      line.rotation.x = -Math.PI / 2;
+      line.position.set(0, -1.96, z);
+      line.userData.cityDecor = true;
+      scene.add(line);
+      cityDecor.push(line);
+    }
+    for (const cz of [-40, 20, 80]) {
+      for (let i = -7; i <= 7; i += 1.4) {
+        const zebra = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 3.5), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbbbbbb, emissiveIntensity: 0.2 }));
+        zebra.rotation.x = -Math.PI / 2;
+        zebra.position.set(i, -1.95, cz);
+        zebra.userData.cityDecor = true;
+        scene.add(zebra);
+        cityDecor.push(zebra);
+      }
+      const sign = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3, 6), new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.6 }));
+      sign.position.set(9.5, -0.5, cz);
+      sign.userData.cityDecor = true;
+      scene.add(sign);
+      cityDecor.push(sign);
+    }
+    for (let z = -120; z <= 120; z += 24) {
+      for (const lx of [-10, 10]) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 7, 8), new THREE.MeshStandardMaterial({ color: 0x444448, metalness: 0.7 }));
+        pole.position.set(lx, 1.5, z);
+        pole.userData.cityDecor = true;
+        scene.add(pole);
+        cityDecor.push(pole);
+        const lampHead = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 10), new THREE.MeshStandardMaterial({ color: 0xffeebb, emissive: 0xffcc66, emissiveIntensity: 1.5 }));
+        lampHead.position.set(lx, 5.2, z);
+        lampHead.userData.cityDecor = true;
+        scene.add(lampHead);
+        cityDecor.push(lampHead);
+      }
+    }
+    upgradeLine.textContent = "Уровень 50: ГОРОД 🏙️ — не задави пешеходов!";
+    cityCars = [];
+    const carColors = [0xcc2222, 0x2266cc, 0x22aa44, 0xddaa22, 0x888888, 0xaa22aa];
+    for (let i = 0; i < 5; i++) {
+      const car = new THREE.Group();
+      const cc = carColors[i % carColors.length];
+      const cbody = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.8, 4.2), new THREE.MeshStandardMaterial({ color: cc, metalness: 0.6, roughness: 0.35 }));
+      cbody.position.y = 0.6; cbody.castShadow = true; car.add(cbody);
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.6, 2.0), new THREE.MeshStandardMaterial({ color: 0x223344, metalness: 0.4, roughness: 0.2 }));
+      cabin.position.set(0, 1.2, -0.2); car.add(cabin);
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+      for (const wz of [1.4, -1.4]) {
+        for (const wx of [-1.0, 1.0]) {
+          const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.25, 12), wheelMat);
+          wheel.rotation.z = Math.PI / 2;
+          wheel.position.set(wx, 0.35, wz);
+          car.add(wheel);
+        }
+      }
+      const headlightMat = new THREE.MeshStandardMaterial({ color: 0xffffcc, emissive: 0xffffaa, emissiveIntensity: 1.2 });
+      for (const hxx of [-0.6, 0.6]) {
+        const hl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), headlightMat);
+        hl.position.set(hxx, 0.6, 2.1);
+        car.add(hl);
+      }
+      const dirSign = Math.random() > 0.5 ? 1 : -1;
+      car.position.set(dirSign > 0 ? -4.5 : 4.5, -1.6, -60 - i * 40);
+      if (dirSign < 0) car.rotation.y = Math.PI;
+      scene.add(car);
+      cityCars.push({ mesh: car, dir: dirSign, speed: 0.3 + Math.random() * 0.3 });
+    }
+    cityPedestrians = [];
+    const pedShirts = [0xdd4444, 0x4466dd, 0x44aa66, 0xddaa44, 0x8844dd, 0xdd66aa];
+    for (let i = 0; i < 8; i++) {
+      const ped = makePedestrian(pedShirts[i % pedShirts.length]);
+      ped.position.set(rand(-14, 14), -1.6, rand(-80, 20));
+      scene.add(ped);
+      cityPedestrians.push({ mesh: ped, x: ped.position.x, z: ped.position.z, vx: rand(-0.08, 0.08), vz: rand(-0.08, 0.08), alive: true });
+    }
+  }
+
+  function makePedestrian(shirtColor) {
+    const g = new THREE.Group();
+    const skin = new THREE.MeshStandardMaterial({ color: 0xf5d6b3, roughness: 0.6 });
+    const shirt = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.35), new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.8 }));
+    shirt.position.y = 1.1; shirt.castShadow = true; g.add(shirt);
+    for (const lx of [-0.16, 0.16]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.85, 8), new THREE.MeshStandardMaterial({ color: 0x223355, roughness: 0.9 }));
+      leg.position.set(lx, 0.45, 0);
+      g.add(leg);
+    }
+    for (const ax of [-0.4, 0.4]) {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.7, 8), skin);
+      arm.position.set(ax, 1.1, 0);
+      g.add(arm);
+    }
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 16), skin);
+    head.position.y = 1.85; head.castShadow = true; g.add(head);
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.29, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9 }));
+    hair.position.y = 1.88; g.add(hair);
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+    eyeL.position.set(-0.1, 1.88, 0.26); g.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = 0.1; g.add(eyeR);
+    return g;
+  }
+
+  function updateCity(dt) {
+    for (const c of cityCars) {
+      c.mesh.position.z += c.dir * c.speed;
+      if (c.mesh.position.z > 100) c.mesh.position.z = -160;
+      if (c.mesh.position.z < -160) c.mesh.position.z = 100;
+    }
+    for (const p of cityPedestrians) {
+      if (!p.alive) continue;
+      p.x += p.vx;
+      p.z += p.vz;
+      if (Math.abs(p.x) > 15) p.vx *= -1;
+      if (p.z > 30 || p.z < -100) p.vz *= -1;
+      p.mesh.position.set(p.x, -1.6, p.z);
+      p.mesh.rotation.y = Math.atan2(p.vx, p.vz);
+    }
+  }
+
+  function showKillPhrase(x, y) {
+    let phrase = killPhrases[Math.floor(Math.random() * killPhrases.length)];
+    while (phrase === lastPhrase && killPhrases.length > 1) phrase = killPhrases[Math.floor(Math.random() * killPhrases.length)];
+    lastPhrase = phrase;
+    const c = document.createElement("canvas");
+    c.width = 1024; c.height = 128;
+    const cx = c.getContext("2d");
+    cx.fillStyle = "rgba(0,0,0,0.75)";
+    cx.fillRect(0, 0, 1024, 128);
+    cx.font = "bold 44px sans-serif";
+    cx.fillStyle = "#ff4455";
+    cx.textAlign = "center";
+    cx.textBaseline = "middle";
+    cx.fillText(phrase, 512, 64);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false }));
+    sp.scale.set(9, 1.15, 1);
+    sp.position.set(screenToWorldX(x), screenToWorldY(y), 3);
+    scene.add(sp);
+    setTimeout(() => scene.remove(sp), 2500);
+    beep(200, 0.25, "sawtooth", 0.12);
   }
 
   function gameOver() {
@@ -2089,6 +2443,8 @@ for (const h of houses) {
     groundDecor.forEach((o) => { o.visible = false; });
     if (player && player.mesh) scene.remove(player.mesh);
     player.mesh = makePlayer();
+    player.mesh.visible = true;
+    player.mesh.scale.setScalar(1);
     spaceMode = false;
     // Земля: холмистое поле с травяной текстурой (реалистичный дневной вид)
     const pgroundGeo = new THREE.PlaneGeometry(300, 300, 60, 60);
@@ -2295,6 +2651,7 @@ for (const h of houses) {
   function startCinematic(kind) {
     if (kind === "space" && spaceCinematicDone) return;
     if (kind === "planet" && planetCinematicDone) return;
+    if (kind === "city" && cityCinematicDone) return;
     if (cinematic) return;
     cinematicKind = kind;
     cinematic = { start: performance.now() };
@@ -2310,7 +2667,7 @@ for (const h of houses) {
     spawnTimer = 1200;
     bonusTimer = 5000;
     cinematicStarted = true;
-    upgradeLine.textContent = kind === "planet" ? "Уровень 20: новый мир! 🪐" : "Уровень 5: запуск! 🚀";
+    upgradeLine.textContent = kind === "planet" ? "Уровень 20: новый мир! 🪐" : kind === "city" ? "Уровень 50: въезжаем в город! 🏙️" : "Уровень 5: запуск! 🚀";
   }
   function startGame() {
     if (!tgUser) return;
@@ -2336,6 +2693,33 @@ for (const h of houses) {
     const sub = document.createElement("p");
     sub.textContent = "Halloween Vape Edition — 3D";
     overlayInner.appendChild(sub);
+    // —— РЮКЗАК (3 слота, предметы НАВСЕГДА) ——
+    let _menuPerks = [];
+    try { _menuPerks = JSON.parse(localStorage.getItem("szh_perm_perks") || "[]"); } catch (e) {}
+    const bpWrap = document.createElement("div");
+    bpWrap.style.cssText = "display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px;background:rgba(255,122,24,0.08);border:1px solid rgba(255,122,24,0.4);border-radius:12px;";
+    const bpIcon = document.createElement("div");
+    bpIcon.textContent = "🎒";
+    bpIcon.style.cssText = "font-size:34px;";
+    bpWrap.appendChild(bpIcon);
+    const bpLabel = document.createElement("div");
+    bpLabel.textContent = "Рюкзак перков:";
+    bpLabel.style.cssText = "font-size:13px;color:#ccc;";
+    bpWrap.appendChild(bpLabel);
+    const bpSlots = document.createElement("div");
+    bpSlots.style.cssText = "display:flex;gap:6px;";
+    const perkIcons = { lives: "❤️", bullets: "🔫", score: "💰" };
+    const perkNames = { lives: "4 жизни навсегда", bullets: "4 пули вместо 3", score: "20 очков (2 урона)" };
+    for (let i = 0; i < 3; i++) {
+      const slot = document.createElement("div");
+      const perk = _menuPerks[i];
+      slot.textContent = perk ? perkIcons[perk] : "➕";
+      slot.title = perk ? perkNames[perk] : "Пустой слот — получи предмет из сундука на 35 уровне";
+      slot.style.cssText = "width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:20px;background:" + (perk ? "rgba(255,122,24,0.35)" : "rgba(255,255,255,0.06)") + ";border:1px dashed " + (perk ? "#ff7a18" : "#555") + ";border-radius:8px;";
+      bpSlots.appendChild(slot);
+    }
+    bpWrap.appendChild(bpSlots);
+    overlayInner.appendChild(bpWrap);
     const info = document.createElement("p");
     info.textContent =
       "Стрелки/мышь — движение, пробел/клик — выстрел, R — перезарядка. Телефон: свайп — движение, тап — выстрел.";
@@ -2485,6 +2869,7 @@ for (const h of houses) {
 
   // Input
   window.addEventListener("keydown", (e) => {
+    if (state === "chest") return;
     if (e.key === "ArrowLeft") keys.left = true;
     if (e.key === "ArrowRight") keys.right = true;
     if (e.key === "r" || e.key === "R") startReload();
@@ -2505,6 +2890,7 @@ for (const h of houses) {
   });
   renderer.domElement.addEventListener("mousedown", (e) => {
     ensureAudio();
+    if (state === "chest") return;
     const rect = renderer.domElement.getBoundingClientRect();
     mouseX = e.clientX - rect.left;
     if (state === "playing") fire();
@@ -2581,15 +2967,15 @@ for (const h of houses) {
   // update lives in loop
   function updateLivesUI() {
     livesEl.textContent = "❤".repeat(Math.max(0, lives));
-    ammoEl.textContent = reloading ? "Перезарядка..." : `Патроны: ${ammo}/${MAX_AMMO}`;
+    ammoEl.textContent = reloading ? "Перезарядка..." : `Патроны: ${ammo}/${MAX_AMMO}` + (perks.length ? ` | Рюкзак: ${perks.length}/3` : "");
   }
 
   let lastTime = performance.now();
   function loop(now) {
     const dt = now - lastTime;
     lastTime = now;
-    if (state === "playing") {
-       try { update(dt); } catch (e) { upgradeLine.textContent = "ERR: " + e.message; console.error(e); }
+    if (state === "playing" || state === "chest") {
+       try { if (state === "playing") update(dt); } catch (e) { upgradeLine.textContent = "ERR: " + e.message; console.error(e); }
        try { updateLivesUI(); } catch (e) {}
     }
     // player mesh update (position already in update; but menu no player)
