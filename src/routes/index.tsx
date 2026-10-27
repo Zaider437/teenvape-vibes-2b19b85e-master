@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { getEventSettings } from "@/lib/admin.functions";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ShoppingBag,
@@ -291,7 +291,7 @@ export function Shop({
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-32">
-      <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} />
+      <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} products={products} />
       {eventThemeActive && (
         <div className="fixed inset-0 pointer-events-none z-[45] overflow-hidden">
           <div className="absolute inset-0 event-ambient" />
@@ -538,27 +538,123 @@ export function Shop({
   );
 }
 
-function Header({ onOpenCart, snowActive }: { onOpenCart: () => void; snowActive?: boolean }) {
+function Header({ onOpenCart, snowActive, products = [] }: { onOpenCart: () => void; snowActive?: boolean; products?: Product[] }) {
   const { count } = useCart();
+  const [phase, setPhase] = useState<"idle" | "rain" | "fog">("idle");
+  const clicksRef = useRef({ n: 0, t: 0 });
+
+  // банки жидкостей с сайта (случайные, обрезанные до банок)
+  const bottles = useMemo(() => {
+    const withImg = products.filter((p) => p.image);
+    if (!withImg.length) return [];
+    return [...withImg].sort(() => Math.random() - 0.5).slice(0, 6);
+  }, [products, phase]);
+
+  const handleLogoClick = useCallback(() => {
+    const now = Date.now();
+    const c = clicksRef.current;
+    c.n = now - c.t < 700 ? c.n + 1 : 1;
+    c.t = now;
+    if (c.n >= 3 && c.n % 3 === 0) {
+      setPhase((prev) => {
+        if (prev !== "idle") return prev;
+        setTimeout(() => setPhase("fog"), 3400);
+        setTimeout(() => setPhase("idle"), 5200);
+        return "rain";
+      });
+    }
+  }, []);
+
+  const word = "LoveVape".split("");
+
   return (
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-lg border-b border-border">
       <div className="px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="h-8 sm:h-11 flex items-center relative">
-            <LoveVapeLogo className="h-7 sm:h-9 w-auto" />
-            {snowActive && (
+        <div className="flex items-center gap-2 sm:gap-3 relative">
+          {/* Пасхалка: дождь букв LoveVape + банки по бокам + туман */}
+          {phase !== "idle" && (
+            <div className="pointer-events-none absolute -bottom-1 left-0 right-0 top-full z-50 h-[260px] overflow-hidden" aria-hidden>
+              {/* боковые буквы L и E */}
               <span
-                className="absolute -top-1 -right-1 text-base animate-bounce"
-                aria-hidden="true"
+                className={`ee-item absolute left-2 sm:left-8 top-[45%] font-display text-primary text-4xl sm:text-6xl font-black ${phase === "fog" ? "ee-fog-out" : "ee-pop"}`}
+                style={{ animationDelay: phase === "fog" ? "0s" : "0.9s", textShadow: "0 0 18px var(--primary)" }}
               >
-                🎄
+                L
               </span>
-            )}
-          </div>
-          <div className="leading-none">
-            <div className="font-display text-xl sm:text-2xl tracking-tight">
-              <span className="text-primary">Love</span>
-              <span className="text-foreground">Vape</span>
+              <span
+                className={`ee-item absolute right-2 sm:right-8 top-[45%] font-display text-primary text-4xl sm:text-6xl font-black ${phase === "fog" ? "ee-fog-out" : "ee-pop"}`}
+                style={{ animationDelay: phase === "fog" ? "0s" : "1.05s", textShadow: "0 0 18px var(--primary)" }}
+              >
+                E
+              </span>
+
+              {/* банки жидкостей по бокам (обрезаны до банок) */}
+              {bottles.map((p, i) => {
+                const side = i < 3 ? "left" : "right";
+                const k = i % 3;
+                return (
+                  <img
+                    key={`${p.id}-${phase}`}
+                    src={p.image!}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className={`ee-item absolute rounded-full object-cover border-2 border-primary/40 bg-background ${phase === "fog" ? "ee-fog-out" : "ee-pop"}`}
+                    style={{
+                      width: 52,
+                      height: 52,
+                      [side]: 14 + k * 62,
+                      top: `calc(45% + ${(k - 1) * 72}px)`,
+                      transform: "translateY(-50%)",
+                      animationDelay: phase === "fog" ? "0s" : `${1.2 + i * 0.12}s`,
+                    } as React.CSSProperties}
+                  />
+                );
+              })}
+
+              {/* дождь из букв слова LoveVape */}
+              <div className="absolute inset-x-0 top-[38%] flex justify-center gap-0.5 sm:gap-1">
+                {word.map((ch, i) => (
+                  <span
+                    key={`${i}-${phase}`}
+                    className={`ee-item font-display font-black text-3xl sm:text-5xl ${i < 4 ? "text-primary" : "text-foreground"} ${phase === "fog" ? "ee-fog-out" : "ee-drop"}`}
+                    style={{
+                      animationDelay: phase === "fog" ? "0s" : `${i * 0.12}s`,
+                      textShadow: i < 4 ? "0 0 14px var(--primary)" : "0 2px 8px rgba(0,0,0,0.6)",
+                    }}
+                  >
+                    {ch}
+                  </span>
+                ))}
+              </div>
+
+              {/* туман-растворение */}
+              {phase === "fog" && <div className="ee-fog absolute inset-0" />}
+            </div>
+          )}
+
+          {/* картинка-логотип + надпись — триггер (3 клика) */}
+          <div
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none"
+            onClick={handleLogoClick}
+            title=""
+          >
+            <div className="h-8 sm:h-11 flex items-center relative">
+              <LoveVapeLogo className="h-7 sm:h-9 w-auto" />
+              {snowActive && (
+                <span
+                  className="absolute -top-1 -right-1 text-base animate-bounce"
+                  aria-hidden="true"
+                >
+                  🎄
+                </span>
+              )}
+            </div>
+            <div className="leading-none">
+              <div className="font-display text-xl sm:text-2xl tracking-tight">
+                <span className="text-primary">Love</span>
+                <span className="text-foreground">Vape</span>
+              </div>
             </div>
           </div>
         </div>
