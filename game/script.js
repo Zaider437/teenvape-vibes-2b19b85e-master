@@ -2863,16 +2863,12 @@ for (const h of houses) {
     overlayInner.appendChild(v.canvas);
     const title = document.createElement("div");
     title.id = "bestiaryTitle";
-    title.style.cssText = "font-size:15px;font-weight:700;margin-top:6px;flex-shrink:0;";
+    title.style.cssText = "font-size:16px;font-weight:700;margin-top:8px;";
     overlayInner.appendChild(title);
-    // скроллируемая область лора — длинный текст не вылезает за экран
-    const loreWrap = document.createElement("div");
-    loreWrap.style.cssText = "flex:1;min-height:0;overflow-y:auto;width:100%;";
     const lore = document.createElement("div");
     lore.id = "bestiaryLore";
-    lore.style.cssText = "font-size:12px;color:#bbb;line-height:1.4;";
-    loreWrap.appendChild(lore);
-    overlayInner.appendChild(loreWrap);
+    lore.style.cssText = "font-size:13px;color:#bbb;line-height:1.45;max-width:100%;";
+    overlayInner.appendChild(lore);
     // табы-персонажи
     const tabs = document.createElement("div");
     tabs.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0;";
