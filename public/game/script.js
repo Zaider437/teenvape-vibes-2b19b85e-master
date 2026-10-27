@@ -632,6 +632,7 @@ for (let i = 0; i < 6; i++) {
   let level = 1;
   let lives = 3;
   let player = null;
+  let vapeTemplate = null;
   let shots = [];
   let enemies = [];
   let bonuses = [];
@@ -680,7 +681,7 @@ for (let i = 0; i < 6; i++) {
     const speechTex = new THREE.CanvasTexture(speechCanvas);
     const speechMat = new THREE.SpriteMaterial({ map: speechTex, transparent: true, depthTest: false });
     const speechSprite = new THREE.Sprite(speechMat);
-    speechSprite.scale.set(11, 2.75, 1); // крупно, чтобы читалось на любом ракурсе
+    speechSprite.scale.set(5.5, 1.375, 1); // умеренный размер, читается на любом ракурсе
     speechSprite.position.set(0, 3.4, 0);
     speechSprite.visible = false;
     g.add(speechSprite);
@@ -689,6 +690,31 @@ for (let i = 0; i < 6; i++) {
   function makePlayer() {
     const g = new THREE.Group();
     scene.add(g);
+    if (vapeTemplate) {
+      const model = vapeTemplate.clone(true);
+      model.scale.set(3.5, 3.5, 3.5);
+      model.position.set(0, -0.2, 0);
+      model.traverse((o) => { if (o.isMesh && o.material) { if (o.material.color) o.material.color.set(0x2255aa); if (o.material.emissive) o.material.emissive.set(0x113366); } });
+      g.add(model);
+      g.userData.model = model;
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), eyeMat);
+      const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), pupilMat);
+      eyeL.position.set(-0.35, 0.7, 1.2);
+      pupilL.position.set(0, 0, 0.12);
+      eyeL.add(pupilL);
+      const eyeR = eyeL.clone();
+      eyeR.position.x = 0.35;
+      g.add(eyeL); g.add(eyeR);
+      g.userData.eyes = [eyeL, eyeR];
+      const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.12), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+      mouth.position.set(0, 0.45, 1.3);
+      g.add(mouth);
+      g.userData.mouth = mouth;
+      attachSpeech(g);
+      return g;
+    }
     // Fallback-вейп: виден МГНОВЕННО, пока грузится GLTF-модель (иначе моделька «пропадает» при пересоздании игрока)
     const fbBody = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.2, 0.55), new THREE.MeshStandardMaterial({ color: 0x2255aa, metalness: 0.6, roughness: 0.35 }));
     fbBody.position.y = 0.6; fbBody.castShadow = true; g.add(fbBody);
@@ -736,6 +762,8 @@ for (let i = 0; i < 6; i++) {
         mouth.position.set(0, 0.45, 1.3);
         g.add(mouth);
         g.userData.mouth = mouth;
+        // кэшируем базовую модель для последующих пересозданий
+        try { vapeTemplate = model.clone(true); } catch (e) {}
         // phrases
          attachSpeech(g);
       }, undefined, (err) => {
@@ -1562,18 +1590,22 @@ for (let i = 0; i < 6; i++) {
            spaceship.position.set(0, groundY + 1.5 + hover, -18);
            spaceship.rotation.z = Math.sin(t * 1.5) * 0.05; // лёгкое покачивание
          }
-         if (cinematicKind === "space" && player && player.mesh) {
-           const bp = Math.min(1, Math.max(0, (t - 1) / 2.5));
-           player.mesh.position.x = screenToWorldX(player.x) * (1 - bp);
-           player.mesh.position.y = screenToWorldY(player.y) * (1 - bp);
-           player.mesh.scale.setScalar(1 - bp * 0.8);
-         }
+          if (cinematicKind === "space" && player && player.mesh) {
+            const bp = Math.min(1, Math.max(0, (t - 1) / 2.5));
+            player.mesh.position.x = screenToWorldX(player.x) * (1 - bp);
+            player.mesh.position.y = screenToWorldY(player.y) * (1 - bp);
+            if (bp >= 0.85) {
+              player.mesh.visible = false;
+            } else {
+              player.mesh.visible = true;
+              player.mesh.scale.setScalar(1 - bp * 0.9);
+            }
+          }
        }
        const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
        camera.position.z = baseCameraZ * zoomFactor;
        camera.lookAt(0, 0, 0);
-       if (t >= 4.2) {
-         if (spaceship) { scene.remove(spaceship); spaceship = null; }
+        if (t >= 4.2) {
           // СНАЧАЛА чистим декор старого мира, ПОТОМ входим в новый
           scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
           scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
@@ -1582,9 +1614,9 @@ for (let i = 0; i < 6; i++) {
           cinematicKind = null;
           cinematic = null;
           cinematicStarted = false;
-         camera.position.z = baseCameraZ;
-         camera.lookAt(0, 0, 0);
-       }
+          camera.position.z = baseCameraZ;
+          camera.lookAt(0, 0, 0);
+        }
        return;
      }
 
@@ -1971,8 +2003,17 @@ for (const h of houses) {
   function enterSpaceMode() {
     spaceMode = true;
     groundDecor.forEach((o) => { o.visible = false; });
-    if (player && player.mesh) scene.remove(player.mesh);
-    const _ship = makeSpaceship(); _ship.scale.setScalar(0.6); player.mesh = _ship; attachSpeech(player.mesh);
+    if (spaceship) {
+      if (player && player.mesh && player.mesh !== spaceship) scene.remove(player.mesh);
+      player.mesh = spaceship;
+      spaceship = null;
+      player.mesh.scale.setScalar(0.6);
+      if (!player.mesh.userData.speech) attachSpeech(player.mesh);
+      player.mesh.visible = true;
+    } else {
+      if (player && player.mesh) scene.remove(player.mesh);
+      const _ship = makeSpaceship(); _ship.scale.setScalar(0.6); player.mesh = _ship; attachSpeech(player.mesh);
+    }
     scene.fog.color.set(0x000011);
     scene.fog.near = 120;
     scene.fog.far = 420;
