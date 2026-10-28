@@ -55,6 +55,8 @@ THREE.CapsuleGeometry = function (radius, length, capSegments, radialSegments) {
   g.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   g.setIndex(indices);
-  g.computeVertexNormals(); // accurate normals from geometry
-  return g;
+g.computeVertexNormals(); // accurate normals from geometry
+g.computeBoundingSphere();
+g.computeBoundingBox();
+return g;
 };
