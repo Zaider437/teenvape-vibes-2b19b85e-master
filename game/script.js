@@ -17,10 +17,10 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  // реалистичный отклик материалов: физически корректный рендер и ACES-тонмаппинг
-  if (THREE.ColorManagement) THREE.ColorManagement.enabled = true;
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  // ВАЖНО: без ACES-тонмаппинга — он заметно затемнял всю сцену (сцена казалась тёмной)
+  // ЛЕГАСИ-РЕЖИМ ЦВЕТА: как в старом three r128 — без sRGB-выхода и без color management.
+  // Иначе вся палитра сцены уходит в темноту/грязь по сравнению с оригиналом.
+  if (THREE.ColorManagement) THREE.ColorManagement.enabled = false;
+  if (THREE.SRGBColorSpace !== undefined) renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
   // Защита от «белого экрана»: если GPU теряет контекст (перегруз), пробуем восстановить
   renderer.domElement.addEventListener("webglcontextlost", (e) => { e.preventDefault(); console.warn("WebGL context lost — восстановление..."); });
