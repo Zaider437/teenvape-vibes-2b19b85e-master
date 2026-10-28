@@ -2720,8 +2720,8 @@ for (const h of houses) {
     scene.add(road);
     // Дневное небо с облаками
     scene.fog.color.set(0xbcd8f0);
-    scene.fog.near = 60;
-    scene.fog.far = 320;
+    scene.fog.near = 90;   // туман начинается дальше — замок на горизонте остаётся виден
+    scene.fog.far = 400;
     sky.material.color.set(0x87b8e8);
     ambient.intensity = 0.75;
     ambient.color.set(0xffffff);
@@ -2877,13 +2877,14 @@ for (const h of houses) {
     const castleWallMat = new THREE.MeshStandardMaterial({ color: 0x7a7a85, roughness: 0.85, emissive: 0x2a2a35, emissiveIntensity: 0.5 });
     const castleRoofMat = new THREE.MeshStandardMaterial({ color: 0x6a3050, roughness: 0.6, emissive: 0x301528, emissiveIntensity: 0.5 });
     const castleWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2f18, roughness: 0.9 });
-    const cz = -150; // далеко за Стоунхенджем — силуэт на горизонте
-    const castleScale = 2.2; // крупный, чтобы читался издалека
+    const cz = -110; // достаточно близко, чтобы замок читался сквозь дымку
+    const castleScale = 2.6; // крупный, чтобы читался издалека
     function addCastlePart(geo, mat, x, y, z, rotY) {
       const m = new THREE.Mesh(geo, mat);
       m.position.set(x * castleScale, ground.position.y + y * castleScale, z);
       if (rotY !== undefined) m.rotation.y = rotY;
       m.castShadow = true;
+      m.renderOrder = 10; // рисуем поверх леса/облаков, не «за фоном»
       m.userData.planetDecor = true;
       scene.add(m);
       return m;
