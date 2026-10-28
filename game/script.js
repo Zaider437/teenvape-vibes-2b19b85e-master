@@ -17,6 +17,7 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+if (THREE.sRGBEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
   // r128: никакого color management / tone mapping не нужно — оригинальный яркий вид игры
   // Защита от «белого экрана»: если GPU теряет контекст (перегруз), пробуем восстановить
   renderer.domElement.addEventListener("webglcontextlost", (e) => { e.preventDefault(); console.warn("WebGL context lost — восстановление..."); });

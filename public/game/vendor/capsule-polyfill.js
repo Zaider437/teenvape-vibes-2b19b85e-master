@@ -57,6 +57,8 @@ THREE.CapsuleGeometry = function (radius, length, capSegments, radialSegments) {
   g.setIndex(new THREE.BufferAttribute(new Uint16Array(indices), 1));
 g.computeVertexNormals(); // accurate normals from geometry
 g.computeBoundingSphere();
+// safety: prevent frustum culling from hiding capsule meshes
+g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 100);
 g.computeBoundingBox();
 return g;
 };
