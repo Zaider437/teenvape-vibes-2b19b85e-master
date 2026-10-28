@@ -871,7 +871,8 @@ for (let i = 0; i < 6; i++) {
       g.add(tuft);
     }
 
-    // РУКИ: шарнирные группы (плечо -> локоть -> кисть), выставлены вперёд как у классического зомби
+    // РУКИ: шарнирные группы (плечо -> локоть -> кисть).
+    // Левая — вытянута вперёд (классическая поза), правая — опущена и ДЕРЖИТ вилы.
     function makeArm(side) {
       const pivot = new THREE.Group(); pivot.position.set(side * 0.33, 0.98, 0);
       const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.26, 4, 10), skinMat);
@@ -879,19 +880,25 @@ for (let i = 0; i < 6; i++) {
       const elbow = new THREE.Group(); elbow.position.y = -0.32; pivot.add(elbow);
       const fore = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.24, 4, 10), skinMat);
       fore.position.y = -0.15; fore.castShadow = true; elbow.add(fore);
-      elbow.rotation.x = -1.15; // предплечье вперёд
       const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), skinMat);
       hand.scale.set(0.9, 1.1, 0.7); hand.position.y = -0.3; elbow.add(hand);
       for (let f = 0; f < 3; f++) {
         const finger = new THREE.Mesh(new THREE.CapsuleGeometry(0.014, 0.05, 3, 6), skinMat);
         finger.position.set(-0.03 + f * 0.03, -0.38, 0.02); finger.rotation.x = 0.4; elbow.add(finger);
       }
-      pivot.rotation.x = -1.35; // вся рука вытянута вперёд
-      pivot.rotation.z = side * 0.12;
+      if (side === 1) {
+        // правая рука опущена вдоль тела (держит вилы за древко)
+        pivot.rotation.x = -0.15; pivot.rotation.z = -0.1;
+        elbow.rotation.x = -0.25;
+      } else {
+        // левая — вытянута вперёд
+        pivot.rotation.x = -1.35; pivot.rotation.z = side * 0.12;
+        elbow.rotation.x = -1.15;
+      }
       g.add(pivot);
       return pivot;
     }
-    makeArm(-1); makeArm(1);
+    makeArm(-1); const rightArm = makeArm(1);
 
     // НОГИ: бедро -> колено -> ступня
     function makeLeg(side) {
@@ -909,35 +916,39 @@ for (let i = 0; i < 6; i++) {
     }
     makeLeg(-1); makeLeg(1);
 
-    // ВИЛЫ: деревянное топорище + металлические зубцы с остриями
+    // ВИЛЫ: привязаны к ПРАВОЙ КИСТИ зомби (держит в руке, древко вдоль тела)
+    const pitchfork = new THREE.Group();
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.038, 1.7, 10), new THREE.MeshStandardMaterial({ color: 0x5a4028, roughness: 0.9 }));
-    handle.position.set(0.62, 0.35, 0.25); handle.rotation.z = -0.25; handle.castShadow = true; g.add(handle);
+    handle.castShadow = true; pitchfork.add(handle);
     const metalMat = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.85, roughness: 0.35 });
     const forkBase = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.045, 0.045), metalMat);
-    forkBase.position.set(0.74, 0.85, 0.25); forkBase.rotation.z = -0.25; g.add(forkBase);
+    forkBase.position.y = 0.85; pitchfork.add(forkBase);
     for (let i = -1; i <= 1; i++) {
       const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.006, 0.42, 8), metalMat);
-      prong.position.set(0.66 + i * 0.085, 1.07, 0.25); prong.rotation.z = -0.25; g.add(prong);
+      prong.position.set(i * 0.085, 1.07, 0); pitchfork.add(prong);
       const tip = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.07, 8), metalMat);
-      tip.position.set(0.615 + i * 0.085, 1.29, 0.25); tip.rotation.z = -0.25; g.add(tip);
+      tip.position.set(i * 0.085, 1.29, 0); pitchfork.add(tip);
     }
+    // точка хвата = y≈0.45 по древку; ставим группу так, чтобы кисть сжимала древко,
+    // зубцы смотрят вперёд-вверх (боевая стойка)
+pitchfork.position.set(0, -0.6, 0.1);
+pitchfork.rotation.z = 0.28;   // наклон к телу
+pitchfork.rotation.x = -0.5;   // зубцы вперёд
+rightArm.add(pitchfork);
     // ВЫРАВНИВАНИЕ: как у старой модели, ступни на y ≈ -2.0 (контакт с землёй)
     g.children.slice().forEach((c) => { c.position.y -= 1.2; });
-      if (spaceMode) {
-        const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.55,16,16), new THREE.MeshStandardMaterial({color:0xddddff, transparent:true, opacity:0.35, roughness:0.2}));
-        helmet.position.y = 1.25; g.add(helmet);
-        const jet = new THREE.Mesh(new THREE.BoxGeometry(0.45,0.8,0.25), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
-        jet.position.set(0,-0.3,-0.65); g.add(jet);
-        const flame = new THREE.Mesh(new THREE.ConeGeometry(0.12,0.35,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
-        flame.position.set(0,-0.85,-0.65); flame.rotation.x=Math.PI; g.add(flame);
-        g.traverse((o) => { if (o.isMesh && o.material && o.material.color && !(o.material.emissive && o.material.emissive.r > 0.5)) o.material.color.set(0xffffff); });
-      }
-      scene.add(g);
-      return g;
-   }
-   function makeNun() {
-     const g = new THREE.Group();
-    // Реалистичная монашка: естественный силуэт одежды, шарнирные руки, настоящая голова
+if (spaceMode) {
+  const jet = new THREE.Mesh(new THREE.BoxGeometry(0.45,0.8,0.25), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
+  jet.position.set(0,-0.3,-0.65); g.add(jet);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.12,0.35,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
+  flame.position.set(0,-0.85,-0.65); flame.rotation.x=Math.PI; g.add(flame);
+  g.traverse((o) => { if (o.isMesh && o.material && o.material.color && !(o.material.emissive && o.material.emissive.r > 0.5)) o.material.color.set(0xffffff); });
+}
+g.scale.setScalar(1.15);
+scene.add(g);
+return g;
+  }
+  function makeNun() {
     const habitMat = new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 1.0 });
     const tunicMat = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.95 });
     const skinMatN = new THREE.MeshStandardMaterial({ color: 0xeecfae, roughness: 0.55 });
@@ -1015,19 +1026,17 @@ for (let i = 0; i < 6; i++) {
       const a = i / 8 * Math.PI;
       bead.position.set(Math.cos(a) * 0.3, 1.32 - Math.sin(a) * 0.18, 0.26); g.add(bead);
     }
-    if (spaceMode) {
-      const helmetN = new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16), new THREE.MeshStandardMaterial({color:0xddddff, transparent:true, opacity:0.35, roughness:0.2}));
-      helmetN.position.y = 2.02; g.add(helmetN);
-      const jet = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.7,0.2), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
-      jet.position.set(0,-0.2,-0.6); g.add(jet);
-      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.1,0.3,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
-      flame.position.set(0,-0.7,-0.6); flame.rotation.x=Math.PI; g.add(flame);
-      g.traverse((o) => { if (o.isMesh && o.material && o.material.color && !(o.material.emissive && o.material.emissive.r > 0.5)) o.material.color.set(0xffffff); });
-    }
-    scene.add(g);
-    return g;
+if (spaceMode) {
+  const jet = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.7,0.2), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
+  jet.position.set(0,-0.2,-0.6); g.add(jet);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.1,0.3,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
+  flame.position.set(0,-0.7,-0.6); flame.rotation.x=Math.PI; g.add(flame);
+  g.traverse((o) => { if (o.isMesh && o.material && o.material.color && !(o.material.emissive && o.material.emissive.r > 0.5)) o.material.color.set(0xffffff); });
+}
+g.scale.setScalar(1.15);
+scene.add(g);
+return g;
   }
-
   function makeTextSprite(text) {
     const c = document.createElement("canvas");
     c.width = 512;
@@ -1359,6 +1368,9 @@ for (let i = 0; i < 6; i++) {
       speed = Math.max(1.8, (isNun ? 2.6 : 1.8) + (level - 1) * 0.12);
     }
     scene.add(label);
+    // зомби и монашка крупнее — раньше терялись на фоне метеорита/слизи
+    if (type === "zombie") mesh.scale.setScalar(1.5);
+    if (type === "nun") mesh.scale.setScalar(1.35);
     enemies.push({
       x: rand(r + 20, W - r - 20),
       y: -r - 10,
@@ -1434,13 +1446,14 @@ for (let i = 0; i < 6; i++) {
         mesh.add(_fallbackCan);
         if (typeof THREE.GLTFLoader !== "undefined") {
           const _bloader = new THREE.GLTFLoader();
+          // если GLB не загрузится (нет файла/ошибка) — fallback-банка ОСТАЁТСЯ видимой
           _bloader.load("buff_can.glb", (gltf) => {
             const _bm = gltf.scene;
             _bm.scale.set(0.3, 0.3, 0.3);
             _bm.traverse((o) => { if (o.isMesh && o.material) { if (o.material.emissiveIntensity !== undefined) o.material.emissiveIntensity = 0.9; } });
             mesh.remove(_fallbackCan);
             mesh.add(_bm);
-          });
+          }, undefined, () => { /* ошибка загрузки — fallback остаётся */ });
         }
         mesh.castShadow = true;
      }
