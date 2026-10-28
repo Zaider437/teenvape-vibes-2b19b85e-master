@@ -2749,12 +2749,13 @@ for (const h of houses) {
       cloud.userData.planetDecor = true;
       scene.add(cloud);
     }
-    // Р”Р°Р»СЊРЅРёР№ Р»РµСЃ
+    // Р”Р°Р»СЊРЅРёР№ Р»РµСЃ РџРћ РљР РђРЇРњ (С†РµРЅС‚СЂ РѕС‚РєСЂС‹С‚ вЂ” С‚Р°Рј РјРѕРЅСѓРјРµРЅС‚С‹ Рё Р·Р°РјРѕРє)
     const dTreeMat = new THREE.MeshStandardMaterial({ color: 0x1e4a1e, roughness: 0.9 });
     const dTrunkMat = new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 0.95 });
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 110; i++) {
       const fx = (Math.random() - 0.5) * 220;
       const fz = -90 - Math.random() * 100;
+      if (Math.abs(fx) < 26) continue; // С†РµРЅС‚СЂ РѕС‚РєСЂС‹С‚ РґР»СЏ Р·Р°РјРєР°/РєР°РјРЅРµР№
       const th = 3 + Math.random() * 4;
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, th, 6), dTrunkMat);
       trunk.position.set(fx, ground.position.y + th / 2, fz);
@@ -2765,128 +2766,145 @@ for (const h of houses) {
       crown.userData.planetDecor = true;
       scene.add(crown);
     }
-    // РџРћР›Р• РљРЈРљРЈР РЈР—Р«
+    // РљРЈРљРЈР РЈР—РќР«Р• РџРћР›РЇ: РґРІРµ Р±РѕР»СЊС€РёС… РіСЂСЏРґРєРё СЃР»РµРІР° Рё СЃРїСЂР°РІР° + СѓР·РєР°СЏ РїРѕР»РѕСЃР° РІРґРѕР»СЊ РѕР±РѕС‡РёРЅС‹
     const cornStalkMat = new THREE.MeshStandardMaterial({color:0x3a8a2a, roughness:0.85});
     const cornLeafMat = new THREE.MeshStandardMaterial({color:0x4aa030, roughness:0.8, side:THREE.DoubleSide});
     const cornCobMat = new THREE.MeshStandardMaterial({color:0xe8c840, roughness:0.7});
-    for (let row = 0; row < 6; row++) {
-      for (let i = 0; i < 16; i++) {
-        const cx2 = -22 + row * 3.2 + (Math.random() - 0.5);
-        const cz2 = -12 + i * 2.4 + (Math.random() - 0.5);
-        const stalkH = 1.6 + Math.random() * 0.7;
-        const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, stalkH, 5), cornStalkMat);
-        stalk.position.set(cx2, ground.position.y + stalkH / 2, cz2);
-        stalk.rotation.z = (Math.random() - 0.5) * 0.08;
-        stalk.userData.planetDecor = true;
-        scene.add(stalk);
-        for (let l = 0; l < 3; l++) {
-          const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.7), cornLeafMat);
-          leaf.position.set(cx2, ground.position.y + stalkH * (0.4 + l * 0.2), cz2);
-          leaf.rotation.z = (l % 2 ? 0.9 : -0.9);
-          leaf.rotation.y = Math.random() * Math.PI;
-          leaf.userData.planetDecor = true;
-          scene.add(leaf);
-        }
-        if (Math.random() < 0.4) {
-          const cob = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8), cornCobMat);
-          cob.position.set(cx2 + 0.1, ground.position.y + stalkH * 0.6, cz2);
-          cob.rotation.z = 0.5;
-          cob.userData.planetDecor = true;
-          scene.add(cob);
+    function plantCornField(rowCount, stalksPerRow, baseX, spacingX, baseZ, spacingZ) {
+      for (let row = 0; row < rowCount; row++) {
+        for (let i = 0; i < stalksPerRow; i++) {
+          const cx2 = baseX + row * spacingX + (Math.random() - 0.5);
+          const cz2 = baseZ + i * spacingZ + (Math.random() - 0.5);
+          const stalkH = 1.6 + Math.random() * 0.7;
+          const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, stalkH, 5), cornStalkMat);
+          stalk.position.set(cx2, ground.position.y + stalkH / 2, cz2);
+          stalk.rotation.z = (Math.random() - 0.5) * 0.08;
+          stalk.userData.planetDecor = true;
+          scene.add(stalk);
+          for (let l = 0; l < 3; l++) {
+            const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.7), cornLeafMat);
+            leaf.position.set(cx2, ground.position.y + stalkH * (0.4 + l * 0.2), cz2);
+            leaf.rotation.z = (l % 2 ? 0.9 : -0.9);
+            leaf.rotation.y = Math.random() * Math.PI;
+            leaf.userData.planetDecor = true;
+            scene.add(leaf);
+          }
+          if (Math.random() < 0.4) {
+            const cob = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8), cornCobMat);
+            cob.position.set(cx2 + 0.1, ground.position.y + stalkH * 0.6, cz2);
+            cob.rotation.z = 0.5;
+            cob.userData.planetDecor = true;
+            scene.add(cob);
+          }
         }
       }
     }
-    upgradeLine.textContent = "РџР»Р°РЅРµС‚Р°: СЃР»РёР·СЊ Рё РґСЂРµРІРЅРёРµ РєР°РјРЅРё! рџЊЅ";
-    // РљРђРњР•РќРќР«Р• РњРћРќРЈРњР•РќРўР« (РЎС‚РѕСѓРЅС…РµРЅРґР¶)
+    plantCornField(7, 34, -26, 3.2, -50, 2.4); // Р»РµРІРѕРµ РїРѕР»Рµ
+    plantCornField(7, 34, 26, 3.2, -50, 2.4);  // РїСЂР°РІРѕРµ РїРѕР»Рµ
+    plantCornField(1, 12, -8.6, 1.4, -18, 2.0); // РІРґРѕР»СЊ РґРѕСЂРѕРіРё СЃР»РµРІР°
+    plantCornField(1, 12, 8.6, 1.4, -18, 2.0);  // РІРґРѕР»СЊ РґРѕСЂРѕРіРё СЃРїСЂР°РІР°
+    upgradeLine.textContent = "РџР»Р°РЅРµС‚Р°: СЃР»РёР·СЊ, РєР°РјРЅРё Рё Р·Р°РјРѕРє! рџЊЅрџЏ°";
+
+    // РљРђРњР•РќРќР«Р• РњРћРќРЈРњР•РќРўР« Р’Р”РђР›Р•РљР•: СЃС‚РѕСЏС‡РёРµ РєР°РјРЅРё-РјРµРЅРіРёСЂС‹, РґРѕР»СЊРјРµРЅ Рё РѕР±Р»РѕРјР°РЅРЅС‹Рµ Р°СЂРєРё (Р·Р° РїРѕР»СЏРјРё)
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9a938a, roughness: 0.92, metalness: 0.02 });
-    const stoneCenterZ = 34;
-    const stoneCount = 8;
-    const stoneRadius = 10;
+    const stoneMossMat = new THREE.MeshStandardMaterial({ color: 0x5f7a45, roughness: 0.98 });
+    function addMenhir(x, z, h, w, tilt, rotY) {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(w, h, w * 0.55), stoneMat);
+      // СЃР»РµРіРєР° РЅРµСЂРѕРІРЅС‹Р№: СЃСѓР¶Р°РµС‚СЃСЏ РєРІРµСЂС…Сѓ
+      s.scale.set(1, 1, 1);
+      s.position.set(x, ground.position.y + h / 2 - 0.25, z);
+      s.rotation.z = tilt; s.rotation.y = rotY;
+      s.castShadow = true; s.receiveShadow = true;
+      s.userData.planetDecor = true;
+      scene.add(s);
+      // РјРѕС… Сѓ РѕСЃРЅРѕРІР°РЅРёСЏ
+      const moss = new THREE.Mesh(new THREE.SphereGeometry(w * 0.42, 8, 6), stoneMossMat);
+      moss.scale.set(1.1, 0.4, 0.9);
+      moss.position.set(x, ground.position.y + 0.12, z);
+      moss.userData.planetDecor = true;
+      scene.add(moss);
+      return s;
+    }
+    // РєСЂСѓРі РјРµРЅРіРёСЂРѕРІ (РєР°Рє РЎС‚РѕСѓРЅС…РµРЅРґР¶) РІРґР°Р»РµРєРµ РїРѕ С†РµРЅС‚СЂСѓ
+    const stoneCenterZ = -95;
+    const stoneCount = 9;
+    const stoneRadius = 11;
     for (let i = 0; i < stoneCount; i++) {
       const a = (i / stoneCount) * Math.PI * 2;
       const sx = Math.cos(a) * stoneRadius;
       const sz = stoneCenterZ + Math.sin(a) * stoneRadius;
-      const vertical = new THREE.Mesh(new THREE.BoxGeometry(1.3, 4.2, 1.0), stoneMat);
-      vertical.position.set(sx, ground.position.y + 0.1, sz);
-      vertical.rotation.y = -a + Math.PI / 2;
-      vertical.rotation.z = (Math.random() - 0.5) * 0.04;
-      vertical.castShadow = true;
-      vertical.receiveShadow = true;
-      vertical.userData.planetDecor = true;
-      scene.add(vertical);
+      addMenhir(sx, sz, 4.0 + Math.random() * 1.2, 1.2 + Math.random() * 0.4, (Math.random() - 0.5) * 0.09, -a + Math.PI / 2);
+      // РїРµСЂРµРјС‹С‡РєРё (Р»РёРЅС‚РµР»Рё) РЅР° РІРµСЂС…Сѓ, Сѓ С‡Р°СЃС‚Рё РїР°СЂ
       if (i % 2 === 0) {
         const a2 = ((i + 1) / stoneCount) * Math.PI * 2;
-        const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.7, 1.1), stoneMat);
-        lintel.position.set((sx + Math.cos(a2) * stoneRadius) / 2, 2.4, (sz + stoneCenterZ + Math.sin(a2) * stoneRadius) / 2);
+        const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.75, 1.15), stoneMat);
+        lintel.position.set((sx + Math.cos(a2) * stoneRadius) / 2, ground.position.y + 4.6, (sz + stoneCenterZ + Math.sin(a2) * stoneRadius) / 2);
         lintel.rotation.y = -a + Math.PI / 2;
         lintel.castShadow = true;
         lintel.userData.planetDecor = true;
         scene.add(lintel);
       }
     }
-    const altar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, 1.6), stoneMat);
-    altar.position.set(0, ground.position.y + 0.4, stoneCenterZ);
+    // Р°Р»С‚Р°СЂРЅС‹Р№ РєР°РјРµРЅСЊ РІ С†РµРЅС‚СЂРµ РєСЂСѓРіР°
+    const altar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 1.7), stoneMat);
+    altar.position.set(0, ground.position.y + 0.45, stoneCenterZ);
+    altar.castShadow = true; altar.receiveShadow = true;
     altar.userData.planetDecor = true;
     scene.add(altar);
-    // Р—РђРњРћРљ (СЃС‚РµРЅС‹, Р±Р°С€РЅРё, РІРѕСЂРѕС‚Р°, С„Р»Р°РіРё)
+    // РѕРґРёРЅРѕС‡РЅС‹Рµ РјРµРЅРіРёСЂС‹-С‡Р°СЃРѕРІС‹Рµ РІРґРѕР»СЊ РґРѕСЂРѕРіРё Рё Сѓ РїРѕР»РµР№
+    addMenhir(-12, -30, 3.4, 1.0, 0.06, 0.4);
+    addMenhir(13, -38, 3.8, 1.1, -0.05, -0.3);
+    addMenhir(-15, -62, 4.4, 1.3, 0.04, 1.1);
+    addMenhir(14, -70, 5.0, 1.4, -0.07, -0.9);
+    addMenhir(0, -44, 2.8, 0.9, 0.08, 0.2); // РѕР±Р»РѕРјР°РЅРЅС‹Р№ РЅРёР·РєРёР№ РєР°РјРµРЅСЊ
+    // РѕР±Р»РѕРјР°РЅРЅР°СЏ Р°СЂРєР°: РґРІР° РєР°РјРЅСЏ + СѓРїР°РІС€РёР№ РїРµСЂРµРєР»Р°Рґ
+    const archL = addMenhir(-6.5, -80, 4.6, 1.2, 0.03, 0.15);
+    const archR = addMenhir(6.5, -80, 4.6, 1.2, -0.03, -0.15);
+    const fallenLintel = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.9, 1.2), stoneMat);
+    fallenLintel.position.set(0, ground.position.y + 0.45, -80.6);
+    fallenLintel.rotation.z = 0.05;
+    fallenLintel.castShadow = true;
+    fallenLintel.userData.planetDecor = true;
+    scene.add(fallenLintel);
+
+    // РљРћР РћР›Р•Р’РЎРљРР™ Р—РђРњРћРљ РќРђ Р“РћР РР—РћРќРўР• (РІРёРґРµРЅ РёР·РґР°Р»РµРєР°, РїРѕ С†РµРЅС‚СЂСѓ Р·Р° РєСЂСѓРіРѕРј РєР°РјРЅРµР№)
     const castleWallMat = new THREE.MeshStandardMaterial({ color: 0x8a8a92, roughness: 0.85 });
     const castleRoofMat = new THREE.MeshStandardMaterial({ color: 0x6a3050, roughness: 0.6 });
     const castleWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2f18, roughness: 0.9 });
-    const cz = 62;
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(20, 7, 1.6), castleWallMat);
-    wall.position.set(0, ground.position.y + 1.5, cz);
-    wall.castShadow = true;
-    wall.userData.planetDecor = true;
-    scene.add(wall);
+    const cz = -150; // РґР°Р»РµРєРѕ Р·Р° РЎС‚РѕСѓРЅС…РµРЅРґР¶РµРј вЂ” СЃРёР»СѓСЌС‚ РЅР° РіРѕСЂРёР·РѕРЅС‚Рµ
+    const castleScale = 2.2; // РєСЂСѓРїРЅС‹Р№, С‡С‚РѕР±С‹ С‡РёС‚Р°Р»СЃСЏ РёР·РґР°Р»РµРєР°
+    function addCastlePart(geo, mat, x, y, z, rotY) {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x * castleScale, ground.position.y + y * castleScale, z);
+      if (rotY !== undefined) m.rotation.y = rotY;
+      m.castShadow = true;
+      m.userData.planetDecor = true;
+      scene.add(m);
+      return m;
+    }
+    // РІРЅРµС€РЅСЏСЏ СЃС‚РµРЅР° СЃ Р·СѓР±С†Р°РјРё
+    addCastlePart(new THREE.BoxGeometry(20, 7, 1.6), castleWallMat, 0, 1.5, cz);
     for (let i = -5; i <= 5; i++) {
       if (Math.abs(i) < 1.5) continue;
-      const merlon = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.0, 1.7), castleWallMat);
-      merlon.position.set(i * 1.9, ground.position.y + 5.5, cz);
-      merlon.userData.planetDecor = true;
-      scene.add(merlon);
+      addCastlePart(new THREE.BoxGeometry(1.1, 1.0, 1.7), castleWallMat, i * 1.9, 5.5, cz);
     }
-    const gateL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 5, 1.8), castleWallMat);
-    gateL.position.set(-2.4, ground.position.y + 0.5, cz);
-    gateL.userData.planetDecor = true;
-    scene.add(gateL);
-    const gateR = gateL.clone(); gateR.position.set(2.4, ground.position.y + 0.5, cz); gateR.userData.planetDecor = true; scene.add(gateR);
-    const gateTop = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.2, 1.8), castleWallMat);
-    gateTop.position.set(0, ground.position.y + 3.2, cz);
-    gateTop.userData.planetDecor = true;
-    scene.add(gateTop);
-    const gateDoor = new THREE.Mesh(new THREE.BoxGeometry(2.8, 4.2, 0.3), castleWoodMat);
-    gateDoor.position.set(0, ground.position.y + 1.0, cz);
-    gateDoor.userData.planetDecor = true;
-    scene.add(gateDoor);
+    // РІРѕСЂРѕС‚Р°
+    addCastlePart(new THREE.BoxGeometry(1.6, 5, 1.8), castleWallMat, -2.4, 0.5, cz);
+    addCastlePart(new THREE.BoxGeometry(1.6, 5, 1.8), castleWallMat, 2.4, 0.5, cz);
+    addCastlePart(new THREE.BoxGeometry(3.4, 1.2, 1.8), castleWallMat, 0, 3.2, cz);
+    addCastlePart(new THREE.BoxGeometry(2.8, 4.2, 0.3), castleWoodMat, 0, 1.0, cz);
+    // Р±Р°С€РЅРё СЃ РєРѕРЅРёС‡РµСЃРєРёРјРё РєСЂС‹С€Р°РјРё Рё С„Р»Р°РіР°РјРё
     for (const tx of [-9, 9]) {
-      const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.2, 12, 10), castleWallMat);
-      tower.position.set(tx, ground.position.y + 4, cz);
-      tower.castShadow = true;
-      tower.userData.planetDecor = true;
-      scene.add(tower);
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.3, 3.4, 10), castleRoofMat);
-      roof.position.set(tx, ground.position.y + 11.5, cz);
-      roof.userData.planetDecor = true;
-      scene.add(roof);
-      const flagpole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6), castleWoodMat);
-      flagpole.position.set(tx, ground.position.y + 14.2, cz);
-      flagpole.userData.planetDecor = true;
-      scene.add(flagpole);
-      const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.8), new THREE.MeshStandardMaterial({ color: 0xaa2244, side: THREE.DoubleSide, roughness: 0.8 }));
-      flag.position.set(tx + 0.75, ground.position.y + 14.8, cz);
-      flag.userData.planetDecor = true;
-      scene.add(flag);
+      addCastlePart(new THREE.CylinderGeometry(1.8, 2.2, 12, 10), castleWallMat, tx, 4, cz);
+      addCastlePart(new THREE.ConeGeometry(2.3, 3.4, 10), castleRoofMat, tx, 11.5, cz);
+      addCastlePart(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6), castleWoodMat, tx, 14.2, cz);
+      const flag = addCastlePart(new THREE.PlaneGeometry(1.4, 0.8), new THREE.MeshStandardMaterial({ color: 0xaa2244, side: THREE.DoubleSide, roughness: 0.8 }), tx + 0.75, 14.8, cz);
+      flag.castShadow = false;
     }
-    const keep = new THREE.Mesh(new THREE.BoxGeometry(6, 9, 5), castleWallMat);
-    keep.position.set(0, ground.position.y + 4.5, cz + 4);
-    keep.castShadow = true;
-    keep.userData.planetDecor = true;
-    scene.add(keep);
-    const keepRoof = new THREE.Mesh(new THREE.ConeGeometry(4.4, 3.2, 4), castleRoofMat);
-    keepRoof.position.set(0, ground.position.y + 10.4, cz + 4);
-    keepRoof.rotation.y = Math.PI / 4;
-    keepRoof.userData.planetDecor = true;
-    scene.add(keepRoof);
+    // РіР»Р°РІРЅС‹Р№ РґРѕРЅР¶РѕРЅ (keep) СЃ Р±РѕР»СЊС€РѕР№ РєСЂС‹С€РµР№
+    addCastlePart(new THREE.BoxGeometry(6, 9, 5), castleWallMat, 0, 4.5, cz + 4);
+    const keepRoof = addCastlePart(new THREE.ConeGeometry(4.4, 3.2, 4), castleRoofMat, 0, 10.4, cz + 4, Math.PI / 4);
+    keepRoof.castShadow = false;
   }
   function startCinematic(kind) {
     if (kind === "space" && spaceCinematicDone) return;

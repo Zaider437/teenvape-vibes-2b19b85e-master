@@ -8,8 +8,10 @@
     />
     <title>Sweet Zombie Hunt: Halloween Vape Edition</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- three.js грузим ЛОКАЛЬНО: CDN (cdnjs/jsdelivr) периодически отдаёт пустой ответ,
+         из-за чего глобальный THREE не создавался и игра падала на тёмный экран -->
+    <script src="vendor/three.min.js"></script>
+    <script src="vendor/GLTFLoader.js"></script>
   </head>
   <body>
     <div id="gameWrap"></div>
