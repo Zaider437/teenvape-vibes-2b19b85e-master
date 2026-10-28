@@ -17,11 +17,7 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  // ЛЕГАСИ-РЕЖИМ ЦВЕТА: как в старом three r128 — без sRGB-выхода и без color management.
-  // Иначе вся палитра сцены уходит в темноту/грязь по сравнению с оригиналом.
-  if (THREE.ColorManagement) THREE.ColorManagement.enabled = false;
-  if (THREE.SRGBColorSpace !== undefined) renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
-  renderer.toneMapping = THREE.NoToneMapping;
+  // r128: никакого color management / tone mapping не нужно — оригинальный яркий вид игры
   // Защита от «белого экрана»: если GPU теряет контекст (перегруз), пробуем восстановить
   renderer.domElement.addEventListener("webglcontextlost", (e) => { e.preventDefault(); console.warn("WebGL context lost — восстановление..."); });
   renderer.domElement.addEventListener("webglcontextrestored", () => { console.warn("WebGL context restored"); });
@@ -719,7 +715,8 @@ for (let i = 0; i < 6; i++) {
         vapeTemplate = gltf.scene;
         vapeTemplate.scale.set(3.5, 3.5, 3.5);
         vapeTemplate.position.set(0, -0.2, 0);
-        vapeTemplate.traverse((o) => { if (o.isMesh && o.material) { if (o.material.color) o.material.color.set(0x2255aa); if (o.material.emissive) o.material.emissive.set(0x113366); } });
+        // НЕ перекрашиваем материалы с текстурной картой — иначе вейп становится плоско-синим
+        vapeTemplate.traverse((o) => { if (o.isMesh && o.material && !o.material.map) { if (o.material.color) o.material.color.set(0x2255aa); if (o.material.emissive) o.material.emissive.set(0x113366); } });
       } catch (e) {}
     }, undefined, () => {});
   }
@@ -730,7 +727,7 @@ for (let i = 0; i < 6; i++) {
       const model = vapeTemplate.clone(true);
       model.scale.set(3.5, 3.5, 3.5);
       model.position.set(0, -0.2, 0);
-      model.traverse((o) => { if (o.isMesh && o.material) { if (o.material.color) o.material.color.set(0x2255aa); if (o.material.emissive) o.material.emissive.set(0x113366); } });
+      model.traverse((o) => { if (o.isMesh && o.material && !o.material.map) { if (o.material.color) o.material.color.set(0x2255aa); if (o.material.emissive) o.material.emissive.set(0x113366); } });
       g.add(model);
       g.userData.model = model;
       const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -774,7 +771,7 @@ for (let i = 0; i < 6; i++) {
         model.position.set(0, -0.2, 0);
         // recolor materials
         model.traverse((o) => {
-          if (o.isMesh && o.material) {
+          if (o.isMesh && o.material && !o.material.map) {
             if (o.material.color) o.material.color.set(0x2255aa);
             if (o.material.emissive) o.material.emissive.set(0x113366);
           }
@@ -2031,19 +2028,16 @@ for (const h of houses) {
     const bandBottom = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.08, 1.04), bandMat);
     bandBottom.position.y = 0.02; g.add(bandBottom);
 
-    // ПОЛУКРУГЛАЯ КРЫШКА: полудиск, выдавленный в дугу через цилиндр
-    const lid = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.5, 1.6, 24, 1, false, 0, Math.PI),
-      woodMat
-    );
-    lid.rotation.z = Math.PI / 2;      // ось вдоль X
-    lid.rotation.y = Math.PI / 2;      // полудуга кверху
-    lid.position.y = 0.86; lid.castShadow = true; g.add(lid);
-    // оковка крышки — два металлических полукольца
-    for (const lz of [-0.55, 0.55]) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.045, 8, 24, Math.PI), bandMat);
-      ring.rotation.y = Math.PI / 2; ring.rotation.z = Math.PI / 2;
-      ring.position.set(0, 0.86, lz); g.add(ring);
+    // ПОЛУКРУГЛАЯ КРЫШКА: полукруг выдавлен вдоль Z — ровная симметричная форма
+    const lidShape = new THREE.Shape();
+    lidShape.absarc(0, 0, 0.8, 0, Math.PI, false);
+    lidShape.closePath();
+    const lid = new THREE.Mesh(new THREE.ExtrudeGeometry(lidShape, { depth: 1.0, bevelEnabled: false }), woodMat);
+    lid.position.set(0, 0.85, -0.5); lid.castShadow = true; g.add(lid);
+    // оковка крышки — два металлических полукольца в плоскости сечения
+    for (const lz of [-0.45, 0.45]) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.045, 8, 24, Math.PI), bandMat);
+      ring.position.set(0, 0.85, lz); g.add(ring);
     }
 
     // ПЕТЛИ сзади
@@ -2065,7 +2059,7 @@ for (const h of houses) {
     glow.position.y = 0.92; g.add(glow);
     // золотые лучи-частицы над сундуком
     const sparkle = new THREE.Mesh(new THREE.OctahedronGeometry(0.09), goldMat);
-    sparkle.position.y = 1.35; g.add(sparkle);
+    sparkle.position.y = 1.95; g.add(sparkle);
     g.userData.chestSparkle = sparkle;
     return g;
   }
@@ -2719,7 +2713,7 @@ for (const h of houses) {
     pground.receiveShadow = true;
     pground.userData.planetDecor = true;
     scene.add(pground);
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(6, 200), new THREE.MeshStandardMaterial({color:0x8b7355, roughness:0.95}));
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(6, 200), new THREE.MeshStandardMaterial({color:0x6b5844, roughness:0.95}));
     road.rotation.x = -Math.PI/2;
     road.position.y = ground.position.y + 0.1;
     road.userData.planetDecor = true;
@@ -2809,13 +2803,26 @@ for (const h of houses) {
     upgradeLine.textContent = "Планета: слизь, камни и замок! 🌽🏰";
 
     // КАМЕННЫЕ МОНУМЕНТЫ ВДАЛЕКЕ: стоячие камни-менгиры, дольмен и обломанные арки (за полями)
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9a938a, roughness: 0.92, metalness: 0.02 });
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x6e6a62, roughness: 0.96, metalness: 0.02, flatShading: true });
     const stoneMossMat = new THREE.MeshStandardMaterial({ color: 0x5f7a45, roughness: 0.98 });
     function addMenhir(x, z, h, w, tilt, rotY) {
-      const s = new THREE.Mesh(new THREE.BoxGeometry(w, h, w * 0.55), stoneMat);
-      // слегка неровный: сужается кверху
-      s.scale.set(1, 1, 1);
-      s.position.set(x, ground.position.y + h / 2 - 0.25, z);
+      // неровный стоячий камень: деформированный вытянутый додекаэдр, не «ящик»
+      const geo = new THREE.DodecahedronGeometry(w * 0.55, 1);
+      const pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const py = pos.getY(i);
+        // вытягиваем по вертикали и сужаем кверху + лёгкий шум
+        const stretch = 2.6;
+        const noise = 1 + (Math.sin(i * 17.31) * 0.5 + 0.5) * 0.35;
+        const taper = 1 - (py + w * 0.55) / (w * 1.1) * 0.35; // сужение кверху
+        pos.setX(i, pos.getX(i) * noise * taper);
+        pos.setY(i, py * stretch * (0.95 + (Math.sin(i * 7.7) * 0.5 + 0.5) * 0.1));
+        pos.setZ(i, pos.getZ(i) * noise * taper);
+      }
+      pos.needsUpdate = true;
+      geo.computeVertexNormals();
+      const s = new THREE.Mesh(geo, stoneMat);
+      s.position.set(x, ground.position.y + h / 2 - 0.3, z);
       s.rotation.z = tilt; s.rotation.y = rotY;
       s.castShadow = true; s.receiveShadow = true;
       s.userData.planetDecor = true;
@@ -2843,6 +2850,7 @@ for (const h of houses) {
         const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.75, 1.15), stoneMat);
         lintel.position.set((sx + Math.cos(a2) * stoneRadius) / 2, ground.position.y + 4.6, (sz + stoneCenterZ + Math.sin(a2) * stoneRadius) / 2);
         lintel.rotation.y = -a + Math.PI / 2;
+        lintel.rotation.z = (Math.random() - 0.5) * 0.06; // чуть покосившиеся, древние
         lintel.castShadow = true;
         lintel.userData.planetDecor = true;
         scene.add(lintel);
@@ -2859,20 +2867,19 @@ for (const h of houses) {
     addMenhir(13, -38, 3.8, 1.1, -0.05, -0.3);
     addMenhir(-15, -62, 4.4, 1.3, 0.04, 1.1);
     addMenhir(14, -70, 5.0, 1.4, -0.07, -0.9);
-    addMenhir(0, -44, 2.8, 0.9, 0.08, 0.2); // обломанный низкий камень
-    // обломанная арка: два камня + упавший переклад
-    const archL = addMenhir(-6.5, -80, 4.6, 1.2, 0.03, 0.15);
-    const archR = addMenhir(6.5, -80, 4.6, 1.2, -0.03, -0.15);
-    const fallenLintel = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.9, 1.2), stoneMat);
-    fallenLintel.position.set(0, ground.position.y + 0.45, -80.6);
+    // обломанная арка СБИКУ ОТ ДОРОГИ (не перекрывает путь игроку)
+    const archL = addMenhir(-9.5, -80, 4.6, 1.2, 0.03, 0.15);
+    const archR = addMenhir(-4.5, -80, 4.6, 1.2, -0.03, -0.15);
+    const fallenLintel = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.9, 1.2), stoneMat);
+    fallenLintel.position.set(-7, ground.position.y + 0.45, -80.6);
     fallenLintel.rotation.z = 0.05;
     fallenLintel.castShadow = true;
     fallenLintel.userData.planetDecor = true;
     scene.add(fallenLintel);
 
     // КОРОЛЕВСКИЙ ЗАМОК НА ГОРИЗОНТЕ (виден издалека, по центру за кругом камней)
-    const castleWallMat = new THREE.MeshStandardMaterial({ color: 0x8a8a92, roughness: 0.85 });
-    const castleRoofMat = new THREE.MeshStandardMaterial({ color: 0x6a3050, roughness: 0.6 });
+    const castleWallMat = new THREE.MeshStandardMaterial({ color: 0x7a7a85, roughness: 0.85, emissive: 0x2a2a35, emissiveIntensity: 0.5 });
+    const castleRoofMat = new THREE.MeshStandardMaterial({ color: 0x6a3050, roughness: 0.6, emissive: 0x301528, emissiveIntensity: 0.5 });
     const castleWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2f18, roughness: 0.9 });
     const cz = -150; // далеко за Стоунхенджем — силуэт на горизонте
     const castleScale = 2.2; // крупный, чтобы читался издалека
