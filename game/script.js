@@ -18,8 +18,8 @@
   // реалистичный отклик материалов: физически корректный рендер и ACES-тонмаппинг
   if (THREE.ColorManagement) THREE.ColorManagement.enabled = true;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
   // Защита от «белого экрана»: если GPU теряет контекст (перегруз), пробуем восстановить
   renderer.domElement.addEventListener("webglcontextlost", (e) => { e.preventDefault(); console.warn("WebGL context lost — восстановление..."); });
   renderer.domElement.addEventListener("webglcontextrestored", () => { console.warn("WebGL context restored"); });
@@ -2028,20 +2028,22 @@ for (const h of houses) {
     const bandBottom = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.08, 1.04), bandMat);
     bandBottom.position.y = 0.02; g.add(bandBottom);
 
-    // РџРћР›РЈРљР РЈР“Р›РђРЇ РљР Р«РЁРљРђ: РїРѕР»СѓРґРёСЃРє, РІС‹РґР°РІР»РµРЅРЅС‹Р№ РІ РґСѓРіСѓ С‡РµСЂРµР· С†РёР»РёРЅРґСЂ
+    // Полукруглая крышка: полудиск, выдавленный вдоль Z
     const lid = new THREE.Mesh(
       new THREE.CylinderGeometry(0.5, 0.5, 1.6, 24, 1, false, 0, Math.PI),
       woodMat
     );
-    lid.rotation.z = Math.PI / 2;      // РѕСЃСЊ РІРґРѕР»СЊ X
-    lid.rotation.y = Math.PI / 2;      // РїРѕР»СѓРґСѓРіР° РєРІРµСЂС…Сѓ
+    lid.rotation.z = Math.PI / 2;      // ось вдоль X
+    lid.rotation.y = Math.PI / 2;      // полудуга вверх
     lid.position.y = 0.86; lid.castShadow = true; g.add(lid);
-    // РѕРєРѕРІРєР° РєСЂС‹С€РєРё вЂ” РґРІР° РјРµС‚Р°Р»Р»РёС‡РµСЃРєРёС… РїРѕР»СѓРєРѕР»СЊС†Р°
+    // оковка крышки — два металлических полукольца
     for (const lz of [-0.55, 0.55]) {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.045, 8, 24, Math.PI), bandMat);
       ring.rotation.y = Math.PI / 2; ring.rotation.z = Math.PI / 2;
       ring.position.set(0, 0.86, lz); g.add(ring);
     }
+
+
 
     // РџР•РўР›Р СЃР·Р°РґРё
     for (const hz of [-0.35, 0.35]) {
