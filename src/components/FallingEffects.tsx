@@ -129,20 +129,22 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
     getAnim()
       .then((settings) => {
         if (cancelled || !settings) return;
+        const snowCfg = settings.snow ?? {};
+        const leavesCfg = settings.leaves ?? {};
         const currentMonth = new Date().getMonth() + 1;
         const isMonthInRange = (curr: number, from: number, to: number) => {
           if (from <= to) return curr >= from && curr <= to;
           return curr >= from || curr <= to;
         };
         const snowActive =
-          settings.snow.enabled &&
-          isMonthInRange(currentMonth, settings.snow.from, settings.snow.to);
+          (snowCfg.enabled ?? true) &&
+          isMonthInRange(currentMonth, snowCfg.from ?? 12, snowCfg.to ?? 2);
         const leavesActive =
-          settings.leaves.enabled &&
-          isMonthInRange(currentMonth, settings.leaves.from, settings.leaves.to);
+          (leavesCfg.enabled ?? true) &&
+          isMonthInRange(currentMonth, leavesCfg.from ?? 9, leavesCfg.to ?? 11);
         setBaseEffects({ snow: snowActive, leaves: leavesActive });
-        setSnowCount(settings.snow.count ?? 40);
-        setLeavesCount(settings.leaves.count ?? 30);
+        setSnowCount(snowCfg.count ?? 40);
+        setLeavesCount(leavesCfg.count ?? 30);
       })
       .catch((err) => {
         console.error("Failed to load animation settings:", err);
@@ -242,8 +244,8 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
         swayPhase: Math.random() * Math.PI * 2,
         swaySpeed: 0.0004 + Math.random() * 0.0008,
         windInfluence: 0.3 + Math.random() * 0.5,
-        opacity: 0,
-        fadeIn: true,
+        opacity: initY ? 1 : 0,
+        fadeIn: !initY,
       };
     }
 
@@ -321,10 +323,10 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
           const fadeZone = isMobile ? 120 : 80;
 
           if (leaf.y < fadeZone && leaf.fadeIn) {
-            leaf.opacity = Math.max(0, leaf.y / fadeZone);
+            leaf.opacity = Math.min(1, Math.max(0, leaf.y / fadeZone));
           }
           if (leaf.y > window.innerHeight - fadeZone) {
-            leaf.opacity = Math.max(0, (window.innerHeight - leaf.y) / fadeZone);
+            leaf.opacity = Math.min(leaf.opacity, Math.max(0, (window.innerHeight - leaf.y) / fadeZone));
           }
 
           ctx.save();
