@@ -45,14 +45,21 @@ function AdminSettings() {
 
   // Animation settings states
   const [leavesEnabled, setLeavesEnabled] = useState(true);
-  const [leavesFrom, setLeavesFrom] = useState(9);
-  const [leavesTo, setLeavesTo] = useState(11);
+  const [leavesFrom, setLeavesFrom] = useState("9");
+  const [leavesTo, setLeavesTo] = useState("11");
   const [leavesCount, setLeavesCount] = useState(30);
 
   const [snowEnabled, setSnowEnabled] = useState(true);
-  const [snowFrom, setSnowFrom] = useState(12);
-  const [snowTo, setSnowTo] = useState(2);
+  const [snowFrom, setSnowFrom] = useState("12");
+  const [snowTo, setSnowTo] = useState("2");
   const [snowCount, setSnowCount] = useState(40);
+
+  // Обрезка месяца к диапазону 1-12, пустое поле = «не задано»
+  const clampMonth = (raw: string): number => {
+    const n = Number(raw);
+    if (!raw.trim() || Number.isNaN(n)) return 1;
+    return Math.max(1, Math.min(12, Math.round(n)));
+  };
 
   async function load() {
     setLoading(true);
@@ -76,12 +83,12 @@ function AdminSettings() {
 
       if (animData) {
         setLeavesEnabled(animData.leaves.enabled);
-        setLeavesFrom(animData.leaves.from);
-        setLeavesTo(animData.leaves.to);
+        setLeavesFrom(String(animData.leaves.from));
+        setLeavesTo(String(animData.leaves.to));
         setLeavesCount(animData.leaves.count ?? 30);
         setSnowEnabled(animData.snow.enabled);
-        setSnowFrom(animData.snow.from);
-        setSnowTo(animData.snow.to);
+        setSnowFrom(String(animData.snow.from));
+        setSnowTo(String(animData.snow.to));
         setSnowCount(animData.snow.count ?? 40);
       }
     } catch (e: any) {
@@ -105,14 +112,14 @@ function AdminSettings() {
           data: {
             leaves: {
               enabled: leavesEnabled,
-              from: Number(leavesFrom),
-              to: Number(leavesTo),
+              from: clampMonth(leavesFrom),
+              to: clampMonth(leavesTo),
               count: Number(leavesCount),
             },
             snow: {
               enabled: snowEnabled,
-              from: Number(snowFrom),
-              to: Number(snowTo),
+              from: clampMonth(snowFrom),
+              to: clampMonth(snowTo),
               count: Number(snowCount),
             },
           },
@@ -217,9 +224,7 @@ function AdminSettings() {
                       min="1"
                       max="12"
                       value={leavesFrom}
-                      onChange={(e) =>
-                        setLeavesFrom(Math.max(1, Math.min(12, Number(e.target.value))))
-                      }
+                      onChange={(e) => setLeavesFrom(e.target.value)}
                       className="w-full bg-background border-2 border-border rounded-xl px-3 py-2 mt-1 text-sm text-foreground focus:border-primary focus:outline-none"
                     />
                   </div>
@@ -237,9 +242,7 @@ function AdminSettings() {
                       min="1"
                       max="12"
                       value={leavesTo}
-                      onChange={(e) =>
-                        setLeavesTo(Math.max(1, Math.min(12, Number(e.target.value))))
-                      }
+                      onChange={(e) => setLeavesTo(e.target.value)}
                       className="w-full bg-background border-2 border-border rounded-xl px-3 py-2 mt-1 text-sm text-foreground focus:border-primary focus:outline-none"
                     />
                   </div>
@@ -298,9 +301,7 @@ function AdminSettings() {
                       min="1"
                       max="12"
                       value={snowFrom}
-                      onChange={(e) =>
-                        setSnowFrom(Math.max(1, Math.min(12, Number(e.target.value))))
-                      }
+                      onChange={(e) => setSnowFrom(e.target.value)}
                       className="w-full bg-background border-2 border-border rounded-xl px-3 py-2 mt-1 text-sm text-foreground focus:border-primary focus:outline-none"
                     />
                   </div>
@@ -318,7 +319,7 @@ function AdminSettings() {
                       min="1"
                       max="12"
                       value={snowTo}
-                      onChange={(e) => setSnowTo(Math.max(1, Math.min(12, Number(e.target.value))))}
+                      onChange={(e) => setSnowTo(e.target.value)}
                       className="w-full bg-background border-2 border-border rounded-xl px-3 py-2 mt-1 text-sm text-foreground focus:border-primary focus:outline-none"
                     />
                   </div>
