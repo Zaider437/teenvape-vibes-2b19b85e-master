@@ -114,14 +114,24 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
   const [leafTexture, setLeafTexture] = useState<HTMLImageElement | null>(null);
   const [snowCount, setSnowCount] = useState(40);
   const [leavesCount, setLeavesCount] = useState(30);
+  const [texReady, setTexReady] = useState(false);
+  const [animReady, setAnimReady] = useState(false);
+  // Цикл анимации стартует только когда все данные загружены,
+  // иначе он перезапускается и частицы «дёргаются» на старте
+  const ready = texReady && animReady;
+  // Конфиг рендера в рефе: изменение isMobile/counts не перезапускает
+  // анимационный цикл (и не пересоздает частицы с прыжком координат)
+  const renderCfgRef = useRef({ isMobile: false, snowCount, leavesCount });
 
   useEffect(() => {
     loadLeafTexture().then((img) => {
       if (img) setLeafTexture(img);
+      setTexReady(true);
     });
   }, []);
 
   const isMobile = useIsMobile();
+  renderCfgRef.current = { isMobile, snowCount, leavesCount };
 
   useEffect(() => {
     let cancelled = false;
@@ -145,9 +155,11 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
         setBaseEffects({ snow: snowActive, leaves: leavesActive });
         setSnowCount(snowCfg.count ?? 40);
         setLeavesCount(leavesCfg.count ?? 30);
+        setAnimReady(true);
       })
       .catch((err) => {
         console.error("Failed to load animation settings:", err);
+        setAnimReady(true);
       });
 
     return () => {
@@ -192,7 +204,12 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || (!activeEffects.snow && !activeEffects.leaves)) return;
+    // Ждём загрузки текстуры и настроек: иначе цикл перезапускался бы
+    // при их позднем приходе и частицы «дёргались» на старте
+    if (!canvas || !ready || (!activeEffects.snow && !activeEffects.leaves)) return;
+    // Актуальный конфиг на каждом кадре (без перезапуска эффекта)
+    const cfg = renderCfgRef.current;
+    const { isMobile } = cfg;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -214,8 +231,8 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    const maxSnow = snowCount;
-    const maxLeaves = leavesCount;
+    const maxSnow = cfg.snowCount;
+    const maxLeaves = cfg.leavesCount;
 
     for (let i = 0; i < maxSnow; i++) {
       snowParticles.push({
@@ -251,6 +268,9 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
 
     const animate = (timestamp: number) => {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      // читаем свежий конфиг каждый кадр (isMobile может смениться, например при повороте)
+      const { isMobile } = renderCfgRef.current;
 
       const t = timestamp * 0.001;
 
@@ -374,7 +394,7 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
       window.removeEventListener("resize", resizeCanvas);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [activeEffects, leafTexture, isMobile, snowCount, leavesCount]);
+  }, [activeEffects, leafTexture, ready]);
 
   useEffect(() => {
     onSnowChange?.(activeEffects.snow);
