@@ -192,10 +192,13 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
     };
     const update = () => {
       const evActive = disabled || computeEventActive();
-      setActiveEffects({
+      const next = {
         snow: baseEffects.snow && !evActive,
         leaves: baseEffects.leaves && !evActive,
-      });
+      };
+      setActiveEffects((prev) =>
+        prev.snow === next.snow && prev.leaves === next.leaves ? prev : next,
+      );
     };
     update();
     const id = setInterval(update, 15000);
