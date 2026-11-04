@@ -31,91 +31,122 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
 function AnimationPreview({
   leaves,
   leavesCount,
+  leavesFrom,
+  leavesTo,
   snow,
   snowCount,
+  snowFrom,
+  snowTo,
 }: {
   leaves: boolean;
   leavesCount: number;
+  leavesFrom: number;
+  leavesTo: number;
   snow: boolean;
   snowCount: number;
+  snowFrom: number;
+  snowTo: number;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const cfgRef = useRef({ leaves, leavesCount, snow, snowCount });
-  cfgRef.current = { leaves, leavesCount, snow, snowCount };
+const canvasRef = useRef<HTMLCanvasElement | null>(null);
+const cfgRef = useRef({ leaves, leavesCount, leavesFrom, leavesTo, snow, snowCount, snowFrom, snowTo });
+cfgRef.current = { leaves, leavesCount, leavesFrom, leavesTo, snow, snowCount, snowFrom, snowTo };
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+const [leafImg, setLeafImg] = useState<HTMLImageElement | null>(null);
+useEffect(() => {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => setLeafImg(img);
+  img.src = "/assets/images/Osenniy-list-klena.png";
+}, []);
 
-    let raf = 0;
-    const W = 320;
-    const H = 120;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.scale(dpr, dpr);
+useEffect(() => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
 
-    interface P {
-      x: number;
-      y: number;
-      r: number;
-      vy: number;
-      vx: number;
-      rot: number;
-      vr: number;
+  let raf = 0;
+  const W = 320;
+  const H = 120;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  interface P {
+    x: number;
+    y: number;
+    r: number;
+    vy: number;
+    vx: number;
+    rot: number;
+    vr: number;
+  }
+  const mk = (initY: boolean): P => ({
+    x: Math.random() * W,
+    y: initY ? Math.random() * H : -8,
+    r: 2 + Math.random() * 3,
+    vy: 0.4 + Math.random() * 0.8,
+    vx: (Math.random() - 0.5) * 0.5,
+    rot: Math.random() * Math.PI * 2,
+    vr: (Math.random() - 0.5) * 0.03,
+  });
+  const snowP: P[] = [];
+  const leafP: P[] = [];
+
+  const isMonthInRange = (curr: number, from: number, to: number) => {
+    if (from <= to) return curr >= from && curr <= to;
+    return curr >= from || curr <= to;
+  };
+
+  const animate = () => {
+    const cfg = cfgRef.current;
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const snowActive = cfg.snow && isMonthInRange(month, cfg.snowFrom, cfg.snowTo);
+    const leavesActive = cfg.leaves && isMonthInRange(month, cfg.leavesFrom, cfg.leavesTo);
+
+    ctx.clearRect(0, 0, W, H);
+    const targetSnow = snowActive ? Math.max(1, Math.round((cfg.snowCount / 40) * 12)) : 0;
+    const targetLeaves = leavesActive ? Math.max(1, Math.round((cfg.leavesCount / 30) * 8)) : 0;
+    while (snowP.length < targetSnow) snowP.push(mk(false));
+    if (snowP.length > targetSnow) snowP.length = targetSnow;
+    while (leafP.length < targetLeaves) leafP.push(mk(false));
+    if (leafP.length > targetLeaves) leafP.length = targetLeaves;
+
+    for (const p of snowP) {
+      p.y += p.vy;
+      p.x += p.vx;
+      if (p.y > H + 4) Object.assign(p, mk(false));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.fill();
     }
-    const mk = (initY: boolean): P => ({
-      x: Math.random() * W,
-      y: initY ? Math.random() * H : -8,
-      r: 2 + Math.random() * 3,
-      vy: 0.4 + Math.random() * 0.8,
-      vx: (Math.random() - 0.5) * 0.5,
-      rot: Math.random() * Math.PI * 2,
-      vr: (Math.random() - 0.5) * 0.03,
-    });
-    const snowP: P[] = [];
-    const leafP: P[] = [];
-
-    const animate = () => {
-      const cfg = cfgRef.current;
-      ctx.clearRect(0, 0, W, H);
-      const targetSnow = cfg.snow ? Math.max(1, Math.round((cfg.snowCount / 40) * 12)) : 0;
-      const targetLeaves = cfg.leaves ? Math.max(1, Math.round((cfg.leavesCount / 30) * 8)) : 0;
-      while (snowP.length < targetSnow) snowP.push(mk(false));
-      if (snowP.length > targetSnow) snowP.length = targetSnow;
-      while (leafP.length < targetLeaves) leafP.push(mk(false));
-      if (leafP.length > targetLeaves) leafP.length = targetLeaves;
-
-      for (const p of snowP) {
-        p.y += p.vy;
-        p.x += p.vx;
-        if (p.y > H + 4) Object.assign(p, mk(false));
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.fill();
-      }
-      for (const p of leafP) {
-        p.y += p.vy;
-        p.x += p.vx + Math.sin(p.y / 18) * 0.4;
-        p.rot += p.vr;
-        if (p.y > H + 6) Object.assign(p, mk(false));
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
+    for (const p of leafP) {
+      p.y += p.vy;
+      p.x += p.vx + Math.sin(p.y / 18) * 0.4;
+      p.rot += p.vr;
+      if (p.y > H + 6) Object.assign(p, mk(false));
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      if (leafImg) {
+        const size = p.r * 4;
+        ctx.drawImage(leafImg, -size / 2, -size / 2, size, size);
+      } else {
         ctx.fillStyle = "rgba(230,140,30,0.85)";
         ctx.beginPath();
         ctx.ellipse(0, 0, p.r * 2, p.r, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
       }
-      raf = requestAnimationFrame(animate);
-    };
-    animate();
-    return () => cancelAnimationFrame(raf);
-  }, []);
+      ctx.restore();
+    }
+    raf = requestAnimationFrame(animate);
+  };
+  animate();
+  return () => cancelAnimationFrame(raf);
+}, [leafImg]);
 
   const active = leaves || snow;
   return (
@@ -281,7 +312,16 @@ function AdminSettings() {
   return (
     <div className="space-y-6 max-w-xl">
       <Toaster position="top-center" theme="dark" richColors />
-      <AnimationPreview leaves={leavesEnabled} leavesCount={leavesCount} snow={snowEnabled} snowCount={snowCount} />
+      <AnimationPreview
+        leaves={leavesEnabled}
+        leavesCount={leavesCount}
+        leavesFrom={clampMonth(leavesFrom)}
+        leavesTo={clampMonth(leavesTo)}
+        snow={snowEnabled}
+        snowCount={snowCount}
+        snowFrom={clampMonth(snowFrom)}
+        snowTo={clampMonth(snowTo)}
+      />
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-2xl">Настройки сайта</h1>
         <button
