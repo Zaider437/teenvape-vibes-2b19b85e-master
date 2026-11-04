@@ -44,37 +44,23 @@ export const HangingBulbContact = () => {
   // счётчик кликов: 0 = покачиваемся вхолостую, >0 = короткий импульс-«толчок»
   const [impulse, setImpulse] = useState(0);
   const [phrase, setPhrase] = useState<string | null>(null);
-  const [phraseVisible, setPhraseVisible] = useState(false);
-  const timersRef = useRef<number[]>([]);
   const phraseRef = useRef<string | null>(null);
   const litRef = useRef(false);
   const reduced = usePrefersReducedMotion();
-
-  // Очистка таймеров фраз при размонтировании
-  useEffect(() => {
-    const timers = timersRef.current;
-    return () => timers.forEach((t) => clearTimeout(t));
-  }, []);
 
   const toggle = useCallback(() => {
     setImpulse((n) => n + 1);
     setLit((wasLit) => !wasLit);
     if (!litRef.current) {
-      // Включаем: при каждом включении — случайная фраза, не повторяющая предыдущую
+      // Включаем: случайная фраза (не повторяющая предыдущую), висит пока лампа горит
       const prev = phraseRef.current;
       const pool = PHRASES.filter((p) => p !== prev);
       const pick = pool[Math.floor(Math.random() * pool.length)];
       phraseRef.current = pick;
       setPhrase(pick);
-      setPhraseVisible(false);
-      // Перезапуск CSS-анимации появления для повторных показов
-      requestAnimationFrame(() => {
-        setPhraseVisible(true);
-        timersRef.current.push(
-          window.setTimeout(() => setPhraseVisible(false), 4200),
-          window.setTimeout(() => setPhrase(null), 4800),
-        );
-      });
+    } else {
+      // Выключаем: свет погас — фраза исчезает вместе со светом
+      setPhrase(null);
     }
     litRef.current = !litRef.current;
   }, []);
@@ -112,30 +98,6 @@ export const HangingBulbContact = () => {
         style={bulbStyle}
         key={`bulb-${impulse}`}
       >
-        {/* фраза в области света */}
-        {lit && phrase && (
-          <span
-            aria-hidden
-            className={`absolute pointer-events-none bulb-phrase${phraseVisible ? " bulb-phrase-show" : ""}`}
-            style={{
-              left: "50%",
-              bottom: "calc(100% - 10px)",
-              transform: "translateX(-50%)",
-              whiteSpace: "nowrap",
-              fontFamily: "inherit",
-              fontWeight: 800,
-              fontSize: 11,
-              letterSpacing: "0.02em",
-              color: lit ? accent : undefined,
-              textShadow: `0 0 8px ${accent}, 0 0 18px ${accent}`,
-              opacity: 0,
-              transition: "opacity 420ms ease",
-            }}
-          >
-            {phrase}
-          </span>
-        )}
-
         {/* свечения */}
         {lit && !reduced && (
           <span
@@ -204,6 +166,32 @@ export const HangingBulbContact = () => {
         <span aria-hidden className="stick stick-fl absolute left-[12px] bottom-[-9px] block" style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
         <span aria-hidden className="stick stick-fr absolute right-[12px] bottom-[-9px] block" style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
       </button>
+
+      {/* Фраза в зоне света ПОД лампочкой — куда падает свет */}
+      <div
+        aria-hidden={phrase ? undefined : true}
+        className="relative w-full flex justify-center pointer-events-none"
+        style={{ marginTop: 8, minHeight: 0 }}
+      >
+        {lit && phrase && (
+          <span
+            className="bulb-phrase bulb-phrase-show"
+            style={{
+              whiteSpace: "normal",
+              maxWidth: 220,
+              textAlign: "center",
+              fontWeight: 800,
+              fontSize: 11,
+              lineHeight: 1.35,
+              letterSpacing: "0.02em",
+              color: accent,
+              textShadow: `0 0 8px ${accent}, 0 0 18px ${accent}, 0 0 30px ${accent}`,
+            }}
+          >
+            {phrase}
+          </span>
+        )}
+      </div>
     </div>
   );
 };

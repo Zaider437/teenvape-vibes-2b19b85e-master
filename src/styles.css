@@ -243,12 +243,13 @@ button.bulb-sway {
   0%, 100% { opacity: 0.28; transform: translate(-50%, -50%) scale(1); }
   50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.12); }
 }
-/* Фраза лампочки — «прожектор» из света вокруг лампы */
+/* Фраза лампочки — появляется в зоне света под лампой, живёт пока лампа горит */
 .bulb-phrase {
-  z-index: 1;
+  animation: bulb-phrase-in 400ms ease both;
 }
-.bulb-phrase-show {
-  opacity: 1 !important;
+@keyframes bulb-phrase-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -256,7 +257,7 @@ button.bulb-sway {
     animation: none !important;
   }
   .bulb-phrase {
-    transition: none !important;
+    animation: none !important;
   }
 }
 
