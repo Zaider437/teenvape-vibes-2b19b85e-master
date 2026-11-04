@@ -323,22 +323,32 @@ ${data.customer_note ? `<p>Note: ${data.customer_note}</p>` : ""}
       console.warn("[order] telegram notification skipped:", err);
     }
 
-    // Decrement stock quantities for ordered products and auto-deactivate when stock hits 0
+    // Decrement stock quantities for ordered products and auto-deactivate when stock hits 0.
+    // Uses an atomic SQL function so concurrent orders cannot overwrite each other's
+    // write (lost update) — stock never goes below 0.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       for (const item of trustedItems) {
-        const dbProduct = byId.get(item.id);
-        if (dbProduct && dbProduct.stock_quantity !== undefined) {
-          const newQty = Math.max(0, dbProduct.stock_quantity - item.qty);
-          const updateData: { stock_quantity: number; is_active?: boolean } = {
-            stock_quantity: newQty,
-          };
-          if (newQty === 0) {
-            updateData.is_active = false;
-          }
+        const { error: decErr } = await (supabaseAdmin as any).rpc(
+          "decrement_product_stock",
+          { p_product_id: item.id, p_qty: item.qty },
+        );
+        if (decErr) {
+          // Fallback: re-read the freshest value right before the write and clamp to 0.
+          console.warn("[order] atomic decrement failed, falling back to read-then-write:", decErr);
+          const { data: fresh } = await supabaseAdmin
+            .from("products" as any)
+            .select("stock_quantity")
+            .eq("id", item.id)
+            .single();
+          const currentQty = Number((fresh as any)?.stock_quantity ?? 0);
+          const newQty = Math.max(0, currentQty - item.qty);
           await supabaseAdmin
             .from("products" as any)
-            .update(updateData)
+            .update({
+              stock_quantity: newQty,
+              ...(newQty === 0 ? { is_active: false } : {}),
+            })
             .eq("id", item.id);
         }
       }
@@ -638,6 +648,50 @@ export const cancelOrder = createServerFn({ method: "POST" })
       return { success: true, alreadyCancelled: true };
     }
 
+    // Mark the order as cancelled FIRST, so the same cancellation link cannot be
+    // used twice (previously the status was updated after the stock restore, and a
+    // failed status update allowed stock to be refunded repeatedly).
+    let statusUpdated = false;
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: updatedRows, error: statusErr } = await supabaseAdmin
+        .from("orders" as any)
+        .update({ status: "cancelled" })
+        .eq("cancellation_token", data.token)
+        .neq("status", "cancelled")
+        .select("id");
+      if (statusErr) {
+        console.warn("[cancelOrder] Failed to update status in Supabase:", statusErr);
+      } else if (Array.isArray(updatedRows) && updatedRows.length === 0) {
+        // Order was already cancelled in the DB (another request got here first).
+        return { success: true, alreadyCancelled: true };
+      } else {
+        statusUpdated = true;
+      }
+    } catch (err) {
+      console.warn("[cancelOrder] Failed to update status in Supabase:", err);
+    }
+
+    // In-memory fallback for orders that were never persisted to Supabase.
+    if (!statusUpdated) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: dbOrder } = await supabaseAdmin
+          .from("orders" as any)
+          .select("status")
+          .eq("cancellation_token", data.token)
+          .maybeSingle();
+        if (dbOrder && (dbOrder as any).status === "cancelled") {
+          return { success: true, alreadyCancelled: true };
+        }
+        if (dbOrder) {
+          statusUpdated = true;
+        }
+      } catch (err) {
+        console.warn("[cancelOrder] status re-check failed:", err);
+      }
+    }
+
     const items =
       typeof orderToCancel.items === "string"
         ? JSON.parse(orderToCancel.items)
@@ -653,27 +707,21 @@ export const cancelOrder = createServerFn({ method: "POST" })
 
     const productIds = Array.from(qtyByProduct.keys());
 
-    // Restore stock and reactivate product if it was zero-stock
+    // Restore stock and reactivate product if it was zero-stock.
+    // Uses the atomic SQL function so concurrent cancels/restores cannot
+    // overwrite each other (lost update).
     if (productIds.length > 0) {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: products } = await supabaseAdmin
-          .from("products" as any)
-          .select("id, stock_quantity")
-          .in("id", productIds);
-
-        if (products) {
-          for (const p of products) {
-            const returnQty = qtyByProduct.get(p.id) ?? 0;
-            if (returnQty > 0) {
-              const newStock = Math.max(0, (p.stock_quantity ?? 0) + returnQty);
-              await supabaseAdmin
-                .from("products" as any)
-                .update({
-                  stock_quantity: newStock,
-                  ...(newStock > 0 ? { is_active: true } : {}),
-                })
-                .eq("id", p.id);
+        for (const productId of productIds) {
+          const returnQty = qtyByProduct.get(productId) ?? 0;
+          if (returnQty > 0) {
+            const { error: restoreErr } = await (supabaseAdmin as any).rpc(
+              "restore_product_stock",
+              { p_product_id: productId, p_qty: returnQty },
+            );
+            if (restoreErr) {
+              console.warn("[cancelOrder] atomic restore failed:", restoreErr);
             }
           }
         }
@@ -687,16 +735,6 @@ export const cancelOrder = createServerFn({ method: "POST" })
       invalidateProductsCache();
     } catch (err) {
       console.warn("[cancelOrder] cache invalidation failed:", err);
-    }
-
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await supabaseAdmin
-        .from("orders" as any)
-        .update({ status: "cancelled" })
-        .eq("cancellation_token", data.token);
-    } catch (err) {
-      console.warn("[cancelOrder] Failed to update status in Supabase:", err);
     }
 
     const cached = ordersCache.get(data.token);

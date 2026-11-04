@@ -1027,6 +1027,10 @@ function CheckoutSheet({
           origin: typeof window !== "undefined" ? window.location.origin : undefined,
         },
       });
+      if (res && typeof res === "object" && "error" in res && (res as any).error) {
+        toast.error((res as any).error);
+        return;
+      }
       setDone({ id: res.id });
       clear();
       invalidateProductsCache();
