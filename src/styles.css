@@ -243,9 +243,20 @@ button.bulb-sway {
   0%, 100% { opacity: 0.28; transform: translate(-50%, -50%) scale(1); }
   50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.12); }
 }
+/* Фраза лампочки — «прожектор» из света вокруг лампы */
+.bulb-phrase {
+  z-index: 1;
+}
+.bulb-phrase-show {
+  opacity: 1 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bulb-sway, .stick, .bulb-halo {
     animation: none !important;
+  }
+  .bulb-phrase {
+    transition: none !important;
   }
 }
 
