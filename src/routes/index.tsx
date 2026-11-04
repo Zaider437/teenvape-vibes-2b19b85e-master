@@ -923,7 +923,8 @@ function FloatingCartBar({ onOpen }: { onOpen: () => void }) {
   const { count, total } = useCart();
   if (count === 0) return null;
   return (
-    <div className="fixed bottom-3 left-3 right-3 sm:left-4 sm:right-4 z-30">
+    // На мобильных кнопку заменяет нижняя панель MobileNav, показываем только на десктопе
+    <div className="hidden sm:block fixed bottom-4 left-4 right-4 z-30">
       <button
         onClick={onOpen}
         className="w-full bg-primary text-primary-foreground rounded-xl sm:rounded-2xl py-2.5 sm:py-3.5 px-4 sm:px-5 flex items-center justify-between font-black uppercase tracking-widest text-xs sm:text-sm glow-pink"
