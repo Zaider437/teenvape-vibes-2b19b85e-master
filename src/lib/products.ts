@@ -535,11 +535,19 @@ let cachedProductsExpiry = 0;
 let cachedMeetingTimes: string[] | null = null;
 let cachedMeetingTimesExpiry = 0;
 
+let cachedProductsWithImages: Product[] | null = null;
+let cachedProductsWithImagesExpiry = 0;
+let productsWithImagesPromise: Promise<Product[]> | null = null;
+const PRODUCTS_WITH_IMAGES_TTL = 60 * 1000; // 1 минута серверного кэша
+
 export function invalidateProductsCache() {
   cachedProducts = null;
   cachedProductsExpiry = 0;
   cachedMeetingTimes = null;
   cachedMeetingTimesExpiry = 0;
+  cachedProductsWithImages = null;
+  cachedProductsWithImagesExpiry = 0;
+  productsWithImagesPromise = null;
 }
 
 const PUBLIC_IMAGE_CDN_BASE =
@@ -797,20 +805,30 @@ import { getSignedImageUrl } from "./product-helpers";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler(async () => {
-  let supabaseAdmin: ReturnType<
-    typeof import("@/integrations/supabase/client.server").supabaseAdmin
-  > | null = null;
-  try {
-    const mod = await import("@/integrations/supabase/client.server");
-    supabaseAdmin = mod.supabaseAdmin;
-  } catch (e) {
-    console.warn("[products] admin client unavailable, falling back to anon client", e);
+  // Серверный кэш каталога: без кэша каждый визит дёргал Supabase + N картинок
+  const now = Date.now();
+  if (cachedProductsWithImages && cachedProductsWithImagesExpiry > now) {
+    return cachedProductsWithImages;
+  }
+  if (productsWithImagesPromise) {
+    return productsWithImagesPromise;
   }
 
-  const useAdmin = !!supabaseAdmin;
-  const client = useAdmin
-    ? supabaseAdmin
-    : await import("@/integrations/supabase/client").then((m) => m.supabase);
+  productsWithImagesPromise = (async () => {
+    let supabaseAdmin: ReturnType<
+      typeof import("@/integrations/supabase/client.server").supabaseAdmin
+    > | null = null;
+    try {
+      const mod = await import("@/integrations/supabase/client.server");
+      supabaseAdmin = mod.supabaseAdmin;
+    } catch (e) {
+      console.warn("[products] admin client unavailable, falling back to anon client", e);
+    }
+
+    const useAdmin = !!supabaseAdmin;
+    const client = useAdmin
+      ? supabaseAdmin
+      : await import("@/integrations/supabase/client").then((m) => m.supabase);
 
   const { data, error } = await client
     .from("products" as any)
@@ -820,7 +838,7 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler
 
   if (error) throw error;
 
-  const mapped = await Promise.all(
+    const mapped = await Promise.all(
     (data ?? []).map(async (p: any) => ({
       id: p.id,
       slug: p.slug,
@@ -844,10 +862,22 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler
     })),
   );
 
-  const { readProductDiscounts, applyDiscounts } = await import("./discounts");
-  const discounts = await readProductDiscounts();
+    const { readProductDiscounts, applyDiscounts } = await import("./discounts");
+    const discounts = await readProductDiscounts();
 
-  return applyDiscounts(mapped, discounts).filter(
-    (p) => p.is_active && (p.stock_quantity ?? 0) > 0,
-  );
+    const result = applyDiscounts(mapped, discounts).filter(
+      (p) => p.is_active && (p.stock_quantity ?? 0) > 0,
+    );
+    cachedProductsWithImages = result;
+    cachedProductsWithImagesExpiry = Date.now() + PRODUCTS_WITH_IMAGES_TTL;
+    productsWithImagesPromise = null;
+    return result;
+  })();
+
+  try {
+    return await productsWithImagesPromise;
+  } catch (e) {
+    productsWithImagesPromise = null;
+    throw e;
+  }
 });

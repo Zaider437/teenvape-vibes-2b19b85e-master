@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, Save, ArrowUp, ArrowDown } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import {
@@ -27,6 +27,115 @@ const CATEGORY_META: Record<string, { label: string; emoji?: string; image?: str
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: AdminSettings,
 });
+
+function AnimationPreview({
+  leaves,
+  leavesCount,
+  snow,
+  snowCount,
+}: {
+  leaves: boolean;
+  leavesCount: number;
+  snow: boolean;
+  snowCount: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cfgRef = useRef({ leaves, leavesCount, snow, snowCount });
+  cfgRef.current = { leaves, leavesCount, snow, snowCount };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let raf = 0;
+    const W = 320;
+    const H = 120;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+
+    interface P {
+      x: number;
+      y: number;
+      r: number;
+      vy: number;
+      vx: number;
+      rot: number;
+      vr: number;
+    }
+    const mk = (initY: boolean): P => ({
+      x: Math.random() * W,
+      y: initY ? Math.random() * H : -8,
+      r: 2 + Math.random() * 3,
+      vy: 0.4 + Math.random() * 0.8,
+      vx: (Math.random() - 0.5) * 0.5,
+      rot: Math.random() * Math.PI * 2,
+      vr: (Math.random() - 0.5) * 0.03,
+    });
+    const snowP: P[] = [];
+    const leafP: P[] = [];
+
+    const animate = () => {
+      const cfg = cfgRef.current;
+      ctx.clearRect(0, 0, W, H);
+      const targetSnow = cfg.snow ? Math.max(1, Math.round((cfg.snowCount / 40) * 12)) : 0;
+      const targetLeaves = cfg.leaves ? Math.max(1, Math.round((cfg.leavesCount / 30) * 8)) : 0;
+      while (snowP.length < targetSnow) snowP.push(mk(false));
+      if (snowP.length > targetSnow) snowP.length = targetSnow;
+      while (leafP.length < targetLeaves) leafP.push(mk(false));
+      if (leafP.length > targetLeaves) leafP.length = targetLeaves;
+
+      for (const p of snowP) {
+        p.y += p.vy;
+        p.x += p.vx;
+        if (p.y > H + 4) Object.assign(p, mk(false));
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+      }
+      for (const p of leafP) {
+        p.y += p.vy;
+        p.x += p.vx + Math.sin(p.y / 18) * 0.4;
+        p.rot += p.vr;
+        if (p.y > H + 6) Object.assign(p, mk(false));
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = "rgba(230,140,30,0.85)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.r * 2, p.r, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      raf = requestAnimationFrame(animate);
+    };
+    animate();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const active = leaves || snow;
+  return (
+    <div className="rounded-2xl border border-border overflow-hidden relative bg-gradient-to-b from-[oklch(0.1_0_0)] to-[oklch(0.05_0_0)]">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 pt-2">
+        Предпросмотр эффектов
+      </div>
+      {active ? (
+        <canvas
+          ref={canvasRef}
+          style={{ width: "100%", maxWidth: 320, height: 120, display: "block" }}
+        />
+      ) : (
+        <div className="h-[120px] grid place-items-center text-xs text-muted-foreground">
+          Эффекты отключены
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AdminSettings() {
   const getTimes = useServerFn(adminGetMeetingTimes);
@@ -172,6 +281,7 @@ function AdminSettings() {
   return (
     <div className="space-y-6 max-w-xl">
       <Toaster position="top-center" theme="dark" richColors />
+      <AnimationPreview leaves={leavesEnabled} leavesCount={leavesCount} snow={snowEnabled} snowCount={snowCount} />
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-2xl">Настройки сайта</h1>
         <button

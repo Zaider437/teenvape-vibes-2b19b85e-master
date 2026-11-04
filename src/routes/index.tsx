@@ -14,6 +14,9 @@ import {
   Search,
   Send,
   ClipboardList,
+  GitCompareArrows,
+  Home,
+  Clock3,
 } from "lucide-react";
 import { CartProvider, useCart, type CartItem } from "../lib/cart";
 import {
@@ -31,6 +34,11 @@ import { NewsCarousel } from "../components/NewsCarousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet";
 import { Skeleton } from "../components/ui/skeleton";
+import {
+  useFavorites,
+  useCompare,
+  useRecentlyViewed,
+} from "../lib/user-collections";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -91,6 +99,7 @@ export function Shop({
   const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [hoveredBrand, setHoveredBrand] = useState<string | null>(null);
   const { items } = useCart();
+  const { recordView, recent, clearRecent } = useRecentlyViewed();
   const fetchProductsServer = useServerFn(fetchProductsWithImages);
   const cartQtyByProduct = useMemo(() => {
     const map = new Map<string, number>();
@@ -290,7 +299,7 @@ export function Shop({
   }, [inCategory, hasSubfilters, brand, flavor, category, query, cartQtyByProduct, categoryOrder]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-32">
+    <div className="min-h-screen bg-background text-foreground pb-32 sm:pb-24">
       <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} />
       {eventThemeActive && (
         <div className="fixed inset-0 pointer-events-none z-[45] overflow-hidden">
@@ -456,10 +465,24 @@ export function Shop({
       )}
 
       {/* products grid */}
+      {/* skeleton-загрузка каталога */}
       {loadingProducts ? (
-        <div className="px-3 sm:px-4 mt-6 sm:mt-8 text-center text-sm text-muted-foreground">
-          Загружаем каталог…
-        </div>
+        <section className="px-3 sm:px-4 mt-3 sm:mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-border overflow-hidden">
+              <Skeleton className="aspect-[4/5] sm:aspect-[3/4] w-full rounded-none" />
+              <div className="p-2 sm:p-3 space-y-1.5">
+                <Skeleton className="h-2.5 w-1/3" />
+                <Skeleton className="h-3.5 w-full" />
+                <Skeleton className="h-3.5 w-2/3" />
+                <div className="flex justify-between items-center pt-1">
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
       ) : filtered.length === 0 ? (
         <div className="px-3 sm:px-4 mt-6 sm:mt-8 text-center">
           <p className="text-sm text-muted-foreground">Ничего не найдено по запросу «{query}»</p>
@@ -476,14 +499,68 @@ export function Shop({
       ) : (
         <section className="px-3 sm:px-4 mt-3 sm:mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
           {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} onOpen={(product) => setSelectedProduct(product)} />
+            <ProductCard
+              key={p.id}
+              product={p}
+              onOpen={(product) => {
+                recordView(product);
+                setSelectedProduct(product);
+              }}
+            />
           ))}
+        </section>
+      )}
+
+      {/* Недавно просмотренные */}
+      {recent.length > 0 && !loadingProducts && (
+        <section className="mt-8">
+          <div className="px-3 sm:px-4 flex items-center justify-between">
+            <h3 className="font-display text-lg sm:text-xl flex items-center gap-2">
+              <Clock3 className="w-4 h-4 text-primary" /> Недавно смотрели
+            </h3>
+            <button
+              onClick={clearRecent}
+              className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              Очистить
+            </button>
+          </div>
+          <div className="px-3 sm:px-4 mt-2 flex gap-2 overflow-x-auto pb-2 snap-x">
+            {recent.map((e) => (
+              <button
+                key={e.id}
+                onClick={() => {
+                  recordView(e.product);
+                  setSelectedProduct(e.product);
+                }}
+                className="snap-start shrink-0 w-28 rounded-xl border border-border bg-card p-2 text-left hover:border-primary/60 transition-colors"
+              >
+                <div className="aspect-square grid place-items-center text-2xl bg-primary/5 rounded-lg overflow-hidden mb-1">
+                  {e.product.image ? (
+                    <img
+                      src={e.product.image}
+                      alt={e.product.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <span>{e.product.emoji}</span>
+                  )}
+                </div>
+                <div className="text-[10px] font-bold leading-tight line-clamp-2">{e.product.name}</div>
+                <div className="text-[10px] text-primary font-bold">{e.product.price} BYN</div>
+              </button>
+            ))}
+          </div>
         </section>
       )}
 
       <Footer />
 
       <FloatingCartBar onOpen={() => setCartOpen(true)} />
+
+      <MobileNav onOpenCart={() => setCartOpen(true)} />
 
       {cartOpen && (
         <CartDrawer
@@ -520,6 +597,9 @@ export function Shop({
           refetchProducts={fetchProductsServer}
         />
       )}
+
+      <FavoritesSheet products={availableProducts} />
+      <CompareSheet products={availableProducts} />
 
       <Dialog
         open={!!selectedProduct}
@@ -631,6 +711,61 @@ function Hero({ total }: { total: number }) {
   );
 }
 
+function MobileNav({ onOpenCart }: { onOpenCart: () => void }) {
+  const { count } = useCart();
+  const { favorites } = useFavorites();
+  const { compare } = useCompare();
+  return (
+    <nav className="mobile-nav sm:hidden" aria-label="Навигация">
+      <a href="#catalog" className="mn-active">
+        <Home className="w-5 h-5" />
+        <span>Каталог</span>
+      </a>
+      <a
+        href="#catalog"
+        onClick={() => document.dispatchEvent(new CustomEvent("lv-open-favorites"))}
+        aria-label="Избранное"
+      >
+        <span className="relative">
+          <Heart className="w-5 h-5" />
+          {favorites.length > 0 && (
+            <span className="absolute -top-1 -right-1.5 min-w-3.5 h-3.5 px-0.5 rounded-full bg-primary text-primary-foreground text-[8px] font-black grid place-items-center">
+              {favorites.length}
+            </span>
+          )}
+        </span>
+        <span>Избранное</span>
+      </a>
+      <a
+        href="#catalog"
+        onClick={() => document.dispatchEvent(new CustomEvent("lv-open-compare"))}
+        aria-label="Сравнение"
+      >
+        <span className="relative">
+          <GitCompareArrows className="w-5 h-5" />
+          {compare.length > 0 && (
+            <span className="absolute -top-1 -right-1.5 min-w-3.5 h-3.5 px-0.5 rounded-full bg-primary text-primary-foreground text-[8px] font-black grid place-items-center">
+              {compare.length}
+            </span>
+          )}
+        </span>
+        <span>Сравнить</span>
+      </a>
+      <button onClick={onOpenCart} aria-label="Корзина">
+        <span className="relative">
+          <ShoppingBag className="w-5 h-5" />
+          {count > 0 && (
+            <span className="absolute -top-1 -right-1.5 min-w-3.5 h-3.5 px-0.5 rounded-full bg-primary text-primary-foreground text-[8px] font-black grid place-items-center">
+              {count}
+            </span>
+          )}
+        </span>
+        <span>Корзина</span>
+      </button>
+    </nav>
+  );
+}
+
 function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Product) => void }) {
   const { add, items } = useCart();
   const [broken, setBroken] = useState(false);
@@ -640,9 +775,13 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
   const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
   const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
   const isOutOfStock = remainingStock <= 0;
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { inCompare, toggleCompare } = useCompare();
+  const fav = isFavorite(product.id);
+  const cmp = inCompare(product.id);
   return (
     <div
-      className="relative rounded-xl border border-border overflow-hidden flex flex-col transition-all hover:border-primary/60 hover:-translate-y-0.5"
+      className="product-card relative rounded-xl border border-border overflow-hidden flex flex-col"
       style={{ backgroundImage: "var(--gradient-card)" }}
     >
       <div className="aspect-[4/5] sm:aspect-[3/4] grid place-items-center text-4xl sm:text-5xl bg-primary/5 border-b border-border/60 relative overflow-hidden">
@@ -652,6 +791,33 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
             background: "radial-gradient(circle at 50% 50%, var(--primary) 0%, transparent 60%)",
           }}
         />
+        {/* избранное / сравнение */}
+        <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
+          <button
+            onClick={() => {
+              const added = toggleFavorite(product.id);
+              if (!added && !fav) toast.warning("В избранном максимум товаров");
+            }}
+            className={`fav-btn ${fav ? "fav-active" : ""} w-7 h-7 rounded-lg grid place-items-center ${fav ? "bg-primary text-primary-foreground" : "bg-background/80 text-muted-foreground hover:text-primary"}`}
+            aria-label={fav ? "Убрать из избранного" : "В избранное"}
+            title="В избранное"
+          >
+            <Heart className={`w-3.5 h-3.5 ${fav ? "fill-current" : ""}`} />
+          </button>
+          <button
+            onClick={() => {
+              const added = toggleCompare(product.id);
+              if (added) toast.success("Добавлено к сравнению");
+              else if (cmp) toast.info("Убрано из сравнения");
+              else toast.warning("Максимум 4 товара для сравнения");
+            }}
+            className={`cmp-btn w-7 h-7 rounded-lg grid place-items-center ${cmp ? "bg-secondary text-secondary-foreground" : "bg-background/80 text-muted-foreground hover:text-foreground"}`}
+            aria-label={cmp ? "Убрать из сравнения" : "Сравнить"}
+            title="Сравнить"
+          >
+            <GitCompareArrows className="w-3.5 h-3.5" />
+          </button>
+        </div>
         <button
           onClick={() => onOpen(product)}
           className="relative w-full h-full flex items-center justify-center cursor-pointer"
@@ -663,7 +829,7 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
               alt={product.name}
               loading="lazy"
               decoding="async"
-              className="relative w-full h-full object-contain p-1.5 sm:p-2.5"
+              className="product-card-img relative w-full h-full object-contain p-1.5 sm:p-2.5"
               onError={() => setBroken(true)}
             />
           ) : (
@@ -671,7 +837,7 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
           )}
         </button>
       </div>
-      <div className="p-2 sm:p-3 flex-1 flex flex-col">
+      <div className="p-2 sm:p-3 flex-1 flex flex-col pb-20 sm:pb-0">
         <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           {product.brand}
         </div>
@@ -1158,6 +1324,176 @@ function CheckoutSheet({
         )}
       </div>
     </div>
+  );
+}
+
+function FavoritesSheet({ products }: { products: Product[] }) {
+  const [open, setOpen] = useState(false);
+  const { favorites, toggleFavorite } = useFavorites();
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    document.addEventListener("lv-open-favorites", handler);
+    return () => document.removeEventListener("lv-open-favorites", handler);
+  }, []);
+  const list = products.filter((p) => favorites.includes(p.id));
+  const { add } = useCart();
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[85vh] flex flex-col rounded-t-2xl border-t-2 border-primary"
+      >
+        <SheetHeader className="p-3 sm:p-4 border-b border-border">
+          <SheetTitle className="font-display text-xl flex items-center gap-2">
+            <Heart className="w-5 h-5 text-primary fill-current" /> Избранное
+          </SheetTitle>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {list.length === 0 ? (
+            <p className="text-center text-muted-foreground py-10 text-sm">
+              Пока пусто. Жми ♥ на карточке товара 💜
+            </p>
+          ) : (
+            list.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center gap-3 bg-background rounded-xl p-2 border border-border"
+              >
+                <div className="w-12 h-12 rounded-lg bg-muted grid place-items-center text-2xl shrink-0 overflow-hidden">
+                  {p.image ? (
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <span>{p.emoji}</span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold leading-tight break-words">{p.name}</div>
+                  <div className="text-xs text-primary font-bold">{p.price} BYN</div>
+                </div>
+                <button
+                  onClick={() => {
+                    const added = add(p);
+                    if (added) toast.success(`${p.name} в корзине`);
+                    else toast.warning("Максимум 3 шт. одного товара");
+                  }}
+                  className="w-9 h-9 rounded-lg bg-primary text-primary-foreground grid place-items-center"
+                  aria-label="В корзину"
+                >
+                  <Plus className="w-4 h-4" strokeWidth={3} />
+                </button>
+                <button
+                  onClick={() => toggleFavorite(p.id)}
+                  className="w-9 h-9 rounded-lg bg-muted text-muted-foreground grid place-items-center"
+                  aria-label="Убрать из избранного"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function CompareSheet({ products }: { products: Product[] }) {
+  const [open, setOpen] = useState(false);
+  const { compare, toggleCompare, clearCompare } = useCompare();
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    document.addEventListener("lv-open-compare", handler);
+    return () => document.removeEventListener("lv-open-compare", handler);
+  }, []);
+  const list = products.filter((p) => compare.includes(p.id));
+  const rows: { label: string; get: (p: Product) => string }[] = [
+    { label: "Бренд", get: (p) => p.brand || "—" },
+    { label: "Вкус", get: (p) => p.flavor || "—" },
+    { label: "Затяжки", get: (p) => p.puffs || "—" },
+    { label: "Объём", get: (p) => p.volume || "—" },
+    { label: "Наличие", get: (p) => ((p.stock_quantity ?? Infinity) > 0 ? "Есть" : "Нет") },
+    { label: "Цена", get: (p) => `${p.price} BYN` },
+  ];
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[85vh] flex flex-col rounded-t-2xl border-t-2 border-secondary"
+      >
+        <SheetHeader className="p-3 sm:p-4 border-b border-border flex flex-row items-center justify-between">
+          <SheetTitle className="font-display text-xl flex items-center gap-2">
+            <GitCompareArrows className="w-5 h-5 text-primary" /> Сравнение
+          </SheetTitle>
+          {list.length > 0 && (
+            <button
+              onClick={clearCompare}
+              className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              Очистить
+            </button>
+          )}
+        </SheetHeader>
+        <div className="flex-1 overflow-auto p-3">
+          {list.length === 0 ? (
+            <p className="text-center text-muted-foreground py-10 text-sm">
+              Добавь до 4 товаров через кнопцу ⇄ на карточке
+            </p>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr>
+                  <th className="text-left p-2 align-bottom" />
+                  {list.map((p) => (
+                    <th key={p.id} className="p-2 align-bottom min-w-[90px]">
+                      <div className="aspect-square grid place-items-center text-2xl bg-primary/5 rounded-lg overflow-hidden mb-1">
+                        {p.image ? (
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <span>{p.emoji}</span>
+                        )}
+                      </div>
+                      <div className="font-bold leading-tight">{p.name}</div>
+                      <button
+                        onClick={() => toggleCompare(p.id)}
+                        className="mt-1 text-[10px] text-muted-foreground hover:text-destructive"
+                      >
+                        убрать
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.label} className="border-t border-border">
+                    <td className="p-2 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">
+                      {row.label}
+                    </td>
+                    {list.map((p) => (
+                      <td key={p.id} className="p-2 text-center break-words">
+                        {row.get(p)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

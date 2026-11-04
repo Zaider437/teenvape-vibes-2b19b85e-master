@@ -510,6 +510,114 @@ export const adminUpdateStock = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const adminBulkUpdatePrice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        ids: z.array(z.string()).min(1),
+        mode: z.enum(["set", "percent"]),
+        value: z.number(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: rows, error: fetchError } = await supabaseAdmin
+      .from("products" as any)
+      .select("id, name, price")
+      .in("id", data.ids);
+    if (fetchError) throw fetchError;
+
+    const updates = (rows ?? []).map((r: any) => {
+      const current = Number(r.price) || 0;
+      let next: number;
+      if (data.mode === "set") {
+        next = data.value;
+      } else {
+        next = Math.round(current * (1 + data.value / 100) * 100) / 100;
+      }
+      next = Math.max(0, Number(next.toFixed(2)));
+      return { id: r.id, name: r.name, oldPrice: current, newPrice: next };
+    });
+
+    // Обновляем по одному, чтобы у каждого товара была своя цена
+    for (const u of updates) {
+      const { error } = await supabaseAdmin
+        .from("products" as any)
+        .update({ price: u.newPrice })
+        .eq("id", u.id);
+      if (error) throw error;
+    }
+
+    await logProductActivity(context, {
+      product_id: null,
+      action: "bulk_update_price",
+      details: {
+        mode: data.mode,
+        value: data.value,
+        count: updates.length,
+        changes: updates.map((u) => ({ id: u.id, name: u.name, oldPrice: u.oldPrice, newPrice: u.newPrice })),
+      },
+      product_snapshot: null,
+    });
+
+    return { ok: true, updated: updates.length, changes: updates };
+  });
+
+export const adminExportOrdersCsv = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data, error } = await supabaseAdmin
+      .from("orders" as any)
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const header = [
+      "id",
+      "created_at",
+      "customer_name",
+      "customer_phone",
+      "customer_address",
+      "customer_note",
+      "items",
+      "total_amount",
+      "status",
+    ];
+    const lines = [header.join(";")];
+    for (const o of data ?? []) {
+      const r = o as Record<string, any>;
+      lines.push(
+        [
+          r.id,
+          r.created_at,
+          r.customer_name,
+          r.customer_phone,
+          r.customer_address,
+          r.customer_note,
+          typeof r.items === "string" ? r.items : JSON.stringify(r.items),
+          r.total_amount,
+          r.status,
+        ]
+          .map(esc)
+          .join(";"),
+      );
+    }
+
+    return { csv: "\ufeff" + lines.join("\n"), count: (data ?? []).length };
+  });
+
 export const adminBulkUpdateImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>

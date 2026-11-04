@@ -198,6 +198,92 @@
   box-shadow: var(--glow-soft);
 }
 
+/* Микроанимации карточек товара */
+@keyframes card-pop {
+  0% { transform: scale(1) translateY(0); }
+  40% { transform: scale(0.97) translateY(1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+.product-card {
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.3, 0.5, 1),
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+  will-change: transform;
+}
+@media (hover: hover) {
+  .product-card:hover {
+    transform: translateY(-4px);
+    border-color: oklch(0.66 0.27 355 / 0.6);
+    box-shadow: 0 12px 32px -12px oklch(0.66 0.27 355 / 0.45);
+  }
+  .product-card:hover .product-card-img {
+    transform: scale(1.06);
+  }
+}
+.product-card:active {
+  animation: card-pop 0.25s ease;
+}
+.product-card-img {
+  transition: transform 0.3s cubic-bezier(0.34, 1.3, 0.5, 1);
+}
+.product-card .fav-btn,
+.product-card .cmp-btn {
+  transition: transform 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+.product-card .fav-btn:active,
+.product-card .cmp-btn:active {
+  transform: scale(0.82);
+}
+@keyframes fav-burst {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.fav-btn.fav-active svg {
+  animation: fav-burst 0.35s ease;
+}
+
+/* Нижняя мобильная навигация */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: oklch(0.08 0 0 / 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid oklch(0.2 0 0);
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+}
+.mobile-nav a,
+.mobile-nav button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 56px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  color: oklch(0.62 0 0);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: color 0.18s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-nav a:active,
+.mobile-nav button:active {
+  transform: scale(0.92);
+}
+.mobile-nav .mn-active {
+  color: oklch(0.66 0.27 355);
+}
+
 /* Качающаяся лампочка-персонаж (внизу сайта, над LoveVape) */
 @keyframes bulb-idle-sway {
   0% { transform: rotate(-3.5deg); }
@@ -243,20 +329,8 @@ button.bulb-sway {
   0%, 100% { opacity: 0.28; transform: translate(-50%, -50%) scale(1); }
   50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.12); }
 }
-/* Фраза лампочки — появляется в зоне света под лампой, живёт пока лампа горит */
-.bulb-phrase {
-  animation: bulb-phrase-in 400ms ease both;
-}
-@keyframes bulb-phrase-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .bulb-sway, .stick, .bulb-halo {
-    animation: none !important;
-  }
-  .bulb-phrase {
     animation: none !important;
   }
 }

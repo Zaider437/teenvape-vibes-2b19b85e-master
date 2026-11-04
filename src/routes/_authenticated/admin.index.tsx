@@ -18,6 +18,8 @@ import {
   ArrowDown,
   ArrowUpDown,
   CheckSquare,
+  DollarSign,
+  Download,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import {
@@ -34,6 +36,8 @@ import {
   adminGetCategoryOrder,
   adminUpdateCategoryOrder,
   adminSetProductDiscount,
+  adminBulkUpdatePrice,
+  adminExportOrdersCsv,
   DEFAULT_CATEGORY_ORDER,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
@@ -137,6 +141,8 @@ function ProductsAdmin() {
   const getCatOrder = useServerFn(adminGetCategoryOrder);
   const updateCatOrder = useServerFn(adminUpdateCategoryOrder);
   const setDiscount = useServerFn(adminSetProductDiscount);
+  const bulkPrice = useServerFn(adminBulkUpdatePrice);
+  const exportCsv = useServerFn(adminExportOrdersCsv);
 
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,6 +174,11 @@ function ProductsAdmin() {
   const [moveCopySubcategory, setMoveCopySubcategory] = useState<string>("");
   const [moveCopyCustomSubcategory, setMoveCopyCustomSubcategory] = useState(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all");
+  const [showBulkPriceDialog, setShowBulkPriceDialog] = useState(false);
+  const [bulkPriceMode, setBulkPriceMode] = useState<"set" | "percent">("percent");
+  const [bulkPriceValue, setBulkPriceValue] = useState("");
+  const [isBulkPriceSaving, setIsBulkPriceSaving] = useState(false);
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
 
   const dynamicCategories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(rows.map((r) => r.category)));
@@ -699,6 +710,39 @@ function ProductsAdmin() {
         <h1 className="font-display text-2xl">Товары</h1>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowBulkPriceDialog(true)}
+            disabled={selectedIds.size === 0}
+            className="inline-flex items-center gap-1.5 bg-card hover:bg-muted text-foreground font-semibold px-3 py-1.5 rounded-lg text-sm border border-border transition-colors disabled:opacity-40"
+            title="Массовое изменение цен выбранных товаров"
+          >
+            <DollarSign className="w-4 h-4" /> Цены
+          </button>
+          <button
+            onClick={async () => {
+              setIsExportingCsv(true);
+              try {
+                const res = await exportCsv();
+                const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success(`Экспортировано заказов: ${res.count}`);
+              } catch (e: any) {
+                toast.error(e?.message ?? "Не удалось экспортировать");
+              } finally {
+                setIsExportingCsv(false);
+              }
+            }}
+            disabled={isExportingCsv}
+            className="inline-flex items-center gap-1.5 bg-card hover:bg-muted text-foreground font-semibold px-3 py-1.5 rounded-lg text-sm border border-border transition-colors disabled:opacity-40"
+            title="Скачать все заказы в CSV"
+          >
+            <Download className="w-4 h-4" /> {isExportingCsv ? "Экспорт…" : "Экспорт заказов"}
+          </button>
+          <button
             onClick={() => setShowCategoryOrderDialog(true)}
             className="inline-flex items-center gap-1.5 bg-card hover:bg-muted text-foreground font-semibold px-3 py-1.5 rounded-lg text-sm border border-border transition-colors"
             title="Настроить порядок каталогов на сайте"
@@ -1190,6 +1234,102 @@ function ProductsAdmin() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={showBulkPriceDialog} onOpenChange={setShowBulkPriceDialog}>
+        <DialogContent className="max-w-sm w-[calc(100%-2rem)]">
+          <DialogHeader>
+            <DialogTitle>Изменить цены ({selectedIds.size} товаров)</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setBulkPriceMode("percent")}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${bulkPriceMode === "percent" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
+              >
+                Процент ±
+              </button>
+              <button
+                onClick={() => setBulkPriceMode("set")}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${bulkPriceMode === "set" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
+              >
+                Задать цену
+              </button>
+            </div>
+            <label className="grid gap-1.5">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                {bulkPriceMode === "percent" ? "Процент (например 10 или -15)" : "Новая цена (BYN)"}
+              </span>
+              <input
+                type="number"
+                step="0.01"
+                value={bulkPriceValue}
+                onChange={(e) => setBulkPriceValue(e.target.value)}
+                className="bg-background border-2 border-border rounded-xl px-3 py-2.5 text-sm"
+                placeholder={bulkPriceMode === "percent" ? "10" : "25"}
+              />
+              {bulkPriceMode === "percent" &&
+                (() => {
+                  const v = Number(bulkPriceValue);
+                  if (!bulkPriceValue.trim() || Number.isNaN(v) || v === 0) return null;
+                  return (
+                    <p className="text-[11px] text-muted-foreground">
+                      {v > 0 ? "Повысить" : "Понизить"} цены на {Math.abs(v)}% (например 20 BYN →{" "}
+                      {(20 * (1 + v / 100)).toFixed(2)} BYN)
+                    </p>
+                  );
+                })()}
+            </label>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setShowBulkPriceDialog(false);
+                setBulkPriceValue("");
+              }}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={async () => {
+                const v = Number(bulkPriceValue);
+                if (bulkPriceValue.trim() === "" || Number.isNaN(v)) {
+                  toast.error("Введите значение");
+                  return;
+                }
+                if (bulkPriceMode === "set" && v < 0) {
+                  toast.error("Цена не может быть отрицательной");
+                  return;
+                }
+                if (bulkPriceMode === "percent" && v <= -100) {
+                  toast.error("Снижение не может быть 100% и более");
+                  return;
+                }
+                setIsBulkPriceSaving(true);
+                try {
+                  const res = await bulkPrice({
+                    data: { ids: Array.from(selectedIds), mode: bulkPriceMode, value: v },
+                  });
+                  toast.success(`Цены обновлены: ${res.updated} товаров`);
+                  setShowBulkPriceDialog(false);
+                  setBulkPriceValue("");
+                  clearSelection();
+                  invalidateProductsCache();
+                  await reload(true);
+                } catch (e: any) {
+                  toast.error(e?.message ?? "Не удалось обновить цены");
+                } finally {
+                  setIsBulkPriceSaving(false);
+                }
+              }}
+              disabled={isBulkPriceSaving}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isBulkPriceSaving ? "Применяю…" : "Применить"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showBulkBrandDialog} onOpenChange={setShowBulkBrandDialog}>
         <DialogContent className="max-w-sm w-[calc(100%-2rem)]">
           <DialogHeader>
@@ -1482,7 +1622,7 @@ function DraftEditor({
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl p-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-3">
+      <div className="bg-card border border-border rounded-2xl p-4 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center">
           <h3 className="font-display text-xl">{draft.id ? "Редактировать" : "Новый товар"}</h3>
           <button
@@ -1492,6 +1632,8 @@ function DraftEditor({
             <XIcon className="w-4 h-4" />
           </button>
         </div>
+        <div className="grid md:grid-cols-[minmax(0,1fr)_220px] gap-4">
+          <div className="space-y-3 min-w-0">
         <F
           label="Slug (уникальный)"
           v={draft.slug}
@@ -1718,6 +1860,71 @@ function DraftEditor({
           <button onClick={onCancel} className="px-4 py-2.5 rounded-lg bg-muted font-semibold">
             Отмена
           </button>
+        </div>
+          </div>
+          {/* Живое превью карточки, как на сайте */}
+          <div className="md:sticky md:top-4 self-start">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
+              Превью на сайте
+            </div>
+            <div
+              className="rounded-xl border border-border overflow-hidden"
+              style={{ backgroundImage: "var(--gradient-card)" }}
+            >
+              <div className="aspect-[4/5] grid place-items-center text-4xl bg-primary/5 border-b border-border/60 relative">
+                <div
+                  className="absolute inset-0 opacity-30"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 50% 50%, var(--primary) 0%, transparent 60%)",
+                  }}
+                />
+                {previewUrl || draft.image_url ? (
+                  <img
+                    src={previewUrl || formatImageUrl(draft.image_url) || ""}
+                    alt=""
+                    className="relative w-full h-full object-contain p-2"
+                  />
+                ) : (
+                  <span className="relative">{draft.emoji || "🔥"}</span>
+                )}
+              </div>
+              <div className="p-3">
+                <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                  {draft.brand || "Бренд"}
+                </div>
+                <div className="mt-0.5 font-bold text-xs leading-tight line-clamp-2">
+                  {draft.name || "Название товара"}
+                </div>
+                {draft.flavor && (
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{draft.flavor}</div>
+                )}
+                <div className="mt-2 flex items-baseline gap-1.5">
+                  {draft.discount_price.trim() !== "" &&
+                    Number(draft.discount_price) < Number(draft.price) && (
+                      <span className="text-xs text-muted-foreground line-through">
+                        {Number(draft.price).toFixed(0)}
+                      </span>
+                    )}
+                  <span className="font-display text-lg text-primary">
+                    {draft.discount_price.trim() !== "" &&
+                    Number(draft.discount_price) < Number(draft.price)
+                      ? Number(draft.discount_price).toFixed(2)
+                      : Number(draft.price || 0).toFixed(2)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">BYN</span>
+                </div>
+                <div className="mt-2 text-center text-[9px] uppercase tracking-widest text-muted-foreground">
+                  На складе: {draft.stock_quantity || 0}
+                </div>
+              </div>
+            </div>
+            {!draft.is_active && (
+              <p className="mt-2 text-[10px] text-red-500 font-bold uppercase tracking-wider text-center">
+                Товар будет скрыт (не активен)
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

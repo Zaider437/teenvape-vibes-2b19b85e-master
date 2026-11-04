@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import logoImg from "@/assets/5363874353084309359.jpg";
 
 /**
@@ -9,23 +9,6 @@ import logoImg from "@/assets/5363874353084309359.jpg";
  */
 
 const ROPE_LEN = 46; // длина верёвки, px
-
-// Фразы, которые лампа «говорит» при каждом включении (без повторов подряд)
-const PHRASES: string[] = [
-  "ты ожидал тут что-то увидеть?",
-  "Тут нечего нет лучше закажи что-нибудь",
-  "От того что ты нажимаешь на меня нечего не измениться!",
-  "Дайте премию программисту",
-  "Это не я оно само",
-  "Блин а я что правда тут навсегда",
-  "Уйдёшь обижусь",
-  "Да ладно сваливай толку больше если что-нибудь закажешь",
-  "Отвали а",
-  "Я уже думал ты не вернёшься",
-  "А я знал что ты из этих как их там о вейперов",
-  "LoveVape - наше всё",
-  "Love Vape - это то что вам нужно",
-];
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -43,26 +26,11 @@ export const HangingBulbContact = () => {
   const [lit, setLit] = useState(false);
   // счётчик кликов: 0 = покачиваемся вхолостую, >0 = короткий импульс-«толчок»
   const [impulse, setImpulse] = useState(0);
-  const [phrase, setPhrase] = useState<string | null>(null);
-  const phraseRef = useRef<string | null>(null);
-  const litRef = useRef(false);
   const reduced = usePrefersReducedMotion();
 
   const toggle = useCallback(() => {
+    setLit((v) => !v);
     setImpulse((n) => n + 1);
-    setLit((wasLit) => !wasLit);
-    if (!litRef.current) {
-      // Включаем: случайная фраза (не повторяющая предыдущую), висит пока лампа горит
-      const prev = phraseRef.current;
-      const pool = PHRASES.filter((p) => p !== prev);
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      phraseRef.current = pick;
-      setPhrase(pick);
-    } else {
-      // Выключаем: свет погас — фраза исчезает вместе со светом
-      setPhrase(null);
-    }
-    litRef.current = !litRef.current;
   }, []);
 
   const accent = "var(--primary)"; // magenta из буквы L логотипа
@@ -110,33 +78,6 @@ export const HangingBulbContact = () => {
               opacity: 0.35,
             }}
           />
-        )}
-
-        {/* фраза — прямо в зоне света (гало), разбита на столбцы */}
-        {lit && phrase && (
-          <span
-            aria-live="polite"
-            className="bulb-phrase bulb-phrase-show absolute"
-            style={{
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              width: 150,
-              columns: 2,
-              columnGap: 8,
-              textAlign: "center",
-              fontWeight: 800,
-              fontSize: 11,
-              lineHeight: 1.3,
-              letterSpacing: "0.02em",
-              color: "#ffffff",
-              textShadow: `0 0 6px ${accent}, 0 0 14px ${accent}, 0 0 24px ${accent}`,
-              wordBreak: "break-word",
-              zIndex: 2,
-            }}
-          >
-            {phrase}
-          </span>
         )}
 
         {/* цоколь */}
