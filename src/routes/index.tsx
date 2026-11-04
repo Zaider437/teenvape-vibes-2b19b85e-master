@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { getEventSettings } from "@/lib/admin.functions";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ShoppingBag,
@@ -1331,13 +1331,65 @@ function CheckoutSheet({
 function FavoritesSheet({ products }: { products: Product[] }) {
   const [open, setOpen] = useState(false);
   const { favorites, toggleFavorite } = useFavorites();
+  const { add } = useCart();
   useEffect(() => {
     const handler = () => setOpen(true);
     document.addEventListener("lv-open-favorites", handler);
     return () => document.removeEventListener("lv-open-favorites", handler);
   }, []);
-  const list = products.filter((p) => favorites.includes(p.id));
-  const { add } = useCart();
+  const toggleFav = useCallback((id: string) => () => toggleFavorite(id), [toggleFavorite]);
+  const addToCart = useCallback(
+    (p: Product) => {
+      const added = add(p);
+      if (added) toast.success(`${p.name} в корзине`);
+      else toast.warning("Максимум 3 шт. одного товара");
+    },
+    [add],
+  );
+  // Стабильный список: не пересоздаётся при open/close, чтобы не лагала анимация закрытия
+  const list = useMemo(() => products.filter((p) => favorites.includes(p.id)), [products, favorites]);
+  const favRows = useMemo(
+    () =>
+      list.map((p) => (
+        <div
+          key={p.id}
+          className="flex items-center gap-3 bg-background rounded-xl p-2 border border-border"
+        >
+          <div className="w-12 h-12 rounded-lg bg-muted grid place-items-center text-2xl shrink-0 overflow-hidden">
+            {p.image ? (
+              <img
+                src={p.image}
+                alt={p.name}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <span>{p.emoji}</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-bold leading-tight break-words">{p.name}</div>
+            <div className="text-xs text-primary font-bold">{p.price} BYN</div>
+          </div>
+          <button
+            onClick={() => addToCart(p)}
+            className="w-9 h-9 rounded-lg bg-primary text-primary-foreground grid place-items-center"
+            aria-label="В корзину"
+          >
+            <Plus className="w-4 h-4" strokeWidth={3} />
+          </button>
+          <button
+            onClick={toggleFav(p.id)}
+            className="w-9 h-9 rounded-lg bg-muted text-muted-foreground grid place-items-center"
+            aria-label="Убрать из избранного"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )),
+    [list, addToCart, toggleFav],
+  );
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent
@@ -1355,48 +1407,7 @@ function FavoritesSheet({ products }: { products: Product[] }) {
               Пока пусто. Жми ♥ на карточке товара 💜
             </p>
           ) : (
-            list.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-3 bg-background rounded-xl p-2 border border-border"
-              >
-                <div className="w-12 h-12 rounded-lg bg-muted grid place-items-center text-2xl shrink-0 overflow-hidden">
-                  {p.image ? (
-                    <img
-                      src={p.image}
-                      alt={p.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <span>{p.emoji}</span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-bold leading-tight break-words">{p.name}</div>
-                  <div className="text-xs text-primary font-bold">{p.price} BYN</div>
-                </div>
-                <button
-                  onClick={() => {
-                    const added = add(p);
-                    if (added) toast.success(`${p.name} в корзине`);
-                    else toast.warning("Максимум 3 шт. одного товара");
-                  }}
-                  className="w-9 h-9 rounded-lg bg-primary text-primary-foreground grid place-items-center"
-                  aria-label="В корзину"
-                >
-                  <Plus className="w-4 h-4" strokeWidth={3} />
-                </button>
-                <button
-                  onClick={() => toggleFavorite(p.id)}
-                  className="w-9 h-9 rounded-lg bg-muted text-muted-foreground grid place-items-center"
-                  aria-label="Убрать из избранного"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))
+            favRows
           )}
         </div>
       </SheetContent>
@@ -1421,6 +1432,50 @@ function CompareSheet({ products }: { products: Product[] }) {
     { label: "Наличие", get: (p) => ((p.stock_quantity ?? Infinity) > 0 ? "Есть" : "Нет") },
     { label: "Цена", get: (p) => `${p.price} BYN` },
   ];
+  const cmpHead = useMemo(
+    () =>
+      list.map((p) => (
+        <th key={p.id} className="p-2 align-bottom min-w-[90px]">
+          <div className="aspect-square grid place-items-center text-2xl bg-primary/5 rounded-lg overflow-hidden mb-1">
+            {p.image ? (
+              <img
+                src={p.image}
+                alt={p.name}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <span>{p.emoji}</span>
+            )}
+          </div>
+          <div className="font-bold leading-tight">{p.name}</div>
+          <button
+            onClick={() => toggleCompare(p.id)}
+            className="mt-1 text-[10px] text-muted-foreground hover:text-destructive"
+          >
+            убрать
+          </button>
+        </th>
+      )),
+    [list, toggleCompare],
+  );
+  const cmpBody = useMemo(
+    () =>
+      rows.map((row) => (
+        <tr key={row.label} className="border-t border-border">
+          <td className="p-2 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">
+            {row.label}
+          </td>
+          {list.map((p) => (
+            <td key={p.id} className="p-2 text-center break-words">
+              {row.get(p)}
+            </td>
+          ))}
+        </tr>
+      )),
+    [rows, list],
+  );
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent
@@ -1450,46 +1505,10 @@ function CompareSheet({ products }: { products: Product[] }) {
               <thead>
                 <tr>
                   <th className="text-left p-2 align-bottom" />
-                  {list.map((p) => (
-                    <th key={p.id} className="p-2 align-bottom min-w-[90px]">
-                      <div className="aspect-square grid place-items-center text-2xl bg-primary/5 rounded-lg overflow-hidden mb-1">
-                        {p.image ? (
-                          <img
-                            src={p.image}
-                            alt={p.name}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-contain"
-                          />
-                        ) : (
-                          <span>{p.emoji}</span>
-                        )}
-                      </div>
-                      <div className="font-bold leading-tight">{p.name}</div>
-                      <button
-                        onClick={() => toggleCompare(p.id)}
-                        className="mt-1 text-[10px] text-muted-foreground hover:text-destructive"
-                      >
-                        убрать
-                      </button>
-                    </th>
-                  ))}
+                  {cmpHead}
                 </tr>
               </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.label} className="border-t border-border">
-                    <td className="p-2 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">
-                      {row.label}
-                    </td>
-                    {list.map((p) => (
-                      <td key={p.id} className="p-2 text-center break-words">
-                        {row.get(p)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
+              <tbody>{cmpBody}</tbody>
             </table>
           )}
         </div>
