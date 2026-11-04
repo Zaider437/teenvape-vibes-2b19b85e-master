@@ -112,6 +112,33 @@ export const HangingBulbContact = () => {
           />
         )}
 
+        {/* фраза — прямо в зоне света (гало), разбита на столбцы */}
+        {lit && phrase && (
+          <span
+            aria-live="polite"
+            className="bulb-phrase bulb-phrase-show absolute"
+            style={{
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              width: 150,
+              columns: 2,
+              columnGap: 8,
+              textAlign: "center",
+              fontWeight: 800,
+              fontSize: 11,
+              lineHeight: 1.3,
+              letterSpacing: "0.02em",
+              color: "#ffffff",
+              textShadow: `0 0 6px ${accent}, 0 0 14px ${accent}, 0 0 24px ${accent}`,
+              wordBreak: "break-word",
+              zIndex: 2,
+            }}
+          >
+            {phrase}
+          </span>
+        )}
+
         {/* цоколь */}
         <span
           aria-hidden
@@ -166,32 +193,6 @@ export const HangingBulbContact = () => {
         <span aria-hidden className="stick stick-fl absolute left-[12px] bottom-[-9px] block" style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
         <span aria-hidden className="stick stick-fr absolute right-[12px] bottom-[-9px] block" style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
       </button>
-
-      {/* Фраза в зоне света ПОД лампочкой — куда падает свет */}
-      <div
-        aria-hidden={phrase ? undefined : true}
-        className="relative w-full flex justify-center pointer-events-none"
-        style={{ marginTop: 8, minHeight: 0 }}
-      >
-        {lit && phrase && (
-          <span
-            className="bulb-phrase bulb-phrase-show"
-            style={{
-              whiteSpace: "normal",
-              maxWidth: 220,
-              textAlign: "center",
-              fontWeight: 800,
-              fontSize: 11,
-              lineHeight: 1.35,
-              letterSpacing: "0.02em",
-              color: accent,
-              textShadow: `0 0 8px ${accent}, 0 0 18px ${accent}, 0 0 30px ${accent}`,
-            }}
-          >
-            {phrase}
-          </span>
-        )}
-      </div>
     </div>
   );
 };
