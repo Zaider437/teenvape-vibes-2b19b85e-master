@@ -7,12 +7,16 @@ const signedUrlCache = new Map<string, { url: string; expires: number }>();
 
 export function formatImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  if (url.startsWith("http")) return url;
   if (url.startsWith("/assets/") || url.startsWith("/__l5e/")) return url;
+  if (url.includes("res.cloudinary.com/")) {
+    // Обрезаем фото под карточку (как у «Зомби Ice Premium»)
+    if (url.includes("/upload/") && !url.includes("/upload/c_")) {
+      return url.replace("/upload/", "/upload/c_fill,w_400,h_500,g_center,q_auto,f_auto/");
+    }
+    return url;
+  }
+  if (url.startsWith("http")) return url;
   const fileName = url.split("/").pop() || url.replace(/^\//, "");
-  // Supabase storage does NOT support ?width/quality/format transform params on
-  // the /object/public/ endpoint (they return HTTP 400 -> CORB errors), so we
-  // must use the plain public object URL.
   return `${PUBLIC_IMAGE_CDN_BASE}/${encodeURIComponent(fileName || "")}`;
 }
 
