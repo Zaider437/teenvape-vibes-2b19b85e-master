@@ -750,8 +750,13 @@ function MobileNav({ onOpenCart }: { onOpenCart: () => void }) {
 function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Product) => void }) {
   const { add, items } = useCart();
   const [broken, setBroken] = useState(false);
+  // При быстрой прокрутке/большом количестве карточек хостинг картинок может
+  // отдать временную ошибку — не считаем картинку битой с первой попытки,
+  // пробуем перезагрузить её ещё раз.
+  const [retryKey, setRetryKey] = useState(0);
   useEffect(() => {
     setBroken(false);
+    setRetryKey(0);
   }, [product.id, product.image]);
   const cartQty = items.find((i) => i.product.id === product.id)?.qty ?? 0;
   const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
@@ -763,7 +768,7 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
       className="product-card relative rounded-xl border border-border overflow-hidden flex flex-col"
       style={{ backgroundImage: "var(--gradient-card)" }}
     >
-      <div className="aspect-[4/3] sm:aspect-[4/3] grid place-items-center text-4xl sm:text-5xl bg-primary/5 border-b border-border/60 relative overflow-hidden">
+      <div className="aspect-[4/5] sm:aspect-[3/4] grid place-items-center text-4xl sm:text-5xl bg-primary/5 border-b border-border/60 relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-30"
           style={{
@@ -791,12 +796,20 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
         >
           {product.image && !broken ? (
             <img
+              key={retryKey}
               src={product.image}
               alt={product.name}
               loading="lazy"
               decoding="async"
               className="product-card-img relative w-full h-full object-contain p-1.5 sm:p-2.5"
-              onError={() => setBroken(true)}
+              onError={() => {
+                if (retryKey === 0) {
+                  // первая ошибка — пробуем ещё раз через мгновение
+                  setTimeout(() => setRetryKey(1), 400);
+                } else {
+                  setBroken(true);
+                }
+              }}
             />
           ) : (
             <span className="drop-shadow-lg">{product.emoji}</span>
