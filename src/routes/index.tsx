@@ -763,7 +763,7 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
       className="product-card relative rounded-xl border border-border overflow-hidden flex flex-col"
       style={{ backgroundImage: "var(--gradient-card)" }}
     >
-      <div className="aspect-[4/5] sm:aspect-[3/4] grid place-items-center text-4xl sm:text-5xl bg-primary/5 border-b border-border/60 relative overflow-hidden">
+      <div className="aspect-[4/3] sm:aspect-[4/3] grid place-items-center text-4xl sm:text-5xl bg-primary/5 border-b border-border/60 relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-30"
           style={{
@@ -803,7 +803,7 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
           )}
         </button>
       </div>
-      <div className="p-2 sm:p-3 flex-1 flex flex-col pb-20 sm:pb-0">
+      <div className="p-2 sm:p-3 flex-1 flex flex-col">
         <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           {product.brand}
         </div>
