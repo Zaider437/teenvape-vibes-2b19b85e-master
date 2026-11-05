@@ -14,7 +14,6 @@ import {
   Search,
   Send,
   ClipboardList,
-  GitCompareArrows,
   Home,
   Clock3,
 } from "lucide-react";
@@ -36,7 +35,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/s
 import { Skeleton } from "../components/ui/skeleton";
 import {
   useFavorites,
-  useCompare,
   useRecentlyViewed,
 } from "../lib/user-collections";
 
@@ -599,7 +597,6 @@ export function Shop({
       )}
 
       <FavoritesSheet products={availableProducts} />
-      <CompareSheet products={availableProducts} />
 
       <Dialog
         open={!!selectedProduct}
@@ -714,7 +711,6 @@ function Hero({ total }: { total: number }) {
 function MobileNav({ onOpenCart }: { onOpenCart: () => void }) {
   const { count } = useCart();
   const { favorites } = useFavorites();
-  const { compare } = useCompare();
   return (
     <nav className="mobile-nav sm:hidden" aria-label="Навигация">
       <a href="#catalog" className="mn-active">
@@ -735,21 +731,6 @@ function MobileNav({ onOpenCart }: { onOpenCart: () => void }) {
           )}
         </span>
         <span>Избранное</span>
-      </a>
-      <a
-        href="#catalog"
-        onClick={() => document.dispatchEvent(new CustomEvent("lv-open-compare"))}
-        aria-label="Сравнение"
-      >
-        <span className="relative">
-          <GitCompareArrows className="w-5 h-5" />
-          {compare.length > 0 && (
-            <span className="absolute -top-1 -right-1.5 min-w-3.5 h-3.5 px-0.5 rounded-full bg-primary text-primary-foreground text-[8px] font-black grid place-items-center">
-              {compare.length}
-            </span>
-          )}
-        </span>
-        <span>Сравнить</span>
       </a>
       <button onClick={onOpenCart} aria-label="Корзина">
         <span className="relative">
@@ -776,9 +757,7 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
   const remainingStock = (product.stock_quantity ?? Infinity) - cartQty;
   const isOutOfStock = remainingStock <= 0;
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { inCompare, toggleCompare } = useCompare();
   const fav = isFavorite(product.id);
-  const cmp = inCompare(product.id);
   return (
     <div
       className="product-card relative rounded-xl border border-border overflow-hidden flex flex-col"
@@ -791,7 +770,7 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
             background: "radial-gradient(circle at 50% 50%, var(--primary) 0%, transparent 60%)",
           }}
         />
-        {/* избранное / сравнение */}
+        {/* избранное */}
         <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
           <button
             onClick={() => {
@@ -803,19 +782,6 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
             title="В избранное"
           >
             <Heart className={`w-3.5 h-3.5 ${fav ? "fill-current" : ""}`} />
-          </button>
-          <button
-            onClick={() => {
-              const added = toggleCompare(product.id);
-              if (added) toast.success("Добавлено к сравнению");
-              else if (cmp) toast.info("Убрано из сравнения");
-              else toast.warning("Максимум 4 товара для сравнения");
-            }}
-            className={`cmp-btn w-7 h-7 rounded-lg grid place-items-center ${cmp ? "bg-secondary text-secondary-foreground" : "bg-background/80 text-muted-foreground hover:text-foreground"}`}
-            aria-label={cmp ? "Убрать из сравнения" : "Сравнить"}
-            title="Сравнить"
-          >
-            <GitCompareArrows className="w-3.5 h-3.5" />
           </button>
         </div>
         <button
@@ -1408,108 +1374,6 @@ function FavoritesSheet({ products }: { products: Product[] }) {
             </p>
           ) : (
             favRows
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function CompareSheet({ products }: { products: Product[] }) {
-  const [open, setOpen] = useState(false);
-  const { compare, toggleCompare, clearCompare } = useCompare();
-  useEffect(() => {
-    const handler = () => setOpen(true);
-    document.addEventListener("lv-open-compare", handler);
-    return () => document.removeEventListener("lv-open-compare", handler);
-  }, []);
-  const list = products.filter((p) => compare.includes(p.id));
-  const rows: { label: string; get: (p: Product) => string }[] = [
-    { label: "Бренд", get: (p) => p.brand || "—" },
-    { label: "Вкус", get: (p) => p.flavor || "—" },
-    { label: "Затяжки", get: (p) => p.puffs || "—" },
-    { label: "Объём", get: (p) => p.volume || "—" },
-    { label: "Наличие", get: (p) => ((p.stock_quantity ?? Infinity) > 0 ? "Есть" : "Нет") },
-    { label: "Цена", get: (p) => `${p.price} BYN` },
-  ];
-  const cmpHead = useMemo(
-    () =>
-      list.map((p) => (
-        <th key={p.id} className="p-2 align-bottom min-w-[90px]">
-          <div className="aspect-square grid place-items-center text-2xl bg-primary/5 rounded-lg overflow-hidden mb-1">
-            {p.image ? (
-              <img
-                src={p.image}
-                alt={p.name}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <span>{p.emoji}</span>
-            )}
-          </div>
-          <div className="font-bold leading-tight">{p.name}</div>
-          <button
-            onClick={() => toggleCompare(p.id)}
-            className="mt-1 text-[10px] text-muted-foreground hover:text-destructive"
-          >
-            убрать
-          </button>
-        </th>
-      )),
-    [list, toggleCompare],
-  );
-  const cmpBody = useMemo(
-    () =>
-      rows.map((row) => (
-        <tr key={row.label} className="border-t border-border">
-          <td className="p-2 font-bold uppercase tracking-wider text-[10px] text-muted-foreground whitespace-nowrap">
-            {row.label}
-          </td>
-          {list.map((p) => (
-            <td key={p.id} className="p-2 text-center break-words">
-              {row.get(p)}
-            </td>
-          ))}
-        </tr>
-      )),
-    [rows, list],
-  );
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetContent
-        side="bottom"
-        className="max-h-[85vh] flex flex-col rounded-t-2xl border-t-2 border-secondary"
-      >
-        <SheetHeader className="p-3 sm:p-4 border-b border-border flex flex-row items-center justify-between">
-          <SheetTitle className="font-display text-xl flex items-center gap-2">
-            <GitCompareArrows className="w-5 h-5 text-primary" /> Сравнение
-          </SheetTitle>
-          {list.length > 0 && (
-            <button
-              onClick={clearCompare}
-              className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
-            >
-              Очистить
-            </button>
-          )}
-        </SheetHeader>
-        <div className="flex-1 overflow-auto p-3">
-          {list.length === 0 ? (
-            <p className="text-center text-muted-foreground py-10 text-sm">
-              Добавь до 4 товаров через кнопцу ⇄ на карточке
-            </p>
-          ) : (
-            <table className="w-full text-xs">
-              <thead>
-                <tr>
-                  <th className="text-left p-2 align-bottom" />
-                  {cmpHead}
-                </tr>
-              </thead>
-              <tbody>{cmpBody}</tbody>
-            </table>
           )}
         </div>
       </SheetContent>

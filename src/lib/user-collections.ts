@@ -2,16 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import type { Product } from "./products";
 
 /**
- * Пользовательские коллекции (localStorage): избранное, сравнение,
+ * Пользовательские коллекции (localStorage): избранное,
  * недавно просмотренные. Синхронизируются между вкладками через событие.
  */
 
 const FAV_KEY = "lv_favorites";
-const CMP_KEY = "lv_compare";
 const RECENT_KEY = "lv_recently_viewed";
 
 const MAX_RECENT = 12;
-const MAX_COMPARE = 4;
 
 function readIds(key: string): string[] {
   try {
@@ -91,14 +89,6 @@ export function useFavorites() {
   const isFavorite = useCallback((id: string) => ids.includes(id), [ids]);
   const toggleFavorite = useCallback((id: string) => toggle(id), [toggle]);
   return { favorites: ids, isFavorite, toggleFavorite, clearFavorites: clear };
-}
-
-export function useCompare() {
-  const { ids, toggle, clear } = useCollection(CMP_KEY);
-  const inCompare = useCallback((id: string) => ids.includes(id), [ids]);
-  /** false — лимит сравнения исчерпан */
-  const toggleCompare = useCallback((id: string) => toggle(id, MAX_COMPARE), [toggle]);
-  return { compare: ids, inCompare, toggleCompare, clearCompare: clear };
 }
 
 export function useRecentlyViewed() {

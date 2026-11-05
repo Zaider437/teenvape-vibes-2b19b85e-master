@@ -227,12 +227,10 @@
 .product-card-img {
   transition: transform 0.3s cubic-bezier(0.34, 1.3, 0.5, 1);
 }
-.product-card .fav-btn,
-.product-card .cmp-btn {
+.product-card .fav-btn {
   transition: transform 0.18s ease, background-color 0.18s ease, color 0.18s ease;
 }
-.product-card .fav-btn:active,
-.product-card .cmp-btn:active {
+.product-card .fav-btn:active {
   transform: scale(0.82);
 }
 @keyframes fav-burst {
