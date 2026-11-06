@@ -1,0 +1,23 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #050510; font-family: "Segoe UI", system-ui, sans-serif; color: #fff; }
+#gameWrap { position: fixed; inset: 0; }
+#gameWrap canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+#hud { position: fixed; top: 10px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; pointer-events: none; z-index: 5; font-size: 16px; text-shadow: 0 2px 4px #000; }
+#hud .score { font-weight: 700; }
+#overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.72); z-index: 10; }
+#overlay.hidden { display: none; }
+#overlayInner { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 460px; width: 92%; max-height: 86vh; overflow-y: auto; padding: 8px 0; }
+#overlayInner h1 { font-size: 40px; margin-bottom: 4px; color: #ff7a18; text-shadow: 0 0 14px #ff3d00; }
+#overlayInner p { font-size: 14px; margin: 2px 0; color: #ddd; text-align: center; }
+#overlayInner input { padding: 10px 12px; border-radius: 8px; border: none; font-size: 16px; width: 100%; }
+#overlayInner button { margin-top: 8px; padding: 12px 28px; font-size: 18px; border: none; border-radius: 10px; background: linear-gradient(135deg,#ff7a18,#ff3d00); color: #fff; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+#overlayInner button:hover { transform: scale(1.05); }
+#backToSiteBtn { position: fixed; top: 10px; right: 10px; z-index: 20; padding: 8px 14px; font-size: 14px; border: none; border-radius: 8px; background: rgba(255,122,24,0.9); color: #000; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+#fireBtn { position: fixed; bottom: 24px; right: 24px; z-index: 20; width: 74px; height: 74px; border-radius: 50%; border: none; background: radial-gradient(circle at 30% 30%, #ff9a3c, #ff3d00); color: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.5); touch-action: manipulation; }
+#fireBtn:active { transform: scale(0.92); }
+@media (min-width: 601px) { #fireBtn { display: none; } }
+#overlayMsg { color: #fff; font-weight: 600; }
+@media (max-width: 600px) {
+  #hud { font-size: 13px; }
+  #overlayInner h1 { font-size: 28px; }
+}
