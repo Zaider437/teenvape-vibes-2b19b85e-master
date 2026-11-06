@@ -24,7 +24,7 @@ export async function getSignedImageUrl(
   url: string | null | undefined,
   expiresIn: number = 3600,
 ): Promise<string | null> {
-  if (!url || typeof window !== "undefined") return url;
+  if (!url || typeof window !== "undefined") return url ?? null;
   if (url.includes("res.cloudinary.com/")) return url;
 
   const SUPABASE_URL =

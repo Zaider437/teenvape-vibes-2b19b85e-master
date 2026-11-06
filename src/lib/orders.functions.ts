@@ -93,7 +93,7 @@ interface ServerContext {
 export const createOrder = createServerFn({ method: "POST" })
   .validator((input: unknown) => orderSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const ctx = context as ServerContext;
+     const ctx = context as unknown as ServerContext;
     console.log("[createOrder] context keys:", Object.keys(ctx || {}));
     console.log("[createOrder] context.cloudflare keys:", Object.keys(ctx?.cloudflare || {}));
     console.log("[createOrder] context.env keys:", Object.keys(ctx?.env || {}));
@@ -586,18 +586,19 @@ export const getOrderByToken = createServerFn({ method: "GET" })
         .eq("cancellation_token", data.token)
         .maybeSingle();
 
-      if (!error && order) {
-        return {
-          id: order.id,
-          customer_name: order.customer_name,
-          customer_address: order.customer_address,
-          customer_note: order.customer_note,
-          items: typeof order.items === "string" ? JSON.parse(order.items) : order.items,
-          total_amount: order.total_amount,
-          status: order.status,
-          created_at: order.created_at,
-        };
-      }
+       if (!error && order) {
+         const o = order as any;
+         return {
+           id: o.id,
+           customer_name: o.customer_name,
+           customer_address: o.customer_address,
+           customer_note: o.customer_note,
+           items: typeof o.items === "string" ? JSON.parse(o.items) : o.items,
+           total_amount: o.total_amount,
+           status: o.status,
+           created_at: o.created_at,
+         };
+       }
     } catch (err) {
       console.warn("[getOrderByToken] Failed to fetch from Supabase, falling back to cache", err);
     }

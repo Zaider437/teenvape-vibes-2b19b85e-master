@@ -585,7 +585,7 @@ function CheckoutSheet({
         toast.error((res as any).error);
         return;
       }
-      setDone({ id: res.id });
+      setDone({ id: String(res?.id ?? "") });
       clear();
       invalidateProductsCache();
       onOrderPlaced?.(currentItems);

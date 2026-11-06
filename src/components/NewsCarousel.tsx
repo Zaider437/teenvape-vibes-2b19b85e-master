@@ -28,7 +28,7 @@ export function NewsCarousel() {
     let cancelled = false;
     getNewsFn()
       .then((data) => {
-        if (!cancelled) setItems(data ?? []);
+        if (!cancelled) setItems((data ?? []) as unknown as NewsItem[]);
       })
       .catch((err) => {
         console.error("[NewsCarousel] load failed", err);

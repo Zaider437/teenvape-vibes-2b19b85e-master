@@ -280,8 +280,8 @@ function RecentActionsPage() {
                   <p className="text-sm text-foreground break-words">{buildDetailsText(row)}</p>
                   {row.product_snapshot && (
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Slug: {row.product_snapshot.slug} · Цена:{" "}
-                      {Number(row.product_snapshot.price).toFixed(2)} BYN
+                       Slug: {(row.product_snapshot as any)?.slug} · Цена:{" "}
+                       {Number((row.product_snapshot as any)?.price).toFixed(2)} BYN
                     </p>
                   )}
                 </div>

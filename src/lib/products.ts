@@ -691,9 +691,7 @@ export type ManufacturerRow = {
 };
 
 export const fetchManufacturers = createServerFn({ method: "GET" }).handler(async () => {
-  let supabaseAdmin: ReturnType<
-    typeof import("@/integrations/supabase/client.server").supabaseAdmin
-  > | null = null;
+  let supabaseAdmin: typeof import("@/integrations/supabase/client.server").supabaseAdmin | null = null;
   try {
     const mod = await import("@/integrations/supabase/client.server");
     supabaseAdmin = mod.supabaseAdmin;
@@ -706,7 +704,7 @@ export const fetchManufacturers = createServerFn({ method: "GET" }).handler(asyn
     ? supabaseAdmin
     : await import("@/integrations/supabase/client").then((m) => m.supabase);
 
-  const { data, error } = await client
+  const { data, error } = await client!
     .from("manufacturers" as any)
     .select("id, name, slug, sort_order, is_active, category_sort")
     .order("sort_order", { ascending: true });
@@ -731,9 +729,7 @@ export type ProductsByManufacturerResult = {
 export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ slug: z.string().trim().min(1) }).parse(input))
   .handler(async ({ data }) => {
-    let supabaseAdmin: ReturnType<
-      typeof import("@/integrations/supabase/client.server").supabaseAdmin
-    > | null = null;
+    let supabaseAdmin: typeof import("@/integrations/supabase/client.server").supabaseAdmin | null = null;
     try {
       const mod = await import("@/integrations/supabase/client.server");
       supabaseAdmin = mod.supabaseAdmin;
@@ -746,7 +742,7 @@ export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
       ? supabaseAdmin
       : await import("@/integrations/supabase/client").then((m) => m.supabase);
 
-    const { data: mfr, error: mfrError } = await client
+    const { data: mfr, error: mfrError } = await client!
       .from("manufacturers" as any)
       .select("id, name, slug")
       .eq("slug", data.slug)
@@ -762,7 +758,7 @@ export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
       return { manufacturer: null, products: [] };
     }
 
-    const { data: products, error: productsError } = await client
+    const { data: products, error: productsError } = await client!
       .from("products" as any)
       .select("*")
       .eq("manufacturer_id", manufacturer.id)
@@ -816,9 +812,7 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler
   }
 
   productsWithImagesPromise = (async () => {
-    let supabaseAdmin: ReturnType<
-      typeof import("@/integrations/supabase/client.server").supabaseAdmin
-    > | null = null;
+    let supabaseAdmin: typeof import("@/integrations/supabase/client.server").supabaseAdmin | null = null;
     try {
       const mod = await import("@/integrations/supabase/client.server");
       supabaseAdmin = mod.supabaseAdmin;
@@ -831,7 +825,7 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler
       ? supabaseAdmin
       : await import("@/integrations/supabase/client").then((m) => m.supabase);
 
-  const { data, error } = await client
+  const { data, error } = await client!
     .from("products" as any)
     .select("*")
     .order("sort_order", { ascending: true })

@@ -60,7 +60,7 @@ function AdminNews() {
     setLoading(true);
     try {
       const data = await listFn();
-      setItems(data ?? []);
+      setItems((data ?? []) as unknown as NewsItem[]);
     } catch (e) {
       toast.error((e as Error)?.message ?? "Ошибка загрузки");
     } finally {
@@ -123,7 +123,7 @@ function AdminNews() {
           const file = dataURLtoFile(imagePreview, "news-image.png");
           const formData = new FormData();
           formData.append("file", file);
-          const result = await uploadFn({ data: formData });
+           const result = await uploadFn({ data: formData } as any);
           imageUrl = (result as { path?: string }).path || imageUrl;
         } catch (uploadErr) {
           toast.error((uploadErr as Error)?.message ?? "Ошибка загрузки изображения");

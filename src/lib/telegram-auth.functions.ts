@@ -144,13 +144,13 @@ export const telegramLogin = createServerFn({ method: "POST" })
 
     async function hmacSha256Hex(keyBytes: Uint8Array, message: string): Promise<string> {
       const encoder = new TextEncoder();
-      const cryptoKey = await crypto.subtle.importKey(
-        "raw",
-        keyBytes,
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"],
-      );
+       const cryptoKey = await crypto.subtle.importKey(
+         "raw",
+         keyBytes as BufferSource,
+         { name: "HMAC", hash: "SHA-256" },
+         false,
+         ["sign"],
+       );
       const signature = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(message));
       return Array.from(new Uint8Array(signature))
         .map((b) => b.toString(16).padStart(2, "0"))
@@ -288,8 +288,8 @@ export const telegramLogin = createServerFn({ method: "POST" })
 
       let found: { id: string; email?: string } | undefined;
       try {
-        const { data: userByEmail, error: emailErr } =
-          (await supabaseAdmin.auth.admin.getUserByEmail?.(emailForSearch)) ?? {};
+         const { data: userByEmail, error: emailErr } =
+           (await (supabaseAdmin.auth.admin as any).getUserByEmail?.(emailForSearch)) ?? {};
         const candidate = (userByEmail as any)?.user ?? (userByEmail as any)?.data?.user;
         if (candidate?.email === emailForSearch) {
           found = { id: candidate.id, email: candidate.email };
