@@ -174,6 +174,16 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    const dsn = (import.meta as any).env?.VITE_SENTRY_DSN;
+    if (!dsn) return;
+    import("@sentry/react")
+      .then(({ init }) => {
+        init({ dsn, tracesSampleRate: 0.1, environment: (import.meta as any).env?.MODE });
+      })
+      .catch((err) => console.warn("[sentry] init failed", err));
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
