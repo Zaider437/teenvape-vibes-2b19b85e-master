@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as GameTelegramConfigRouteImport } from './routes/game/telegram-config'
 import { Route as GameLeaderboardRouteImport } from './routes/game/leaderboard'
 import { Route as BSlugRouteImport } from './routes/b/$slug'
+import { Route as ApiTelegramWebhookRouteImport } from './routes/api.telegram-webhook'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -69,6 +70,11 @@ const GameLeaderboardRoute = GameLeaderboardRouteImport.update({
 const BSlugRoute = BSlugRouteImport.update({
   id: '/b/$slug',
   path: '/b/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTelegramWebhookRoute = ApiTelegramWebhookRouteImport.update({
+  id: '/api/telegram-webhook',
+  path: '/api/telegram-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/events': typeof AuthenticatedEventsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/api/telegram-webhook': typeof ApiTelegramWebhookRoute
   '/b/$slug': typeof BSlugRoute
   '/game/leaderboard': typeof GameLeaderboardRoute
   '/game/telegram-config': typeof GameTelegramConfigRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/events': typeof AuthenticatedEventsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/api/telegram-webhook': typeof ApiTelegramWebhookRoute
   '/b/$slug': typeof BSlugRoute
   '/game/leaderboard': typeof GameLeaderboardRoute
   '/game/telegram-config': typeof GameTelegramConfigRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/events': typeof AuthenticatedEventsRoute
   '/admin/login': typeof AdminLoginRoute
+  '/api/telegram-webhook': typeof ApiTelegramWebhookRoute
   '/b/$slug': typeof BSlugRoute
   '/game/leaderboard': typeof GameLeaderboardRoute
   '/game/telegram-config': typeof GameTelegramConfigRoute
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/events'
     | '/admin/login'
+    | '/api/telegram-webhook'
     | '/b/$slug'
     | '/game/leaderboard'
     | '/game/telegram-config'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/events'
     | '/admin/login'
+    | '/api/telegram-webhook'
     | '/b/$slug'
     | '/game/leaderboard'
     | '/game/telegram-config'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/events'
     | '/admin/login'
+    | '/api/telegram-webhook'
     | '/b/$slug'
     | '/game/leaderboard'
     | '/game/telegram-config'
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   OrderCancelRoute: typeof OrderCancelRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  ApiTelegramWebhookRoute: typeof ApiTelegramWebhookRoute
   BSlugRoute: typeof BSlugRoute
 }
 
@@ -300,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/b/$slug'
       fullPath: '/b/$slug'
       preLoaderRoute: typeof BSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/telegram-webhook': {
+      id: '/api/telegram-webhook'
+      path: '/api/telegram-webhook'
+      fullPath: '/api/telegram-webhook'
+      preLoaderRoute: typeof ApiTelegramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -413,6 +433,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrderCancelRoute: OrderCancelRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminLoginRoute: AdminLoginRoute,
+  ApiTelegramWebhookRoute: ApiTelegramWebhookRoute,
   BSlugRoute: BSlugRoute,
 }
 export const routeTree = rootRouteImport
