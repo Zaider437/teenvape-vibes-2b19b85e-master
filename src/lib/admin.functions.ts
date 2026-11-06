@@ -96,7 +96,8 @@ const productSchema = z.object({
   description: z.string().trim().max(4000).optional().nullable(),
   is_active: z.boolean(),
   sort_order: z.number().int(),
-  stock_quantity: z.number().int().nonnegative(),
+   stock_quantity: z.number().int().nonnegative(),
+   cost_price: z.number().nonnegative().optional().nullable(),
 });
 
 type ProductField =
@@ -1475,9 +1476,10 @@ export const adminExportRevenueCsv = createServerFn({ method: "POST" })
       return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
 
-    type Agg = { date: string; name: string; brand: string; qty: number; revenue: number };
+    type Agg = { date: string; name: string; brand: string; qty: number; revenue: number; cost: number; profit: number };
     const map = new Map<string, Agg>();
     const dayTotals = new Map<string, number>();
+    const dayProfits = new Map<string, number>();
 
     for (const o of data ?? []) {
       const r = o as Record<string, any>;
@@ -1489,10 +1491,15 @@ export const adminExportRevenueCsv = createServerFn({ method: "POST" })
         const prev = map.get(key);
         const qty = Number(i.qty) || 0;
         const price = Number(i.price) || 0;
+        const costPrice = Number(i.cost_price) || 0;
         const revenue = qty * price;
+        const cost = qty * costPrice;
+        const profit = revenue - cost;
         if (prev) {
           prev.qty += qty;
           prev.revenue += revenue;
+          prev.cost += cost;
+          prev.profit += profit;
         } else {
           map.set(key, {
             date,
@@ -1500,13 +1507,16 @@ export const adminExportRevenueCsv = createServerFn({ method: "POST" })
             brand: String(i.brand || ""),
             qty,
             revenue,
+            cost,
+            profit,
           });
         }
         dayTotals.set(date, (dayTotals.get(date) ?? 0) + revenue);
+        dayProfits.set(date, (dayProfits.get(date) ?? 0) + profit);
       }
     }
 
-    const header = ["Дата", "Товар", "Бренд", "Количество", "Выручка (BYN)", "Итого за день (BYN)"];
+    const header = ["Дата", "Товар", "Бренд", "Количество", "Закуп (BYN)", "Розница (BYN)", "Выручка (BYN)", "Прибыль (BYN)", "Итого за день (BYN)", "Прибыль за день (BYN)"];
     const lines = [header.join(";")];
     const sorted = Array.from(map.values()).sort((a, b) =>
       a.date === b.date ? a.name.localeCompare(b.name) : a.date.localeCompare(b.date),
@@ -1514,8 +1524,20 @@ export const adminExportRevenueCsv = createServerFn({ method: "POST" })
     let lastDate = "";
     for (const a of sorted) {
       const dayTotal = a.date !== lastDate ? dayTotals.get(a.date) ?? 0 : "";
+      const dayProfit = a.date !== lastDate ? dayProfits.get(a.date) ?? 0 : "";
       lines.push(
-        [a.date, a.name, a.brand, a.qty, a.revenue.toFixed(2), dayTotal === "" ? "" : Number(dayTotal).toFixed(2)]
+        [
+          a.date,
+          a.name,
+          a.brand,
+          a.qty,
+          a.cost.toFixed(2),
+          (a.revenue / (a.qty || 1)).toFixed(2),
+          a.revenue.toFixed(2),
+          a.profit.toFixed(2),
+          dayTotal === "" ? "" : Number(dayTotal).toFixed(2),
+          dayProfit === "" ? "" : Number(dayProfit).toFixed(2),
+        ]
           .map(esc)
           .join(";"),
       );

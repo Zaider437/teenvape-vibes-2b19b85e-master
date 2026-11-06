@@ -70,6 +70,7 @@ const itemSchema = z.object({
   price: z.number(),
   qty: z.number().int().positive(),
   flavor: z.string().nullable().optional(),
+  cost_price: z.number().nonnegative().optional().nullable(),
 });
 
 const orderSchema = z.object({
@@ -160,6 +161,7 @@ export const createOrder = createServerFn({ method: "POST" })
             discount_percent: eff.discountPercent,
             stock_quantity: p.stock_quantity ?? 0,
             flavor: p.flavor || null,
+            cost_price: p.cost_price ?? null,
           },
         ];
       }),
@@ -179,6 +181,7 @@ export const createOrder = createServerFn({ method: "POST" })
           discount_percent: null,
           qty: i.qty,
           flavor: i.flavor || null,
+          cost_price: null,
         };
       }
       return {
@@ -191,7 +194,7 @@ export const createOrder = createServerFn({ method: "POST" })
         discount_percent: product.discount_percent,
         qty: i.qty,
         flavor: product.flavor || null,
-      };
+        cost_price: product.cost_price ?? null,
     });
     const trustedTotal = Number(
       trustedItems.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2),

@@ -19,8 +19,9 @@ export type Product = {
   stock_quantity?: number;
   description?: string | null;
   manufacturer_id?: string | null;
-  old_price?: number | null;
-  discount_percent?: number | null;
+   old_price?: number | null;
+   discount_percent?: number | null;
+   cost_price?: number | null;
 };
 
 export const PRODUCTS: Product[] = [
@@ -589,7 +590,8 @@ export async function fetchProducts(): Promise<Product[]> {
             sort_order: p.sort_order,
             stock_quantity: p.stock_quantity ?? 0,
             description: buildDescription(p),
-            manufacturer_id: p.manufacturer_id,
+             manufacturer_id: p.manufacturer_id,
+             cost_price: p.cost_price ?? null,
           };
         });
         const active = mapped.filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
@@ -789,6 +791,7 @@ export const fetchProductsByManufacturerSlug = createServerFn({ method: "GET" })
       stock_quantity: p.stock_quantity ?? 0,
       description: buildDescription(p),
       manufacturer_id: p.manufacturer_id,
+      cost_price: p.cost_price ?? null,
     }));
 
     const { readProductDiscounts, applyDiscounts } = await import("./discounts");
@@ -859,6 +862,7 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler
       stock_quantity: p.stock_quantity ?? 0,
       description: buildDescription(p),
       manufacturer_id: p.manufacturer_id,
+      cost_price: p.cost_price ?? null,
     })),
   );
 
