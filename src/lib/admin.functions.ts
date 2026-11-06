@@ -1524,11 +1524,6 @@ export const adminExportRevenueCsv = createServerFn({ method: "POST" })
 
     return { csv: "\ufeff" + lines.join("\n"), count: sorted.length };
   });
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertAdmin(context);
-    return { ok: true };
-  });
 
 export const requireAdminAccess = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
