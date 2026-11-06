@@ -1458,7 +1458,72 @@ export const adminUpdateEventSettings = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const requireAdminAccess = createServerFn({ method: "GET" })
+export const adminExportRevenueCsv = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data, error } = await supabaseAdmin
+      .from("orders" as any)
+      .select("id, created_at, items, total_amount, status")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    type Agg = { date: string; name: string; brand: string; qty: number; revenue: number };
+    const map = new Map<string, Agg>();
+    const dayTotals = new Map<string, number>();
+
+    for (const o of data ?? []) {
+      const r = o as Record<string, any>;
+      if (r.status === "cancelled") continue;
+      const date = String(r.created_at || "").slice(0, 10);
+      const items = typeof r.items === "string" ? JSON.parse(r.items) : r.items || [];
+      for (const i of items) {
+        const key = `${date}|${i.id || ""}|${i.name || ""}`;
+        const prev = map.get(key);
+        const qty = Number(i.qty) || 0;
+        const price = Number(i.price) || 0;
+        const revenue = qty * price;
+        if (prev) {
+          prev.qty += qty;
+          prev.revenue += revenue;
+        } else {
+          map.set(key, {
+            date,
+            name: String(i.name || ""),
+            brand: String(i.brand || ""),
+            qty,
+            revenue,
+          });
+        }
+        dayTotals.set(date, (dayTotals.get(date) ?? 0) + revenue);
+      }
+    }
+
+    const header = ["Дата", "Товар", "Бренд", "Количество", "Выручка (BYN)", "Итого за день (BYN)"];
+    const lines = [header.join(";")];
+    const sorted = Array.from(map.values()).sort((a, b) =>
+      a.date === b.date ? a.name.localeCompare(b.name) : a.date.localeCompare(b.date),
+    );
+    let lastDate = "";
+    for (const a of sorted) {
+      const dayTotal = a.date !== lastDate ? dayTotals.get(a.date) ?? 0 : "";
+      lines.push(
+        [a.date, a.name, a.brand, a.qty, a.revenue.toFixed(2), dayTotal === "" ? "" : Number(dayTotal).toFixed(2)]
+          .map(esc)
+          .join(";"),
+      );
+      lastDate = a.date;
+    }
+
+    return { csv: "\ufeff" + lines.join("\n"), count: sorted.length };
+  });
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context);

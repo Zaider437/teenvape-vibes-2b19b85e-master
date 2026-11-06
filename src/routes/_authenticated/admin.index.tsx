@@ -38,6 +38,7 @@ import {
   adminSetProductDiscount,
   adminBulkUpdatePrice,
   adminExportOrdersCsv,
+  adminExportRevenueCsv,
   DEFAULT_CATEGORY_ORDER,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
@@ -142,7 +143,8 @@ function ProductsAdmin() {
   const updateCatOrder = useServerFn(adminUpdateCategoryOrder);
   const setDiscount = useServerFn(adminSetProductDiscount);
   const bulkPrice = useServerFn(adminBulkUpdatePrice);
-  const exportCsv = useServerFn(adminExportOrdersCsv);
+  const exportRevenue = useServerFn(adminExportRevenueCsv);
+  const [isExportingRevenue, setIsExportingRevenue] = useState(false);
 
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -750,6 +752,31 @@ function ProductsAdmin() {
             title="Скачать все заказы в CSV"
           >
             <Download className="w-4 h-4" /> {isExportingCsv ? "Экспорт…" : "Экспорт заказов"}
+          </button>
+          <button
+            onClick={async () => {
+              setIsExportingRevenue(true);
+              try {
+                const res = await exportRevenue();
+                const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `revenue-${new Date().toISOString().slice(0, 10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success(`Экспортировано строк: ${res.count}`);
+              } catch (e: any) {
+                toast.error(e?.message ?? "Не удалось экспортировать");
+              } finally {
+                setIsExportingRevenue(false);
+              }
+            }}
+            disabled={isExportingRevenue}
+            className="inline-flex items-center gap-1.5 bg-card hover:bg-muted text-foreground font-semibold px-3 py-1.5 rounded-lg text-sm border border-border transition-colors disabled:opacity-40"
+            title="Выручка по дням и товарам"
+          >
+            <Download className="w-4 h-4" /> {isExportingRevenue ? "Экспорт…" : "Экспорт выручки"}
           </button>
           <button
             onClick={() => setShowCategoryOrderDialog(true)}
