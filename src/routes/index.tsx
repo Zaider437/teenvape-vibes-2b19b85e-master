@@ -652,6 +652,7 @@ function Header({ onOpenCart, snowActive }: { onOpenCart: () => void; snowActive
           </a>
           <button
             onClick={onOpenCart}
+            data-cart-icon
             className="relative w-10 h-10 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary text-primary-foreground grid place-items-center glow-soft active:translate-y-0.5"
             aria-label="Корзина"
           >
@@ -747,6 +748,38 @@ function MobileNav({ onOpenCart }: { onOpenCart: () => void }) {
   );
 }
 
+function flyToCart(source: HTMLElement | null) {
+  if (!source) return;
+  const target = document.querySelector("[data-cart-icon]") as HTMLElement | null;
+  if (!target) return;
+  const img = source.querySelector("img") as HTMLImageElement | null;
+  const srcRect = (img ?? source).getBoundingClientRect();
+  const dstRect = target.getBoundingClientRect();
+  const node = document.createElement("img");
+  node.src = img?.src ?? "";
+  node.alt = "";
+  node.style.position = "fixed";
+  node.style.left = `${srcRect.left}px`;
+  node.style.top = `${srcRect.top}px`;
+  node.style.width = `${srcRect.width}px`;
+  node.style.height = `${srcRect.height}px`;
+  node.style.objectFit = "contain";
+  node.style.borderRadius = "8px";
+  node.style.zIndex = "9999";
+  node.style.pointerEvents = "none";
+  node.style.transition = "transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.7s ease";
+  node.style.transform = "translate(0,0) scale(1)";
+  node.style.opacity = "1";
+  document.body.appendChild(node);
+  const dx = dstRect.left + dstRect.width / 2 - (srcRect.left + srcRect.width / 2);
+  const dy = dstRect.top + dstRect.height / 2 - (srcRect.top + srcRect.height / 2);
+  requestAnimationFrame(() => {
+    node.style.transform = `translate(${dx}px, ${dy}px) scale(0.15)`;
+    node.style.opacity = "0.4";
+  });
+  setTimeout(() => node.remove(), 750);
+}
+
 function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Product) => void }) {
   const { add, items } = useCart();
   const [broken, setBroken] = useState(false);
@@ -763,10 +796,28 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
   const isOutOfStock = remainingStock <= 0;
   const { isFavorite, toggleFavorite } = useFavorites();
   const fav = isFavorite(product.id);
+  const [tilt, setTilt] = useState({ x: 0, y: 0, active: false });
+  const onTiltMove = (e: any) => {
+    if (window.matchMedia("(hover: none)").matches) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    setTilt({ x: (0.5 - py) * 12, y: (px - 0.5) * 12, active: true });
+  };
+  const onTiltLeave = () => setTilt({ x: 0, y: 0, active: false });
   return (
     <div
       className="product-card relative rounded-xl border border-border overflow-hidden flex flex-col"
-      style={{ backgroundImage: "var(--gradient-card)" }}
+      style={{
+        backgroundImage: "var(--gradient-card)",
+        transform: tilt.active
+          ? `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateY(-4px)`
+          : undefined,
+        boxShadow: tilt.active ? "0 18px 40px -14px oklch(0.66 0.27 355 / 0.55)" : undefined,
+        transition: "transform 0.12s ease, box-shadow 0.22s ease, border-color 0.22s ease",
+      }}
+      onMouseMove={onTiltMove}
+      onMouseLeave={onTiltLeave}
     >
       <div className="aspect-[4/5] sm:aspect-[3/4] grid place-items-center text-4xl sm:text-5xl bg-primary/5 border-b border-border/60 relative overflow-hidden">
         <div
@@ -874,8 +925,9 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: (p: Produc
             </button>
             {!isOutOfStock && (
               <button
-                onClick={() => {
+                onClick={(e) => {
                   const added = add(product);
+                  flyToCart(e.currentTarget.closest(".product-card") as HTMLElement);
                   if (added) {
                     toast.success(
                       `${product.name}${product.flavor ? ` (${product.flavor})` : ""} в корзине`,
@@ -978,8 +1030,9 @@ function ProductDetail({ product }: { product: Product }) {
           </div>
         ) : (
           <button
-            onClick={() => {
+            onClick={(e) => {
               const added = add(product);
+              flyToCart(e.currentTarget.parentElement?.parentElement as HTMLElement);
               if (added) {
                 toast.success(`${product.name} в корзине`);
               } else {
