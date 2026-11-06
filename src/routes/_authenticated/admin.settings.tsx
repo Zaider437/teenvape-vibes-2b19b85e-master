@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
-import { Plus, Trash2, Save, ArrowUp, ArrowDown } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Plus, Trash2, Save, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import {
   adminGetMeetingTimes,
@@ -182,6 +182,9 @@ function AdminSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newTime, setNewTime] = useState("");
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const timeItemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Animation settings states
   const [leavesEnabled, setLeavesEnabled] = useState(true);
@@ -307,6 +310,44 @@ function AdminSettings() {
     copy[index] = copy[nextIndex];
     copy[nextIndex] = temp;
     setTimes(copy);
+  }
+
+  function handleTimeDragStart(e: React.PointerEvent, idx: number) {
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setDragIndex(idx);
+    setDragOver(idx);
+  }
+
+  function handleTimeDragMove(e: React.PointerEvent) {
+    if (dragIndex === null) return;
+    let newOver = dragIndex;
+    for (let i = 0; i < timeItemRefs.current.length; i++) {
+      const el = timeItemRefs.current[i];
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      if (e.clientY >= rect.top && e.clientY < rect.bottom) {
+        newOver = i;
+        break;
+      }
+    }
+    const last = timeItemRefs.current[timeItemRefs.current.length - 1];
+    if (last) {
+      const rect = last.getBoundingClientRect();
+      if (e.clientY >= rect.bottom) newOver = timeItemRefs.current.length - 1;
+    }
+    setDragOver(newOver);
+  }
+
+  function handleTimeDragEnd() {
+    if (dragIndex !== null && dragOver !== null && dragIndex !== dragOver) {
+      const copy = [...times];
+      const [moved] = copy.splice(dragIndex, 1);
+      copy.splice(dragOver, 0, moved);
+      setTimes(copy);
+    }
+    setDragIndex(null);
+    setDragOver(null);
   }
 
   return (
@@ -607,9 +648,27 @@ function AdminSettings() {
                   {times.map((t, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                      ref={(el) => {
+                        timeItemRefs.current[idx] = el;
+                      }}
+                      className={`flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0 transition-opacity ${
+                        dragIndex === idx ? "opacity-40" : ""
+                      } ${dragOver === idx && dragIndex !== null && dragIndex !== idx ? "bg-primary/10" : ""}`}
                     >
-                      <span className="text-sm font-semibold">{t}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          onPointerDown={(e) => handleTimeDragStart(e, idx)}
+                          onPointerMove={handleTimeDragMove}
+                          onPointerUp={handleTimeDragEnd}
+                          onPointerCancel={handleTimeDragEnd}
+                          style={{ touchAction: "none" }}
+                          className="w-7 h-7 rounded-lg bg-muted grid place-items-center cursor-grab active:cursor-grabbing shrink-0 select-none"
+                          title="Перетащить"
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-semibold truncate">{t}</span>
+                      </div>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => move(idx, "up")}
