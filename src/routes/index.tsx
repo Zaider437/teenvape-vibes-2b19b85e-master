@@ -1373,7 +1373,8 @@ function FavoritesSheet({ products }: { products: Product[] }) {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent
         side="bottom"
-        className="max-h-[85vh] flex flex-col rounded-t-2xl border-t-2 border-primary"
+        className="max-h-[85vh] flex flex-col rounded-t-2xl border-t-2 border-primary data-[state=closed]:duration-150 transform-gpu will-change-transform"
+        style={{ contain: "paint" }}
       >
         <SheetHeader className="p-3 sm:p-4 border-b border-border">
           <SheetTitle className="font-display text-xl flex items-center gap-2">
