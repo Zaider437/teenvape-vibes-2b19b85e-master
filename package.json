@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "passer": "node telegram-passer.mjs",
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
