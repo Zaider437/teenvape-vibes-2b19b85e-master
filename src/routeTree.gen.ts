@@ -10,8 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as PasserRouteImport } from './routes/passer'
-import { Route as PassRouteImport } from './routes/pass'
 import { Route as OrderCancelRouteImport } from './routes/order-cancel'
 import { Route as GameRouteImport } from './routes/game'
 import { Route as EventRouteImport } from './routes/event'
@@ -32,16 +30,6 @@ import { Route as AuthenticatedAdminNewsRouteImport } from './routes/_authentica
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PasserRoute = PasserRouteImport.update({
-  id: '/passer',
-  path: '/passer',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PassRoute = PassRouteImport.update({
-  id: '/pass',
-  path: '/pass',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderCancelRoute = OrderCancelRouteImport.update({
@@ -131,8 +119,6 @@ export interface FileRoutesByFullPath {
   '/event': typeof EventRoute
   '/game': typeof GameRouteWithChildren
   '/order-cancel': typeof OrderCancelRoute
-  '/pass': typeof PassRoute
-  '/passer': typeof PasserRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/events': typeof AuthenticatedEventsRoute
@@ -151,8 +137,6 @@ export interface FileRoutesByTo {
   '/event': typeof EventRoute
   '/game': typeof GameRouteWithChildren
   '/order-cancel': typeof OrderCancelRoute
-  '/pass': typeof PassRoute
-  '/passer': typeof PasserRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/events': typeof AuthenticatedEventsRoute
   '/admin/login': typeof AdminLoginRoute
@@ -172,8 +156,6 @@ export interface FileRoutesById {
   '/event': typeof EventRoute
   '/game': typeof GameRouteWithChildren
   '/order-cancel': typeof OrderCancelRoute
-  '/pass': typeof PassRoute
-  '/passer': typeof PasserRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/events': typeof AuthenticatedEventsRoute
@@ -194,8 +176,6 @@ export interface FileRouteTypes {
     | '/event'
     | '/game'
     | '/order-cancel'
-    | '/pass'
-    | '/passer'
     | '/sitemap.xml'
     | '/admin'
     | '/events'
@@ -214,8 +194,6 @@ export interface FileRouteTypes {
     | '/event'
     | '/game'
     | '/order-cancel'
-    | '/pass'
-    | '/passer'
     | '/sitemap.xml'
     | '/events'
     | '/admin/login'
@@ -234,8 +212,6 @@ export interface FileRouteTypes {
     | '/event'
     | '/game'
     | '/order-cancel'
-    | '/pass'
-    | '/passer'
     | '/sitemap.xml'
     | '/_authenticated/admin'
     | '/_authenticated/events'
@@ -256,8 +232,6 @@ export interface RootRouteChildren {
   EventRoute: typeof EventRoute
   GameRoute: typeof GameRouteWithChildren
   OrderCancelRoute: typeof OrderCancelRoute
-  PassRoute: typeof PassRoute
-  PasserRoute: typeof PasserRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminLoginRoute: typeof AdminLoginRoute
   BSlugRoute: typeof BSlugRoute
@@ -270,20 +244,6 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/passer': {
-      id: '/passer'
-      path: '/passer'
-      fullPath: '/passer'
-      preLoaderRoute: typeof PasserRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pass': {
-      id: '/pass'
-      path: '/pass'
-      fullPath: '/pass'
-      preLoaderRoute: typeof PassRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order-cancel': {
@@ -451,8 +411,6 @@ const rootRouteChildren: RootRouteChildren = {
   EventRoute: EventRoute,
   GameRoute: GameRouteWithChildren,
   OrderCancelRoute: OrderCancelRoute,
-  PassRoute: PassRoute,
-  PasserRoute: PasserRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminLoginRoute: AdminLoginRoute,
   BSlugRoute: BSlugRoute,
