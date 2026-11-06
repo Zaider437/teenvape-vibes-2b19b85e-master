@@ -3,7 +3,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Search, X, ShoppingBag, Plus, Minus, Trash2, ClipboardList } from "lucide-react";
 import { CartProvider, useCart, type CartItem } from "@/lib/cart";
-import { fetchProductsByManufacturerSlug, type Product } from "@/lib/products";
+import { fetchProductsByManufacturerSlug, invalidateProductsCache, type Product } from "@/lib/products";
 import { createOrder, getMeetingTimes } from "@/lib/orders.functions";
 import { toast, Toaster } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -589,6 +589,7 @@ function CheckoutSheet({
       }
       setDone({ id: res.id });
       clear();
+      invalidateProductsCache();
       onOrderPlaced?.(currentItems);
     } catch (err) {
       console.error(err);
