@@ -195,7 +195,7 @@ export const createOrder = createServerFn({ method: "POST" })
         qty: i.qty,
         flavor: product.flavor || null,
         cost_price: product.cost_price ?? null,
-    });
+      };
     const trustedTotal = Number(
       trustedItems.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2),
     );
