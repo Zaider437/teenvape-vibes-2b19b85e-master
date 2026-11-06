@@ -27,7 +27,7 @@ export const Route = createFileRoute("/b/$slug")({
 });
 
 function ManufacturerPage() {
-  const { slug } = useParams();
+  const { slug } = Route.useParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [manufacturer, setManufacturer] = useState<{ name: string; slug: string } | null>(null);
@@ -54,7 +54,7 @@ function ManufacturerPage() {
     fetchBySlug({ data: { slug } })
       .then((data) => {
         if (!cancelled) {
-          setProducts(data.products);
+          setProducts(data.products as Product[]);
           setManufacturer(data.manufacturer);
         }
       })
@@ -351,7 +351,6 @@ function ProductDetail({ product }: { product: Product }) {
           <img loading="lazy" decoding="async"
             src={product.image}
             alt={product.name}
-            decoding="async"
             className="w-full h-full object-contain p-1.5 sm:p-2"
             onError={() => setBroken(true)}
           />
@@ -457,10 +456,9 @@ function CartSheet({
             >
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md sm:rounded-lg bg-muted grid place-items-center text-xl sm:text-2xl shrink-0 overflow-hidden">
                 {i.product.image && !brokenMap[i.product.id] ? (
-                  <img loading="lazy" decoding="async"
+                   <img loading="lazy" decoding="async"
                     src={i.product.image}
                     alt={i.product.name}
-                    decoding="async"
                     className="w-full h-full object-contain"
                     onError={() => setBrokenMap((m) => ({ ...m, [i.product.id]: true }))}
                   />

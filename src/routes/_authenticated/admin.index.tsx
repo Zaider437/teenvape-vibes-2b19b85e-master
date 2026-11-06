@@ -147,6 +147,7 @@ function ProductsAdmin() {
   const setDiscount = useServerFn(adminSetProductDiscount);
   const bulkPrice = useServerFn(adminBulkUpdatePrice);
   const exportRevenue = useServerFn(adminExportRevenueCsv);
+  const exportCsv = useServerFn(adminExportOrdersCsv);
   const [isExportingRevenue, setIsExportingRevenue] = useState(false);
 
   const [rows, setRows] = useState<ProductRow[]>([]);

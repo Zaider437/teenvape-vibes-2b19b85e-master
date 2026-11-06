@@ -9,6 +9,7 @@ export type Product = {
   category: "device" | "disposable" | "liquid" | "consumable" | "snus" | string;
   price: number;
   flavor?: string | null;
+  subcategory?: string | null;
   puffs?: string | null;
   volume?: string | null;
   emoji: string;
