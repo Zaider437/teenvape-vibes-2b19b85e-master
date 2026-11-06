@@ -417,7 +417,7 @@ export function Shop({
                   }`}
                 >
                   {c.image ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={c.image}
                       alt=""
                       className="h-9 w-9 mr-1 inline-block object-contain align-middle drop-shadow-sm bg-white/10 rounded-md p-0.5"
@@ -931,7 +931,7 @@ function ProductDetail({ product }: { product: Product }) {
     <div className="space-y-2 sm:space-y-3">
       <div className="aspect-[4/3] sm:aspect-[3/4] grid place-items-center text-4xl sm:text-5xl bg-primary/5 rounded-lg overflow-hidden">
         {product.image && !broken ? (
-          <img
+          <img loading="lazy" decoding="async"
             src={product.image}
             alt={product.name}
             decoding="async"
@@ -1040,7 +1040,7 @@ function CartDrawer({
             >
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md sm:rounded-lg bg-muted grid place-items-center text-xl sm:text-2xl shrink-0 overflow-hidden">
                 {i.product.image && !brokenMap[i.product.id] ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={i.product.image}
                     alt={i.product.name}
                     decoding="async"

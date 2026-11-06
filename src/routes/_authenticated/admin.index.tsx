@@ -912,7 +912,7 @@ function ProductsAdmin() {
               />
               <div className="w-12 h-12 rounded-lg bg-muted grid place-items-center text-2xl shrink-0 overflow-hidden">
                 {row.image_url ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={row.display_image_url || formatImageUrl(row.image_url) || ""}
                     alt=""
                     className="w-full h-full object-contain"
@@ -1235,7 +1235,7 @@ function ProductsAdmin() {
                 className="text-xs text-foreground"
               />
               {bulkImagePreview && (
-                <img
+                <img loading="lazy" decoding="async"
                   src={bulkImagePreview}
                   alt="Preview"
                   className="w-full h-32 object-contain rounded-lg border border-border"
@@ -1814,7 +1814,7 @@ function DraftEditor({
           </span>
           {(draft.image_url || previewUrl) && (
             <div className="relative w-full h-40 rounded-xl overflow-hidden bg-muted border border-border">
-              <img
+              <img loading="lazy" decoding="async"
                 src={previewUrl || formatImageUrl(draft.image_url) || ""}
                 alt=""
                 className="w-full h-full object-contain"
@@ -1911,7 +1911,7 @@ function DraftEditor({
                   }}
                 />
                 {previewUrl || draft.image_url ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={previewUrl || formatImageUrl(draft.image_url) || ""}
                     alt=""
                     className="relative w-full h-full object-contain p-2"

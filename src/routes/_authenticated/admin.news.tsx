@@ -261,7 +261,7 @@ function AdminNews() {
               </div>
               <div className="w-14 h-14 rounded-lg bg-muted grid place-items-center text-xl shrink-0 overflow-hidden border border-border">
                 {item.image_url ? (
-                  <img src={item.image_url} alt="" className="w-full h-full object-contain" />
+                  <img loading="lazy" decoding="async" src={item.image_url} alt="" className="w-full h-full object-contain" />
                 ) : (
                   <ImageIcon className="w-6 h-6 text-muted-foreground" />
                 )}
@@ -365,7 +365,7 @@ function AdminNews() {
                 />
               {imagePreview && (
                 <div className="mt-2 relative inline-block">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={imagePreview}
                     alt="Preview"
                     className="h-32 object-contain rounded-lg border border-border"

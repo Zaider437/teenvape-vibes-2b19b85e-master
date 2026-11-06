@@ -528,7 +528,7 @@ function AdminSettings() {
                           {idx + 1}.
                         </span>
                         {meta.image ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={meta.image}
                             alt=""
                             className="h-9 w-9 inline-block object-contain align-middle drop-shadow-sm bg-white/10 rounded-md p-0.5"

@@ -118,7 +118,7 @@ export const HangingBulbContact = () => {
               transition: "filter 160ms ease",
             }}
           >
-            <img
+            <img loading="lazy" decoding="async"
               src={logoImg}
               alt=""
               draggable={false}
