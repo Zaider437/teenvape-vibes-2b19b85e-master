@@ -158,7 +158,7 @@ export const HangingBulbContact = () => {
         aria-hidden
         style={{
           position: "absolute",
-          right: -46,
+          left: -46,
           top: "50%",
           transform: "translateY(-50%)",
           color: lit ? accent : "rgba(255,255,255,0.55)",
