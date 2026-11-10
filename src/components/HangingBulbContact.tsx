@@ -128,22 +128,6 @@ export const HangingBulbContact = () => {
           </span>
         </span>
 
-        {/* стрелка-указатель на лампочку */}
-        <ArrowRight
-          aria-hidden
-          size={20}
-          strokeWidth={3}
-          style={{
-            position: "absolute",
-            right: -26,
-            top: "50%",
-            transform: "translateY(-50%) rotate(180deg)",
-            color: lit ? accent : "#ffffff",
-            filter: lit ? `drop-shadow(0 0 8px ${accent})` : "drop-shadow(0 0 8px rgba(255,255,255,0.4))",
-            transition: "color 160ms ease, filter 160ms ease",
-            pointerEvents: "none",
-          }}
-        />
         {/* ручки-палочки */}
         <span aria-hidden className="stick stick-l absolute left-[-11px] top-[52px] block" style={{ width: 12, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
         <span aria-hidden className="stick stick-r absolute right-[-11px] top-[52px] block" style={{ width: 12, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
