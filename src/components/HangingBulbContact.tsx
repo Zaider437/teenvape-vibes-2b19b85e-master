@@ -154,12 +154,12 @@ export const HangingBulbContact = () => {
         </div>
       </div>
 
-      {/* карандашная стрелочка-полукруг слева от лампочки, указывает на лампочку */}
+      {/* стрелка и надпись слева от лампочки: надпись дугой над стрелкой, стрелка указывает на лампочку */}
       <div
         aria-hidden
         style={{
           position: "absolute",
-          left: -80,
+          left: -70,
           top: "50%",
           transform: "translateY(-50%)",
           color: lit ? accent : "rgba(255,255,255,0.55)",
@@ -167,35 +167,44 @@ export const HangingBulbContact = () => {
             ? `drop-shadow(0 0 8px ${accent})`
             : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
           transition: "color 160ms ease, filter 160ms ease",
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
+          textAlign: "center",
         }}
       >
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 0.08,
-            textTransform: "uppercase",
-            fontFamily: "'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Comic Neue', cursive",
-            whiteSpace: "nowrap",
-            transition: "color 160ms ease, text-shadow 160ms ease",
-          }}
+        {/* надпись дугой над стрелкой */}
+        <svg
+          aria-hidden
+          width="140"
+          height="60"
+          viewBox="0 0 140 60"
+          style={{ display: "block", margin: "0 auto 6px auto" }}
         >
-          нажми на меня
-        </span>
+          <defs>
+            <path id="arc-text" d="M 20,52 Q 70,6 120,52" />
+          </defs>
+          <text
+            textLength="100"
+            lengthAdjust="spacingAndGlyphs"
+            fill="currentColor"
+            fontFamily="'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Comic Neue', cursive"
+            fontSize="12"
+            fontWeight="700"
+            letterSpacing="0.1"
+          >
+            <textPath href="#arc-text" startOffset="50%" textAnchor="middle">
+              НАЖМИ НА МЕНЯ
+            </textPath>
+          </text>
+        </svg>
+
+        {/* стрелка, указывает на лампочку (вправо) */}
         <svg
           aria-hidden
           width="30"
           height="52"
           viewBox="0 0 30 52"
           style={{
-            color: lit ? accent : "rgba(255,255,255,0.55)",
-            filter: lit
-              ? `drop-shadow(0 0 8px ${accent})`
-              : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
-            transition: "color 160ms ease, filter 160ms ease",
+            display: "block",
+            margin: "0 auto",
             transform: "rotate(90deg)",
             transformOrigin: "15px 26px",
           }}
