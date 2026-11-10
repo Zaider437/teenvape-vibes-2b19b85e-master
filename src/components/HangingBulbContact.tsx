@@ -159,7 +159,7 @@ export const HangingBulbContact = () => {
         aria-hidden
         style={{
           position: "absolute",
-          left: -54,
+          left: -36,
           top: "50%",
           transform: "translateY(-50%)",
           color: lit ? accent : "rgba(255,255,255,0.55)",
@@ -172,12 +172,13 @@ export const HangingBulbContact = () => {
       >
         <span
           style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: 0.05,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 0.08,
             textTransform: "uppercase",
+            fontFamily: "'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Comic Neue', cursive",
             display: "block",
-            marginBottom: 6,
+            marginBottom: 8,
             whiteSpace: "nowrap",
             transition: "color 160ms ease, text-shadow 160ms ease",
           }}
@@ -186,9 +187,9 @@ export const HangingBulbContact = () => {
         </span>
         <svg
           aria-hidden
-          width="26"
-          height="44"
-          viewBox="0 0 26 44"
+          width="30"
+          height="52"
+          viewBox="0 0 30 52"
           style={{
             color: lit ? accent : "rgba(255,255,255,0.55)",
             filter: lit
@@ -196,11 +197,11 @@ export const HangingBulbContact = () => {
               : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
             transition: "color 160ms ease, filter 160ms ease",
             transform: "rotate(90deg)",
-            transformOrigin: "13px 22px",
+            transformOrigin: "15px 26px",
           }}
         >
           <path
-            d="M 13,38 Q 6,22 13,6"
+            d="M 15,45 Q 7,26 15,7"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.5"
@@ -209,7 +210,7 @@ export const HangingBulbContact = () => {
           />
           {/* наконечник, смотрит на лампочку (вправо) */}
           <path
-            d="M 10,4 L 13,0 L 16,4"
+            d="M 12,5 L 15,0 L 18,5"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.5"
