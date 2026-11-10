@@ -154,42 +154,41 @@ export const HangingBulbContact = () => {
         </div>
       </div>
 
-      {/* стрелка и надпись слева от лампочки: надпись дугой над стрелкой, стрелка указывает на лампочку */}
+      {/* стрелка указывает на лампочку, надпись дугой сверху стрелки */}
       <div
         aria-hidden
         style={{
           position: "absolute",
-          left: -105,
-          top: "50%",
+          left: -58,
+          top: "55%",
           transform: "translateY(-50%)",
-          width: 105,
+          width: 70,
           color: lit ? accent : "rgba(255,255,255,0.55)",
           filter: lit
             ? `drop-shadow(0 0 8px ${accent})`
             : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
           transition: "color 160ms ease, filter 160ms ease",
-          textAlign: "center",
         }}
       >
         {/* надпись дугой над стрелкой */}
         <svg
           aria-hidden
-          width="105"
-          height="60"
-          viewBox="0 0 105 60"
-          style={{ display: "block", margin: "0 auto 6px auto" }}
+          width="70"
+          height="44"
+          viewBox="0 0 70 44"
+          style={{ display: "block", marginBottom: 2 }}
         >
           <defs>
-            <path id="arc-text" d="M 10,52 Q 52,6 94,52" />
+            <path id="arc-text" d="M 5,38 Q 35,4 65,38" />
           </defs>
           <text
-            textLength="85"
+            textLength="60"
             lengthAdjust="spacingAndGlyphs"
             fill="currentColor"
             fontFamily="'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Comic Neue', cursive"
-            fontSize="12"
+            fontSize="10"
             fontWeight="700"
-            letterSpacing="0.1"
+            letterSpacing="0.08"
           >
             <textPath href="#arc-text" startOffset="50%" textAnchor="middle">
               НАЖМИ НА МЕНЯ
@@ -205,7 +204,7 @@ export const HangingBulbContact = () => {
           viewBox="0 0 30 52"
           style={{
             display: "block",
-            margin: "0 auto",
+            marginLeft: "auto",
             transform: "rotate(90deg)",
             transformOrigin: "15px 26px",
           }}
