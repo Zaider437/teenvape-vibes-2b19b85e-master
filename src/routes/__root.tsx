@@ -81,14 +81,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "LoveVape: одноразки, POD-системы и жидкости. Доставка по городу, оплата при получении.",
+          "Vape магазин. Снюс, расходники, электронки и жидкости. Заказ доступен через сайт.",
       },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "LoveVape — вейпы, поды и жидкости" },
       {
         property: "og:description",
         content:
-          "LoveVape: одноразки, POD-системы и жидкости. Доставка по городу, оплата при получении.",
+          "Vape магазин. Снюс, расходники, электронки и жидкости. Заказ доступен через сайт.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -97,7 +97,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "twitter:description",
         content:
-          "LoveVape: одноразки, POD-системы и жидкости. Доставка по городу, оплата при получении.",
+          "Vape магазин. Снюс, расходники, электронки и жидкости. Заказ доступен через сайт.",
       },
       {
         property: "og:image",
@@ -144,7 +144,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
               name: "LoveVape",
               url: "/",
               description:
-                "LoveVape: одноразки, POD-системы и жидкости. Доставка по городу, оплата при получении. 18+.",
+                "Vape магазин. Снюс, расходники, электронки и жидкости. Заказ доступен через сайт. 18+.",
             },
           ],
         }),
