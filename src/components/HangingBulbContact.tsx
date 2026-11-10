@@ -179,7 +179,7 @@ export const HangingBulbContact = () => {
           width="60"
           height="36"
           viewBox="0 0 60 36"
-          style={{ display: "block", marginBottom: -12 }}
+          style={{ display: "block", marginBottom: -22 }}
         >
           <defs>
             <path id="arc-text" d="M 4,32 Q 30,2 56,32" />
