@@ -811,6 +811,14 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler
     return productsWithImagesPromise;
   }
 
+  const buildLocalFallback = (): Product[] =>
+    PRODUCTS.map((p) => ({
+      ...p,
+      image: formatImageUrl(p.image),
+      description: buildDescription(p),
+      stock_quantity: p.stock_quantity ?? Infinity,
+    })).filter((p) => p.is_active && (p.stock_quantity ?? 0) > 0);
+
   productsWithImagesPromise = (async () => {
     let supabaseAdmin: typeof import("@/integrations/supabase/client.server").supabaseAdmin | null = null;
     try {
@@ -825,44 +833,62 @@ export const fetchProductsWithImages = createServerFn({ method: "GET" }).handler
       ? supabaseAdmin
       : await import("@/integrations/supabase/client").then((m) => m.supabase);
 
-  const { data, error } = await client!
-    .from("products" as any)
-    .select("*")
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+    const fetchPromise = (async () => {
+      const { data, error } = await client!
+        .from("products" as any)
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
 
-  if (error) throw error;
+      if (error) throw error;
 
-    const mapped = await Promise.all(
-    (data ?? []).map(async (p: any) => ({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      brand: p.brand,
-      category: p.category,
-      price: p.price,
-      flavor: p.flavor,
-      puffs: p.puffs,
-      volume: p.volume,
-      emoji: p.emoji,
-      color: p.color,
-      image: useAdmin
-        ? (await getSignedImageUrl(p.image_url)) || formatImageUrl(p.image_url) || null
-        : formatImageUrl(p.image_url) || null,
-      is_active: p.is_active !== false,
-      sort_order: p.sort_order,
-      stock_quantity: p.stock_quantity ?? 0,
-      description: buildDescription(p),
-      manufacturer_id: p.manufacturer_id,
-    })),
-  );
+      const mapped = await Promise.all(
+        (data ?? []).map(async (p: any) => ({
+          id: p.id,
+          slug: p.slug,
+          name: p.name,
+          brand: p.brand,
+          category: p.category,
+          price: p.price,
+          flavor: p.flavor,
+          puffs: p.puffs,
+          volume: p.volume,
+          emoji: p.emoji,
+          color: p.color,
+          image: useAdmin
+            ? (await getSignedImageUrl(p.image_url)) || formatImageUrl(p.image_url) || null
+            : formatImageUrl(p.image_url) || null,
+          is_active: p.is_active !== false,
+          sort_order: p.sort_order,
+          stock_quantity: p.stock_quantity ?? 0,
+          description: buildDescription(p),
+          manufacturer_id: p.manufacturer_id,
+        })),
+      );
 
-    const { readProductDiscounts, applyDiscounts } = await import("./discounts");
-    const discounts = await readProductDiscounts();
+      const { readProductDiscounts, applyDiscounts } = await import("./discounts");
+      const discounts = await readProductDiscounts();
 
-    const result = applyDiscounts(mapped, discounts).filter(
-      (p) => p.is_active && (p.stock_quantity ?? 0) > 0,
+      return applyDiscounts(mapped, discounts).filter(
+        (p) => p.is_active && (p.stock_quantity ?? 0) > 0,
+      );
+    })();
+
+    const timeoutPromise = new Promise<Product[]>((resolve) =>
+      setTimeout(() => {
+        console.warn("[products] Supabase fetch timed out, falling back to local PRODUCTS");
+        resolve(buildLocalFallback());
+      }, 10000),
     );
+
+    let result: Product[];
+    try {
+      result = await Promise.race([fetchPromise, timeoutPromise]);
+    } catch (e) {
+      console.warn("[products] Supabase fetch failed, falling back to local PRODUCTS", e);
+      result = buildLocalFallback();
+    }
+
     cachedProductsWithImages = result;
     cachedProductsWithImagesExpiry = Date.now() + PRODUCTS_WITH_IMAGES_TTL;
     productsWithImagesPromise = null;
