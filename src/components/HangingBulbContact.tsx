@@ -171,5 +171,6 @@ export const HangingBulbContact = () => {
           />
         </svg>
       </button>
+    </div>
   );
 };
