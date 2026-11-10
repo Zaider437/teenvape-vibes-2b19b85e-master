@@ -65,7 +65,7 @@ export const HangingBulbContact = () => {
           className={`block bulb-sway${active ? " bulb-impulse" : ""}`}
           key="rope"
         />
-        <div className="relative" style={bulbStyle}>
+        <div className={`relative bulb-sway${active ? " bulb-impulse" : ""}`} style={bulbStyle}>
           {/* свечения */}
           {lit && !reduced && (
             <span
