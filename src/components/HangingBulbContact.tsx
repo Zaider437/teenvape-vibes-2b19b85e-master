@@ -118,7 +118,9 @@ export const HangingBulbContact = () => {
               transition: "filter 160ms ease",
             }}
           >
-            <img loading="lazy" decoding="async"
+            <img
+              loading="lazy"
+              decoding="async"
               src={logoImg}
               alt=""
               draggable={false}
@@ -128,11 +130,27 @@ export const HangingBulbContact = () => {
         </span>
 
         {/* ручки-палочки */}
-        <span aria-hidden className="stick stick-l absolute left-[-11px] top-[52px] block" style={{ width: 12, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
-        <span aria-hidden className="stick stick-r absolute right-[-11px] top-[52px] block" style={{ width: 12, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
+        <span
+          aria-hidden
+          className="stick stick-l absolute left-[-11px] top-[52px] block"
+          style={{ width: 12, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.75)" }}
+        />
+        <span
+          aria-hidden
+          className="stick stick-r absolute right-[-11px] top-[52px] block"
+          style={{ width: 12, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.75)" }}
+        />
         {/* ножки-палочки */}
-        <span aria-hidden className="stick stick-fl absolute left-[12px] bottom-[-9px] block" style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
-        <span aria-hidden className="stick stick-fr absolute right-[12px] bottom-[-9px] block" style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
+        <span
+          aria-hidden
+          className="stick stick-fl absolute left-[12px] bottom-[-9px] block"
+          style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }}
+        />
+        <span
+          aria-hidden
+          className="stick stick-fr absolute right-[12px] bottom-[-9px] block"
+          style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }}
+        />
 
         {/* карандашная стрелочка-полукруг справа от лампочки, смотрит вверх */}
         <div
@@ -143,7 +161,9 @@ export const HangingBulbContact = () => {
             top: "50%",
             transform: "translateY(-50%)",
             color: lit ? accent : "rgba(255,255,255,0.55)",
-            filter: lit ? `drop-shadow(0 0 8px ${accent})` : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
+            filter: lit
+              ? `drop-shadow(0 0 8px ${accent})`
+              : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
             transition: "color 160ms ease, filter 160ms ease",
             textAlign: "center",
           }}
@@ -169,7 +189,9 @@ export const HangingBulbContact = () => {
             viewBox="0 0 26 44"
             style={{
               color: lit ? accent : "rgba(255,255,255,0.55)",
-              filter: lit ? `drop-shadow(0 0 8px ${accent})` : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
+              filter: lit
+                ? `drop-shadow(0 0 8px ${accent})`
+                : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
               transition: "color 160ms ease, filter 160ms ease",
             }}
           >
