@@ -177,17 +177,17 @@ export const HangingBulbContact = () => {
         <svg
           aria-hidden
           width="60"
-          height="16"
-          viewBox="0 0 60 16"
-          style={{ display: "block", marginBottom: -13, transform: "translateX(13px)" }}
+          height="18"
+          viewBox="0 0 60 18"
+          style={{ display: "block", marginBottom: -15, transform: "translateX(13px)" }}
         >
           <defs>
-            <path id="arc-text" d="M 2,13 Q 30,12 58,13" />
+            <path id="arc-text" d="M 2,15 Q 30,14 58,15" />
           </defs>
           <text
             fill="currentColor"
             fontFamily="'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Comic Neue', cursive"
-            fontSize="6.5"
+            fontSize="7.5"
             fontWeight="700"
           >
             <textPath href="#arc-text" startOffset="50%" textAnchor="middle">
