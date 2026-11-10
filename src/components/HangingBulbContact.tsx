@@ -159,7 +159,7 @@ export const HangingBulbContact = () => {
         aria-hidden
         style={{
           position: "absolute",
-          left: -36,
+          left: -34,
           top: "50%",
           transform: "translateY(-50%)",
           color: lit ? accent : "rgba(255,255,255,0.55)",
@@ -167,7 +167,9 @@ export const HangingBulbContact = () => {
             ? `drop-shadow(0 0 8px ${accent})`
             : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
           transition: "color 160ms ease, filter 160ms ease",
-          textAlign: "center",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
         }}
       >
         <span
@@ -177,8 +179,6 @@ export const HangingBulbContact = () => {
             letterSpacing: 0.08,
             textTransform: "uppercase",
             fontFamily: "'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Comic Neue', cursive",
-            display: "block",
-            marginBottom: 8,
             whiteSpace: "nowrap",
             transition: "color 160ms ease, text-shadow 160ms ease",
           }}
