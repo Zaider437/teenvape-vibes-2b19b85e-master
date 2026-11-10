@@ -159,7 +159,7 @@ export const HangingBulbContact = () => {
         aria-hidden
         style={{
           position: "absolute",
-          left: -80,
+          left: -78,
           top: "55%",
           transform: "translateY(-50%)",
           width: 70,
@@ -170,7 +170,7 @@ export const HangingBulbContact = () => {
           transition: "color 160ms ease, filter 160ms ease",
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-end",
+          alignItems: "center",
         }}
       >
         {/* надпись дугой над стрелкой */}
