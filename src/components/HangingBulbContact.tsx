@@ -177,12 +177,12 @@ export const HangingBulbContact = () => {
         <svg
           aria-hidden
           width="54"
-          height="14"
-          viewBox="0 0 54 14"
-          style={{ display: "block", marginBottom: -10 }}
+          height="12"
+          viewBox="0 0 54 12"
+          style={{ display: "block", marginBottom: -13 }}
         >
           <defs>
-            <path id="arc-text" d="M 1,12 Q 27,10.5 53,12" />
+            <path id="arc-text" d="M 1,10 Q 27,9 53,10" />
           </defs>
           <text
             fill="currentColor"
