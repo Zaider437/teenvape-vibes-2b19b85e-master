@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import logoImg from "@/assets/5363874353084309359.jpg";
 
 /**
@@ -134,6 +135,41 @@ export const HangingBulbContact = () => {
         <span aria-hidden className="stick stick-fl absolute left-[12px] bottom-[-9px] block" style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
         <span aria-hidden className="stick stick-fr absolute right-[12px] bottom-[-9px] block" style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }} />
       </button>
+
+      {/* подсказка со стрелкой, горит тем же светом, что и лампочка */}
+      <div
+        className="flex items-center gap-1.5 mt-2 select-none cursor-pointer"
+        onClick={toggle}
+        aria-hidden
+        style={{
+          color: lit ? accent : "rgba(255,255,255,0.6)",
+          textShadow: lit
+            ? `0 0 10px ${accent}, 0 0 20px ${accent}`
+            : "none",
+          transition: "color 160ms ease, text-shadow 160ms ease",
+        }}
+      >
+        <ArrowRight
+          size={14}
+          strokeWidth={2.5}
+          style={{
+            color: lit ? accent : "rgba(255,255,255,0.6)",
+            filter: lit ? `drop-shadow(0 0 6px ${accent})` : "none",
+            transition: "color 160ms ease, filter 160ms ease",
+          }}
+        />
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: 0.05,
+            textTransform: "uppercase",
+            transition: "color 160ms ease, text-shadow 160ms ease",
+          }}
+        >
+          нажми меня
+        </span>
+      </div>
     </div>
   );
 };
