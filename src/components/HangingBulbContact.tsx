@@ -54,7 +54,7 @@ export const HangingBulbContact = () => {
         aria-hidden
         style={ropeStyle}
         className={`block bulb-sway${active ? " bulb-impulse" : ""}`}
-        key={`rope-${impulse}`}
+        key="rope"
       />
 
       <button
@@ -64,7 +64,7 @@ export const HangingBulbContact = () => {
         aria-label={lit ? "Выключить светильник" : "Включить светильник"}
         className={`block outline-none cursor-pointer bg-transparent border-0 p-0 bulb-sway${active ? " bulb-impulse" : ""}`}
         style={bulbStyle}
-        key={`bulb-${impulse}`}
+        key="bulb"
       >
         {/* свечения */}
         {lit && !reduced && (
