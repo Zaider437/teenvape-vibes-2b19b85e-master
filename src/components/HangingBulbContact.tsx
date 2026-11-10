@@ -159,9 +159,10 @@ export const HangingBulbContact = () => {
         aria-hidden
         style={{
           position: "absolute",
-          left: -70,
+          left: -105,
           top: "50%",
           transform: "translateY(-50%)",
+          width: 105,
           color: lit ? accent : "rgba(255,255,255,0.55)",
           filter: lit
             ? `drop-shadow(0 0 8px ${accent})`
@@ -173,16 +174,16 @@ export const HangingBulbContact = () => {
         {/* надпись дугой над стрелкой */}
         <svg
           aria-hidden
-          width="140"
+          width="105"
           height="60"
-          viewBox="0 0 140 60"
+          viewBox="0 0 105 60"
           style={{ display: "block", margin: "0 auto 6px auto" }}
         >
           <defs>
-            <path id="arc-text" d="M 20,52 Q 70,6 120,52" />
+            <path id="arc-text" d="M 10,52 Q 52,6 94,52" />
           </defs>
           <text
-            textLength="100"
+            textLength="85"
             lengthAdjust="spacingAndGlyphs"
             fill="currentColor"
             fontFamily="'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Comic Neue', cursive"
