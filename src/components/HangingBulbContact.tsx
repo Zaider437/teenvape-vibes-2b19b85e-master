@@ -176,18 +176,18 @@ export const HangingBulbContact = () => {
         {/* надпись дугой над стрелкой */}
         <svg
           aria-hidden
-          width="54"
-          height="14"
-          viewBox="0 0 54 14"
-          style={{ display: "block", marginBottom: -12, transform: "translateX(13px)" }}
+          width="60"
+          height="16"
+          viewBox="0 0 60 16"
+          style={{ display: "block", marginBottom: -13, transform: "translateX(13px)" }}
         >
           <defs>
-            <path id="arc-text" d="M 2,11 Q 27,10.2 52,11" />
+            <path id="arc-text" d="M 2,13 Q 30,12 58,13" />
           </defs>
           <text
             fill="currentColor"
             fontFamily="'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Comic Neue', cursive"
-            fontSize="5.5"
+            fontSize="6.5"
             fontWeight="700"
           >
             <textPath href="#arc-text" startOffset="50%" textAnchor="middle">
