@@ -48,7 +48,7 @@ export const HangingBulbContact = () => {
   };
 
   return (
-    <div className="flex flex-col items-center select-none" style={{ width: 64 }}>
+    <div className="flex flex-col items-center select-none relative" style={{ width: 64 }}>
       {/* верёвка растёт вниз из кнопки «Связь с нами» */}
       <span
         aria-hidden
@@ -62,7 +62,7 @@ export const HangingBulbContact = () => {
         onClick={toggle}
         aria-pressed={lit}
         aria-label={lit ? "Выключить светильник" : "Включить светильник"}
-        className={`relative block outline-none cursor-pointer bg-transparent border-0 p-0 bulb-sway${active ? " bulb-impulse" : ""}`}
+        className={`block outline-none cursor-pointer bg-transparent border-0 p-0 bulb-sway${active ? " bulb-impulse" : ""}`}
         style={bulbStyle}
         key={`bulb-${impulse}`}
       >
@@ -151,70 +151,70 @@ export const HangingBulbContact = () => {
           className="stick stick-fr absolute right-[12px] bottom-[-9px] block"
           style={{ width: 2, height: 9, borderRadius: 2, background: "rgba(255,255,255,0.75)" }}
         />
+      </button>
 
-        {/* карандашная стрелочка-полукруг справа от лампочки, смотрит вверх */}
-        <div
-          aria-hidden
+      {/* карандашная стрелочка-полукруг справа от лампочки, смотрит вверх */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          right: -46,
+          top: "50%",
+          transform: "translateY(-50%)",
+          color: lit ? accent : "rgba(255,255,255,0.55)",
+          filter: lit
+            ? `drop-shadow(0 0 8px ${accent})`
+            : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
+          transition: "color 160ms ease, filter 160ms ease",
+          textAlign: "center",
+        }}
+      >
+        <span
           style={{
-            position: "absolute",
-            right: -42,
-            top: "50%",
-            transform: "translateY(-50%)",
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: 0.05,
+            textTransform: "uppercase",
+            display: "block",
+            marginBottom: 4,
+            whiteSpace: "nowrap",
+            transition: "color 160ms ease, text-shadow 160ms ease",
+          }}
+        >
+          нажми на меня
+        </span>
+        <svg
+          aria-hidden
+          width="26"
+          height="44"
+          viewBox="0 0 26 44"
+          style={{
             color: lit ? accent : "rgba(255,255,255,0.55)",
             filter: lit
               ? `drop-shadow(0 0 8px ${accent})`
               : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
             transition: "color 160ms ease, filter 160ms ease",
-            textAlign: "center",
           }}
         >
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: 0.05,
-              textTransform: "uppercase",
-              display: "block",
-              marginBottom: 4,
-              whiteSpace: "nowrap",
-              transition: "color 160ms ease, text-shadow 160ms ease",
-            }}
-          >
-            нажми на меня
-          </span>
-          <svg
-            aria-hidden
-            width="26"
-            height="44"
-            viewBox="0 0 26 44"
-            style={{
-              color: lit ? accent : "rgba(255,255,255,0.55)",
-              filter: lit
-                ? `drop-shadow(0 0 8px ${accent})`
-                : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
-              transition: "color 160ms ease, filter 160ms ease",
-            }}
-          >
-            <path
-              d="M 13,38 Q 6,22 13,6"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {/* наконечник, смотрит вверх */}
-            <path
-              d="M 10,4 L 13,0 L 16,4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-      </button>
+          <path
+            d="M 13,38 Q 6,22 13,6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* наконечник, смотрит вверх */}
+          <path
+            d="M 10,4 L 13,0 L 16,4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
     </div>
   );
 };
