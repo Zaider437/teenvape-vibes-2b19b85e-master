@@ -154,12 +154,12 @@ export const HangingBulbContact = () => {
         </div>
       </div>
 
-      {/* карандашная стрелочка-полукруг слева от лампочки, смотрит вверх */}
+      {/* карандашная стрелочка-полукруг слева от лампочки, указывает на лампочку */}
       <div
         aria-hidden
         style={{
           position: "absolute",
-          left: -46,
+          left: -54,
           top: "50%",
           transform: "translateY(-50%)",
           color: lit ? accent : "rgba(255,255,255,0.55)",
@@ -177,7 +177,7 @@ export const HangingBulbContact = () => {
             letterSpacing: 0.05,
             textTransform: "uppercase",
             display: "block",
-            marginBottom: 4,
+            marginBottom: 6,
             whiteSpace: "nowrap",
             transition: "color 160ms ease, text-shadow 160ms ease",
           }}
@@ -195,6 +195,8 @@ export const HangingBulbContact = () => {
               ? `drop-shadow(0 0 8px ${accent})`
               : "drop-shadow(0 0 8px rgba(255,255,255,0.35))",
             transition: "color 160ms ease, filter 160ms ease",
+            transform: "rotate(90deg)",
+            transformOrigin: "13px 22px",
           }}
         >
           <path
@@ -205,7 +207,7 @@ export const HangingBulbContact = () => {
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          {/* наконечник, смотрит вверх */}
+          {/* наконечник, смотрит на лампочку (вправо) */}
           <path
             d="M 10,4 L 13,0 L 16,4"
             fill="none"
