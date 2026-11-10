@@ -1500,7 +1500,7 @@ function Field({
 function Footer() {
   return (
     <footer className="mt-10 px-4 pb-4">
-      <div className="relative rounded-2xl border border-border bg-card p-5 text-center overflow-hidden">
+      <div className="relative rounded-2xl border border-border bg-card p-5 text-center overflow-visible">
         {/* качающаяся лампочка-персонаж свисает сверху над фразой LoveVape */}
         <div className="flex justify-center -mt-2 mb-1">
           <HangingBulbContact />

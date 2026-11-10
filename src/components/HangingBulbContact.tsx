@@ -159,10 +159,10 @@ export const HangingBulbContact = () => {
         aria-hidden
         style={{
           position: "absolute",
-          left: -78,
-          top: "55%",
+          left: -64,
+          top: "52%",
           transform: "translateY(-50%)",
-          width: 70,
+          width: 80,
           color: lit ? accent : "rgba(255,255,255,0.55)",
           filter: lit
             ? `drop-shadow(0 0 8px ${accent})`
@@ -171,24 +171,26 @@ export const HangingBulbContact = () => {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          pointerEvents: "none",
         }}
       >
         {/* надпись дугой над стрелкой */}
         <svg
           aria-hidden
-          width="70"
-          height="20"
-          viewBox="0 0 70 20"
-          style={{ display: "block", marginBottom: -17 }}
+          width="80"
+          height="22"
+          viewBox="0 0 80 22"
+          style={{ display: "block", marginBottom: -6 }}
         >
           <defs>
-            <path id="arc-text" d="M 2,17 Q 35,16 68,17" />
+            <path id="arc-text" d="M 4,18 Q 40,8 76,18" />
           </defs>
           <text
             fill="currentColor"
             fontFamily="'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Comic Neue', cursive"
             fontSize="8"
             fontWeight="700"
+            letterSpacing="0.2"
           >
             <textPath href="#arc-text" startOffset="50%" textAnchor="middle">
               НАЖМИ НА МЕНЯ
@@ -197,28 +199,17 @@ export const HangingBulbContact = () => {
         </svg>
 
         {/* стрелка, указывает на лампочку (вправо) */}
-        <svg
-          aria-hidden
-          width="30"
-          height="52"
-          viewBox="0 0 30 52"
-          style={{
-            display: "block",
-            transform: "rotate(90deg)",
-            transformOrigin: "15px 26px",
-          }}
-        >
+        <svg aria-hidden width="48" height="28" viewBox="0 0 48 28" style={{ display: "block" }}>
           <path
-            d="M 15,45 Q 7,26 15,7"
+            d="M 4,20 Q 22,6 40,14"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          {/* наконечник, смотрит на лампочку (вправо) */}
           <path
-            d="M 12,5 L 15,0 L 18,5"
+            d="M 36,10 L 43,14 L 36,18"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.5"
