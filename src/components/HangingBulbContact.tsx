@@ -192,7 +192,7 @@ export const HangingBulbContact = () => {
             fontWeight="700"
           >
             <textPath href="#arc-text" startOffset="50%" textAnchor="middle">
-              НАЖМИ НА МЕНЯ
+              ЖМЯКНИ МЕНЯ
             </textPath>
           </text>
         </svg>

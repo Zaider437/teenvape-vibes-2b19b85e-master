@@ -33,10 +33,7 @@ import { NewsCarousel } from "../components/NewsCarousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../components/ui/sheet";
 import { Skeleton } from "../components/ui/skeleton";
-import {
-  useFavorites,
-  useRecentlyViewed,
-} from "../lib/user-collections";
+import { useFavorites, useRecentlyViewed } from "../lib/user-collections";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -44,7 +41,8 @@ export const Route = createFileRoute("/")({
       { title: "LoveVape — вейпы, жижи и расходники в Гродно" },
       {
         name: "description",
-        content: "Vape магазин. Снюс, расходники, электронки и жидкости. Заказ доступен через сайт.",
+        content:
+          "Vape магазин. Снюс, расходники, электронки и жидкости. Заказ доступен через сайт.",
       },
     ],
   }),
@@ -303,21 +301,42 @@ export function Shop({
         <div className="fixed inset-0 pointer-events-none z-[45] overflow-hidden">
           <div className="absolute inset-0 event-ambient" />
           <div className="absolute top-10 left-6 text-2xl sm:text-3xl pumpkin-float">🎃</div>
-          <div className="absolute bottom-24 left-0 text-xl sm:text-2xl pumpkin-float-x pumpkin-float-x-reverse" style={{ animationDelay: "0s" }}>
+          <div
+            className="absolute bottom-24 left-0 text-xl sm:text-2xl pumpkin-float-x pumpkin-float-x-reverse"
+            style={{ animationDelay: "0s" }}
+          >
             🎃
           </div>
           <div className="absolute top-20 right-10 text-2xl sm:text-3xl skeleton-float">💀</div>
-          <div className="absolute bottom-16 left-0 text-xl sm:text-2xl skeleton-drift skeleton-drift-reverse" style={{ animationDelay: "3s" }}>
+          <div
+            className="absolute bottom-16 left-0 text-xl sm:text-2xl skeleton-drift skeleton-drift-reverse"
+            style={{ animationDelay: "3s" }}
+          >
             💀
           </div>
           <div className="hidden sm:block absolute bottom-8 left-4 text-2xl skeleton-float">💀</div>
-          <div className="hidden sm:block absolute bottom-8 right-4 text-2xl sm:text-3xl pumpkin-float">🎃</div>
-          <div className="hidden sm:block absolute bottom-8 left-0 text-2xl sm:text-3xl pumpkin-float-x" style={{ animationDelay: "4s" }}>🎃</div>
+          <div className="hidden sm:block absolute bottom-8 right-4 text-2xl sm:text-3xl pumpkin-float">
+            🎃
+          </div>
+          <div
+            className="hidden sm:block absolute bottom-8 left-0 text-2xl sm:text-3xl pumpkin-float-x"
+            style={{ animationDelay: "4s" }}
+          >
+            🎃
+          </div>
           <div className="absolute top-1/4 left-0 text-xl sm:text-2xl bat-fly">🦇</div>
-          <div className="hidden sm:block absolute top-2/3 left-0 text-xl sm:text-2xl bat-fly bat-fly-reverse">🦇</div>
-          <div className="hidden sm:block absolute top-1/2 left-1/4 text-lg sm:text-xl bat-fly">🦇</div>
-          <div className="hidden sm:block absolute top-1/3 right-1/4 text-lg sm:text-xl bat-fly bat-fly-reverse">🦇</div>
-          <div className="hidden sm:block absolute bottom-1/3 left-1/3 text-base sm:text-lg bat-fly">🦇</div>
+          <div className="hidden sm:block absolute top-2/3 left-0 text-xl sm:text-2xl bat-fly bat-fly-reverse">
+            🦇
+          </div>
+          <div className="hidden sm:block absolute top-1/2 left-1/4 text-lg sm:text-xl bat-fly">
+            🦇
+          </div>
+          <div className="hidden sm:block absolute top-1/3 right-1/4 text-lg sm:text-xl bat-fly bat-fly-reverse">
+            🦇
+          </div>
+          <div className="hidden sm:block absolute bottom-1/3 left-1/3 text-base sm:text-lg bat-fly">
+            🦇
+          </div>
           <div className="cobweb top-0 left-0 -translate-x-1/4 -translate-y-1/4 rotate-12">🕸️</div>
           <div className="cobweb top-0 right-0 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1]">
             🕸️
@@ -336,27 +355,33 @@ export function Shop({
           </div>
         </div>
       )}
-       {eventTimerVisible && <EventCountdown target={eventStart} />}
-       {eventThemeActive && (
-         <div className="max-w-5xl mx-auto px-4 mt-4">
-           <div className="relative rounded-xl border border-purple-500/40 bg-gradient-to-r from-orange-500/10 via-purple-500/10 to-orange-500/10 px-4 py-3 text-center overflow-hidden">
-             <span className="absolute top-0 left-0 text-3xl opacity-30 -translate-x-1/4 -translate-y-1/4 rotate-12 pointer-events-none select-none">🕸️</span>
-             <span className="absolute top-0 right-0 text-3xl opacity-30 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1] pointer-events-none select-none">🕸️</span>
-             <span className="absolute bottom-0 left-1/2 text-2xl opacity-25 -translate-x-1/2 translate-y-1/4 rotate-45 pointer-events-none select-none">🕸️</span>
-              <div className="font-display text-2xl sm:text-3xl text-orange-300 drop-shadow-[0_0_12px_rgba(255,140,0,0.6)]">
-                🎃 Happy Halloween 🎃
-              </div>
-            </div>
-            <div className="mt-3 flex justify-center">
-              <Link
-                to="/game"
-                className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2 font-bold text-black shadow-lg shadow-orange-500/30 transition hover:bg-orange-400"
-              >
-                🎮 Играть в игру
-              </Link>
+      {eventTimerVisible && <EventCountdown target={eventStart} />}
+      {eventThemeActive && (
+        <div className="max-w-5xl mx-auto px-4 mt-4">
+          <div className="relative rounded-xl border border-purple-500/40 bg-gradient-to-r from-orange-500/10 via-purple-500/10 to-orange-500/10 px-4 py-3 text-center overflow-hidden">
+            <span className="absolute top-0 left-0 text-3xl opacity-30 -translate-x-1/4 -translate-y-1/4 rotate-12 pointer-events-none select-none">
+              🕸️
+            </span>
+            <span className="absolute top-0 right-0 text-3xl opacity-30 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1] pointer-events-none select-none">
+              🕸️
+            </span>
+            <span className="absolute bottom-0 left-1/2 text-2xl opacity-25 -translate-x-1/2 translate-y-1/4 rotate-45 pointer-events-none select-none">
+              🕸️
+            </span>
+            <div className="font-display text-2xl sm:text-3xl text-orange-300 drop-shadow-[0_0_12px_rgba(255,140,0,0.6)]">
+              🎃 Happy Halloween 🎃
             </div>
           </div>
-       )}
+          <div className="mt-3 flex justify-center">
+            <Link
+              to="/game"
+              className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2 font-bold text-black shadow-lg shadow-orange-500/30 transition hover:bg-orange-400"
+            >
+              🎮 Играть в игру
+            </Link>
+          </div>
+        </div>
+      )}
       <NewsCarousel />
       <div id="catalog" className="mt-4 sm:mt-6 flex items-baseline justify-between">
         <h2 className="font-display text-2xl sm:text-3xl text-foreground">
@@ -417,7 +442,9 @@ export function Shop({
                   }`}
                 >
                   {c.image ? (
-                    <img loading="lazy" decoding="async"
+                    <img
+                      loading="lazy"
+                      decoding="async"
                       src={c.image}
                       alt=""
                       className="h-9 w-9 mr-1 inline-block object-contain align-middle drop-shadow-sm bg-white/10 rounded-md p-0.5"
@@ -546,7 +573,9 @@ export function Shop({
                     <span>{e.product.emoji}</span>
                   )}
                 </div>
-                <div className="text-[10px] font-bold leading-tight line-clamp-2">{e.product.name}</div>
+                <div className="text-[10px] font-bold leading-tight line-clamp-2">
+                  {e.product.name}
+                </div>
                 <div className="text-[10px] text-primary font-bold">{e.product.price} BYN</div>
               </button>
             ))}
@@ -983,7 +1012,9 @@ function ProductDetail({ product }: { product: Product }) {
     <div className="space-y-2 sm:space-y-3">
       <div className="aspect-[4/3] sm:aspect-[3/4] grid place-items-center text-4xl sm:text-5xl bg-primary/5 rounded-lg overflow-hidden">
         {product.image && !broken ? (
-           <img loading="lazy" decoding="async"
+          <img
+            loading="lazy"
+            decoding="async"
             src={product.image}
             alt={product.name}
             className="w-full h-full object-contain p-1.5 sm:p-2"
@@ -1092,7 +1123,9 @@ function CartDrawer({
             >
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md sm:rounded-lg bg-muted grid place-items-center text-xl sm:text-2xl shrink-0 overflow-hidden">
                 {i.product.image && !brokenMap[i.product.id] ? (
-                   <img loading="lazy" decoding="async"
+                  <img
+                    loading="lazy"
+                    decoding="async"
                     src={i.product.image}
                     alt={i.product.name}
                     className="w-full h-full object-contain"
@@ -1377,7 +1410,10 @@ function FavoritesSheet({ products }: { products: Product[] }) {
     [add],
   );
   // Стабильный список: не пересоздаётся при open/close, чтобы не лагала анимация закрытия
-  const list = useMemo(() => products.filter((p) => favorites.includes(p.id)), [products, favorites]);
+  const list = useMemo(
+    () => products.filter((p) => favorites.includes(p.id)),
+    [products, favorites],
+  );
   const favRows = useMemo(
     () =>
       list.map((p) => (
