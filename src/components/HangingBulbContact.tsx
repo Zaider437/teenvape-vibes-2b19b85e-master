@@ -131,15 +131,15 @@ export const HangingBulbContact = () => {
         {/* стрелка-указатель на лампочку */}
         <ArrowRight
           aria-hidden
-          size={16}
-          strokeWidth={2.5}
+          size={20}
+          strokeWidth={3}
           style={{
             position: "absolute",
-            right: -22,
+            right: -26,
             top: "50%",
             transform: "translateY(-50%) rotate(180deg)",
-            color: lit ? accent : "rgba(255,255,255,0.55)",
-            filter: lit ? `drop-shadow(0 0 6px ${accent})` : "none",
+            color: lit ? accent : "#ffffff",
+            filter: lit ? `drop-shadow(0 0 8px ${accent})` : "drop-shadow(0 0 8px rgba(255,255,255,0.4))",
             transition: "color 160ms ease, filter 160ms ease",
             pointerEvents: "none",
           }}

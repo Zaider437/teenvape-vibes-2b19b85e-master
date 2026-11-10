@@ -1509,6 +1509,17 @@ function Footer() {
           <span className="text-primary">Love</span>
           <span className="text-foreground">Vape</span>
         </div>
+        <p className="mt-1 text-sm text-foreground/70">
+          вейпы, поды и жидкости в Гродно
+        </p>
+        <a
+          href="https://t.me/LV6634"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-block text-sm text-primary underline decoration-primary/40 hover:decoration-primary/100 transition"
+        >
+          написать в Telegram
+        </a>
       </div>
     </footer>
   );
