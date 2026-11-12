@@ -8,6 +8,25 @@ type ServerEntry = {
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
+// Бэкап фото после каждого деплоя: воркер «просыпается» холодным стартом,
+// и если последний успешный бэкап был больше 20 часов назад — запускаем его в фоне.
+let deployBackupTriggered = false;
+function maybeRunDeployBackup(env: any, ctx: { waitUntil: (p: Promise<unknown>) => void }) {
+  if (deployBackupTriggered) return;
+  deployBackupTriggered = true;
+  ctx.waitUntil(
+    (async () => {
+      try {
+        const { runPhotoBackupIfNeeded } = await import("./lib/photo-backup");
+        const result = await runPhotoBackupIfNeeded(env);
+        if (result) console.log("[photo-backup] deploy-startup result:", JSON.stringify(result));
+      } catch (e) {
+        console.warn("[photo-backup] deploy-startup skipped/failed", e);
+      }
+    })(),
+  );
+}
+
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
     serverEntryPromise = import("@tanstack/react-start/server-entry").then(
@@ -59,8 +78,26 @@ function isH3SwallowedErrorBody(body: string): boolean {
 }
 
 export default {
+  // Ежедневный cron-бэкап (wrangler.toml → triggers.crons):
+  // 1) полный дамп id→image_url в app_settings (независимый от журнала "бэкап ссылок"),
+  // 2) автопочинка: битые ссылки заменяются живыми из дампа/истории.
+  async scheduled(controller: unknown, env: any, ctx: { waitUntil: (p: Promise<unknown>) => void }) {
+    ctx.waitUntil(
+      (async () => {
+        try {
+          const { runPhotoBackup } = await import("./lib/photo-backup");
+          const result = await runPhotoBackup(env);
+          console.log("[photo-backup] cron result:", JSON.stringify(result));
+        } catch (e) {
+          console.error("[photo-backup] cron failed", e);
+        }
+      })(),
+    );
+  },
+
   async fetch(request: Request, env: any, ctx: any) {
     try {
+      maybeRunDeployBackup(env, ctx);
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
