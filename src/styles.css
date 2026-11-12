@@ -490,7 +490,18 @@ button.bulb-sway {
   }
 }
 
-/* cobwebs stay fixed in corners */
+/* Тосты sonner — не перекрывают хедек и кнопки, текст оборачивается столбиком */
+.sonner-toast {
+  max-width: 320px;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+.sonner-toast-description {
+  white-space: normal !important;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
 .cobweb {
   position: fixed;
   opacity: 0.35;

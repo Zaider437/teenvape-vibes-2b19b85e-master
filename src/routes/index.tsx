@@ -52,7 +52,7 @@ export const Route = createFileRoute("/")({
       <CartProvider>
         <FallingEffects onSnowChange={setSnowActive} />
         <Shop snowActive={snowActive} />
-        <Toaster position="top-center" theme="dark" richColors />
+        <Toaster position="bottom-center" theme="dark" richColors />
       </CartProvider>
     );
   },
