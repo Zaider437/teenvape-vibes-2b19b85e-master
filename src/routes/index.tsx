@@ -687,7 +687,7 @@ function Header({ onOpenCart, snowActive }: { onOpenCart: () => void; snowActive
           >
             <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2.5} />
             {count > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 min-w-3 h-3 sm:min-w-4 sm:h-4 rounded-full bg-secondary text-secondary-foreground text-[8px] sm:text-[9px] font-black grid place-items-center border-2 border-background">
+              <span className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 min-w-4 h-4 sm:min-w-5 sm:h-5 px-0.5 rounded-full bg-secondary text-secondary-foreground text-[9px] sm:text-[10px] font-black grid place-items-center border-2 border-background">
                 {count}
               </span>
             )}
