@@ -151,8 +151,8 @@ const productSchema = z.object({
   description: z.string().trim().max(4000).optional().nullable(),
   is_active: z.boolean(),
   sort_order: z.number().int(),
-   stock_quantity: z.number().int().nonnegative(),
-   cost_price: z.number().nonnegative().optional().nullable(),
+  stock_quantity: z.number().int().nonnegative(),
+  cost_price: z.number().nonnegative().optional().nullable(),
 });
 
 type ProductField =
@@ -1583,6 +1583,186 @@ export const adminExportRevenueCsv = createServerFn({ method: "POST" })
     }
 
     return { csv: "\ufeff" + lines.join("\n"), count: sorted.length };
+  });
+
+/**
+ * Восстановление фотографий товаров из логов активности («бэкап по ссылкам»).
+ * Собирает все image_url из снапшотов product_activity_log и возвращает отчёт:
+ * какие товары сейчас показывают битую (недоступную) картинку и какая живая
+ * ссылка на ту же картинку/аналог нашлась в истории.
+ */
+export const adminRestoreImagesFromLogs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { formatImageUrl } = await import("./product-helpers");
+
+    // 1. Читаем весь журнал
+    const { data: logs, error: logsError } = await supabaseAdmin
+      .from("product_activity_log" as any)
+      .select("product_id, action, details, product_snapshot, created_at")
+      .order("created_at", { ascending: false })
+      .limit(2000);
+    if (logsError) throw logsError;
+
+    // 2. Собираем пул всех image_url, когда-либо встречавшихся в истории
+    const urlHistory = new Map<string, { name?: string; at: string; action: string }>();
+    for (const l of (logs ?? []) as any[]) {
+      const urls: { url: string; name?: string }[] = [];
+      const snap = l.product_snapshot;
+      if (snap?.image_url) urls.push({ url: snap.image_url, name: snap.name });
+      const det = l.details;
+      if (det?.image_url) urls.push({ url: det.image_url, name: det.name });
+      if (Array.isArray(det?.changes)) {
+        for (const c of det.changes) {
+          if (c.field === "image_url") {
+            if (c.oldValue) urls.push({ url: c.oldValue, name: det.name });
+            if (c.newValue) urls.push({ url: c.newValue, name: det.name });
+          }
+        }
+      }
+      for (const { url, name } of urls) {
+        if (!urlHistory.has(url)) urlHistory.set(url, { name, at: l.created_at, action: l.action });
+      }
+    }
+
+    // 3. Проверяем живость каждого URL (HEAD-запрос)
+    async function isAlive(url: string): Promise<boolean> {
+      if (!url) return false;
+      let absolute = url;
+      if (url.startsWith("/")) {
+        if (url.startsWith("/assets/") || url.startsWith("/__l5e/")) return true; // локальные ассеты всегда «живы»
+        absolute = `${((globalThis as any).env?.SUPABASE_URL) || ""}${url}`;
+        if (!absolute.startsWith("http")) return false;
+      }
+      try {
+        const res = await fetch(absolute, { method: "HEAD" });
+        return res.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    const aliveUrls: string[] = [];
+    const deadUrls: { url: string; name?: string; at: string; action: string }[] = [];
+    for (const [url, meta] of urlHistory) {
+      if (await isAlive(url)) aliveUrls.push(url);
+      else deadUrls.push({ url, ...meta });
+    }
+
+    // 4. Все товары и их текущие картинки
+    const { data: products, error: productsError } = await supabaseAdmin
+      .from("products" as any)
+      .select("id, slug, name, brand, image_url, is_active")
+      .limit(5000);
+    if (productsError) throw productsError;
+
+    // Пул живых ссылок, сгруппированный по «имени файла» для подбора аналогов
+    const aliveByFileName = new Map<string, string[]>();
+    for (const u of aliveUrls) {
+      const key = (u.split("/").pop() || u).toLowerCase();
+      const list = aliveByFileName.get(key) ?? [];
+      list.push(u);
+      aliveByFileName.set(key, list);
+    }
+
+    // 5. Определяем битые ссылки среди актуальных товаров
+    const brokenProducts: {
+      id: string;
+      slug: string;
+      name: string;
+      brand: string | null;
+      current: string | null;
+      candidates: { url: string; source: string }[];
+    }[] = [];
+    const brokenCache = new Map<string, boolean>();
+    for (const p of (products ?? []) as any[]) {
+      const cur = p.image_url;
+      if (!cur || cur.startsWith("/assets/") || cur.startsWith("/__l5e/")) continue;
+      let dead = brokenCache.get(cur);
+      if (dead === undefined) {
+        dead = !(await isAlive(cur));
+        brokenCache.set(cur, dead);
+      }
+      if (!dead) continue;
+
+      // Кандидаты: та же ссылка в истории (если она когда-то была живой) или живой файл с тем же именем
+      const candidates: { url: string; source: string }[] = [];
+      const fileName = (cur.split("/").pop() || "").toLowerCase();
+      for (const [name, list] of aliveByFileName) {
+        if (name === fileName) {
+          for (const u of list) candidates.push({ url: u, source: "из логов (тот же файл)" });
+        }
+      }
+      if (candidates.length === 0) {
+        // нет точного совпадения — предлагаем все живые ссылки того же бренда не даём, чтобы не гадать;
+        // но если текущая ссылка когда-то была в логах живой, она бы уже попала в aliveUrls
+      }
+      brokenProducts.push({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        brand: p.brand ?? null,
+        current: cur,
+        candidates: candidates.slice(0, 3),
+      });
+    }
+
+    return {
+      checked: (products ?? []).length,
+      historyUrls: urlHistory.size,
+      aliveHistoryUrls: aliveUrls.length,
+      deadHistoryUrls: deadUrls.length,
+      brokenProducts,
+      deadHistory: deadUrls.slice(0, 20).map((d) => ({ ...d, url: d.url.slice(-60) })),
+    };
+  });
+
+/** Применяет восстановление: назначает товарам выбранную живую ссылку из логов. */
+export const adminApplyImageRestore = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        updates: z
+          .array(z.object({ id: z.string().min(1), image_url: z.string().min(1).max(2000) }))
+          .min(1)
+          .max(500),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let updated = 0;
+    for (let i = 0; i < data.updates.length; i += 50) {
+      const chunk = data.updates.slice(i, i + 50);
+      // Обновляем по одному: разные товары получают разные ссылки
+      for (const u of chunk) {
+        const { error } = await supabaseAdmin
+          .from("products" as any)
+          .update({ image_url: u.image_url })
+          .eq("id", u.id);
+        if (error) throw error;
+        updated++;
+      }
+    }
+
+    await logProductActivity(context, {
+      product_id: data.updates[0].id,
+      action: "update",
+      details: {
+        name: "Восстановление фото из логов",
+        restored_count: updated,
+      },
+      product_snapshot: null,
+    });
+
+    const { invalidateProductsCache } = await import("./products");
+    invalidateProductsCache();
+    return { ok: true, updated };
   });
 
 export const requireAdminAccess = createServerFn({ method: "GET" })

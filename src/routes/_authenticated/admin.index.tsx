@@ -38,7 +38,8 @@ import {
   adminSetProductDiscount,
   adminBulkUpdatePrice,
   adminExportOrdersCsv,
-  adminExportRevenueCsv,
+  adminRestoreImagesFromLogs,
+  adminApplyImageRestore,
   DEFAULT_CATEGORY_ORDER,
 } from "@/lib/admin.functions";
 import { invalidateProductsCache } from "@/lib/products";
@@ -146,9 +147,28 @@ function ProductsAdmin() {
   const updateCatOrder = useServerFn(adminUpdateCategoryOrder);
   const setDiscount = useServerFn(adminSetProductDiscount);
   const bulkPrice = useServerFn(adminBulkUpdatePrice);
-  const exportRevenue = useServerFn(adminExportRevenueCsv);
   const exportCsv = useServerFn(adminExportOrdersCsv);
-  const [isExportingRevenue, setIsExportingRevenue] = useState(false);
+  const restoreScan = useServerFn(adminRestoreImagesFromLogs);
+  const restoreApply = useServerFn(adminApplyImageRestore);
+  const [isRestoringImages, setIsRestoringImages] = useState(false);
+  type RestoreCandidate = { url: string; source: string };
+  type RestoreScanResult = {
+    checked: number;
+    historyUrls: number;
+    aliveHistoryUrls: number;
+    deadHistoryUrls: number;
+    deadHistory: { url: string; name?: string; at: string; action: string }[];
+    brokenProducts: {
+      id: string;
+      slug: string;
+      name: string;
+      brand: string | null;
+      current: string | null;
+      candidates: RestoreCandidate[];
+    }[];
+  };
+  const [restoreResult, setRestoreResult] = useState<RestoreScanResult | null>(null);
+  const [restorePicks, setRestorePicks] = useState<Record<string, string>>({});
 
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -762,28 +782,32 @@ function ProductsAdmin() {
           </button>
           <button
             onClick={async () => {
-              setIsExportingRevenue(true);
+              setIsRestoringImages(true);
               try {
-                const res = await exportRevenue();
-                const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `revenue-${new Date().toISOString().slice(0, 10)}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-                toast.success(`Экспортировано строк: ${res.count}`);
+                const res = (await restoreScan()) as unknown as RestoreScanResult;
+                setRestoreResult(res);
+                // Автоподбор первого кандидата для каждого битого товара
+                const picks: Record<string, string> = {};
+                for (const b of res.brokenProducts) {
+                  if (b.candidates.length > 0) picks[b.id] = b.candidates[0].url;
+                }
+                setRestorePicks(picks);
+                if (res.brokenProducts.length === 0) {
+                  toast.success(`Битых картинок нет. Проверено товаров: ${res.checked}`);
+                } else {
+                  toast.warning(`Найдено товаров с битой картинкой: ${res.brokenProducts.length}`);
+                }
               } catch (e: any) {
-                toast.error(e?.message ?? "Не удалось экспортировать");
+                toast.error(e?.message ?? "Не удалось проверить изображения");
               } finally {
-                setIsExportingRevenue(false);
+                setIsRestoringImages(false);
               }
             }}
-            disabled={isExportingRevenue}
+            disabled={isRestoringImages}
             className="inline-flex items-center gap-1.5 bg-card hover:bg-muted text-foreground font-semibold px-3 py-1.5 rounded-lg text-sm border border-border transition-colors disabled:opacity-40"
-            title="Выручка по дням и товарам"
+            title="Найти и восстановить пропавшие фото товаров из истории действий"
           >
-            <Download className="w-4 h-4" /> {isExportingRevenue ? "Экспорт…" : "Экспорт выручки"}
+            <Image className="w-4 h-4" /> {isRestoringImages ? "Проверка…" : "Восстановить фото"}
           </button>
           <button
             onClick={() => setShowCategoryOrderDialog(true)}
@@ -1390,6 +1414,96 @@ function ProductsAdmin() {
               className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
             >
               {isBulkPriceSaving ? "Применяю…" : "Применить"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!restoreResult} onOpenChange={(open) => !open && setRestoreResult(null)}>
+        <DialogContent className="max-w-lg w-[calc(100%-2rem)] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Восстановление фото — битых товаров: {restoreResult?.brokenProducts.length ?? 0}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            История действий: ссылок всего {restoreResult?.historyUrls ?? 0}, живых {restoreResult?.aliveHistoryUrls ?? 0},
+            мёртвых {restoreResult?.deadHistoryUrls ?? 0}. Для каждого товара ниже выберите живую ссылку
+            (если восстановить по истории невозможно, загрузите новое фото через карточку товара).
+          </p>
+          <div className="grid gap-2">
+            {(restoreResult?.brokenProducts ?? []).map((b) => (
+              <div key={b.id} className="border border-border rounded-lg p-2 grid gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold truncate">{b.name}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0">{b.brand}</span>
+                </div>
+                {b.candidates.length > 0 ? (
+                  <div className="grid gap-1">
+                    {b.candidates.map((c) => (
+                      <label key={c.url} className="flex items-center gap-2 text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`restore-${b.id}`}
+                          checked={restorePicks[b.id] === c.url}
+                          onChange={() => setRestorePicks((prev) => ({ ...prev, [b.id]: c.url }))}
+                        />
+                        <img src={c.url} alt="" className="w-8 h-8 rounded object-cover border border-border" />
+                        <span className="truncate text-muted-foreground" title={c.url}>
+                          …{c.url.slice(-45)} ({c.source})
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-amber-500">
+                    Живой ссылки в истории не нашлось — загрузите фото вручную
+                  </span>
+                )}
+              </div>
+            ))}
+            {(restoreResult?.brokenProducts.length ?? 0) === 0 && (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Все картинки товаров доступны — восстановление не требуется 🎉
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setRestoreResult(null)}
+              className="px-3 py-1.5 rounded-lg bg-muted font-semibold text-xs"
+            >
+              Закрыть
+            </button>
+            <button
+              onClick={async () => {
+                const updates = Object.entries(restorePicks)
+                  .filter(([id, url]) => {
+                    const b = restoreResult?.brokenProducts.find((x) => x.id === id);
+                    return b && b.candidates.some((c) => c.url === url);
+                  })
+                  .map(([id, image_url]) => ({ id, image_url }));
+                if (updates.length === 0) {
+                  toast.error("Нет выбранных ссылок для восстановления");
+                  return;
+                }
+                setIsRestoringImages(true);
+                try {
+                  const res = await restoreApply({ data: { updates } });
+                  toast.success(`Восстановлено фото: ${res.updated} товаров`);
+                  setRestoreResult(null);
+                  invalidateProductsCache();
+                  await reload(true);
+                } catch (e: any) {
+                  toast.error(e?.message ?? "Не удалось восстановить");
+                } finally {
+                  setIsRestoringImages(false);
+                }
+              }}
+              disabled={isRestoringImages}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50"
+            >
+              {isRestoringImages ? "Применяю…" : "Восстановить выбранное"}
             </button>
           </DialogFooter>
         </DialogContent>
