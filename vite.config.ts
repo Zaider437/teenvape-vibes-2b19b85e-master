@@ -11,10 +11,6 @@ export default defineConfig({
     server: { entry: "server" },
     router: { routeFileIgnorePattern: "\\.test\\.tsx?$" },
   },
-  // Nitro-плагины: обработчик cron-события Cloudflare (ежедневный фото-бэкап)
-  nitro: {
-    plugins: ["./src/lib/cron-hook.ts"],
-  },
   vite: {
     server: {
       port: 8087,
