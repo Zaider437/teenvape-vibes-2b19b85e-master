@@ -5,6 +5,61 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const adminCache = new Map<string, { expires: number }>();
 
+/**
+ * Удаляет картинку из Cloudinary только если на неё больше не ссылается ни один товар
+ * (и никакая запись news). Раньше картинка удалялась безусловно, из-за чего она
+ * «исчезала» у других товаров, использующих тот же URL.
+ */
+async function cleanupOrphanedImage(
+  imageUrl: string | null | undefined,
+  excludeProductId?: string,
+): Promise<void> {
+  if (!imageUrl) return;
+  const { getCloudinaryPublicId, deleteCloudinaryImage } = await import("./cloudinary.server");
+  const publicId = getCloudinaryPublicId(imageUrl);
+  if (!publicId) return; // не Cloudinary — удалять нечего
+
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Товары с той же ссылкой
+    let stillUsed = false;
+    {
+      const query = supabaseAdmin
+        .from("products" as any)
+        .select("id")
+        .eq("image_url", imageUrl)
+        .limit(1);
+      if (excludeProductId) query.neq("id", excludeProductId);
+      const { data, error } = await query;
+      if (error) {
+        console.warn("[cleanupOrphanedImage] products check failed, keeping image", error);
+        return; // при ошибке безопаснее НЕ удалять
+      }
+      if (data && data.length > 0) stillUsed = true;
+    }
+
+    // Новости с той же ссылкой
+    if (!stillUsed) {
+      const { data, error } = await supabaseAdmin
+        .from("news" as any)
+        .select("id")
+        .eq("image_url", imageUrl)
+        .limit(1);
+      if (!error && data && data.length > 0) stillUsed = true;
+    }
+
+    if (stillUsed) {
+      console.log("[cleanupOrphanedImage] image still referenced, skipping delete", publicId);
+      return;
+    }
+
+    await deleteCloudinaryImage(publicId);
+  } catch (imageError) {
+    console.warn("[cleanupOrphanedImage] cleanup failed", imageError);
+  }
+}
+
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const now = Date.now();
   const cached = adminCache.get(context.userId);
@@ -271,16 +326,7 @@ export const adminUpsertProduct = createServerFn({ method: "POST" })
       if (error) throw error;
 
       if (previousSnapshot?.image_url && previousSnapshot.image_url !== row.image_url) {
-        const { getCloudinaryPublicId, deleteCloudinaryImage } =
-          await import("./cloudinary.server");
-        const oldPublicId = getCloudinaryPublicId(previousSnapshot.image_url);
-        if (oldPublicId) {
-          try {
-            await deleteCloudinaryImage(oldPublicId);
-          } catch (imageError) {
-            console.warn("[adminUpsertProduct] old image cleanup failed", imageError);
-          }
-        }
+        await cleanupOrphanedImage(previousSnapshot.image_url, data.id);
       }
 
       if (changes.length > 0) {
@@ -401,15 +447,7 @@ export const adminDeleteProduct = createServerFn({ method: "POST" })
     if (error) throw error;
 
     if (existing) {
-      const { getCloudinaryPublicId, deleteCloudinaryImage } = await import("./cloudinary.server");
-      const publicId = getCloudinaryPublicId((existing as any).image_url);
-      if (publicId) {
-        try {
-          await deleteCloudinaryImage(publicId);
-        } catch (imageError) {
-          console.warn("[adminDeleteProduct] image cleanup failed", imageError);
-        }
-      }
+      await cleanupOrphanedImage((existing as any).image_url, data.id);
 
       await logProductActivity(context, {
         product_id: (existing as any).id,
