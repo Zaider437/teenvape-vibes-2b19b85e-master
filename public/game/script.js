@@ -806,135 +806,120 @@ for (let i = 0; i < 6; i++) {
     return g;
   }
 
+  // —— ЗЛОЙ САНТА-КЛАУС №1: обычный злой Санта с мешком ——
   function makeZombie() {
-    // Реалистичный зомби: естественная анатомия (капсулы, шарнирные группы),
-    // мёртвая серо-зелёная кожа, рваная одежда, асимметрия, гниющие детали
     const g = new THREE.Group();
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0x7f9a6a, roughness: 0.95, metalness: 0.0 });
-    const rotMat   = new THREE.MeshStandardMaterial({ color: 0x54663f, roughness: 1.0 });   // гниль/пятна
-    const clothMat = new THREE.MeshStandardMaterial({ color: 0x4a3f33, roughness: 1.0 });   // рваная рубашка
-    const pantsMat = new THREE.MeshStandardMaterial({ color: 0x2e2a26, roughness: 1.0 });
-    const shoeMat  = new THREE.MeshStandardMaterial({ color: 0x191512, roughness: 0.9 });
+    const coatMat  = new THREE.MeshStandardMaterial({ color: 0xb01818, roughness: 0.85 });
+    const trimMat  = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.9 });
+    const pantsMat = new THREE.MeshStandardMaterial({ color: 0x8a1010, roughness: 0.9 });
+    const skinMat  = new THREE.MeshStandardMaterial({ color: 0xe8b48a, roughness: 0.6 });
+    const beardMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 1.0 });
+    const bootMat  = new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: 0.6, metalness: 0.1 });
 
-    // ТАЗ и ТОРС: капсулы вместо кубов — плавные объёмы
-    const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.26, 18, 14), pantsMat);
-    pelvis.scale.set(1.15, 0.8, 0.85); pelvis.position.y = 0.1; pelvis.castShadow = true; g.add(pelvis);
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.27, 0.5, 6, 16), clothMat);
-    torso.scale.set(1.25, 1, 0.8); torso.position.y = 0.62; torso.rotation.x = 0.12; torso.castShadow = true; g.add(torso);
-    const chest = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 14), clothMat);
-    chest.scale.set(1.25, 0.9, 0.85); chest.position.set(0, 0.95, 0.02); chest.castShadow = true; g.add(chest);
-    // дыры в одежде + проблёскивающая гниль
-    const tear = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), rotMat);
-    tear.position.set(0.16, 0.55, 0.21); tear.scale.set(1, 0.7, 0.4); g.add(tear);
-    const tear2 = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), rotMat);
-    tear2.position.set(-0.2, 0.85, 0.2); tear2.scale.set(1.1, 0.6, 0.4); g.add(tear2);
+    // пузо Санты
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.42, 20, 16), coatMat);
+    belly.scale.set(1.1, 1.05, 0.95); belly.position.y = 0.85; belly.castShadow = true; g.add(belly);
+    // опушка-пояс
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.46, 0.12, 20), new THREE.MeshStandardMaterial({ color: 0x18120c, roughness: 0.6 }));
+    belt.position.y = 0.72; g.add(belt);
+    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.03), new THREE.MeshStandardMaterial({ color: 0xffcc44, metalness: 0.85, roughness: 0.3 }));
+    buckle.position.set(0, 0.72, 0.44); g.add(buckle);
+    // грудь
+    const chest = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 14), coatMat);
+    chest.scale.set(1.1, 0.95, 0.85); chest.position.y = 1.3; chest.castShadow = true; g.add(chest);
+    // опушка на груди (вертикальная белая полоса)
+    const placket = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.7, 0.06), trimMat);
+    placket.position.set(0, 1.1, 0.38); g.add(placket);
 
-    // ШЕЯ
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.18, 10), skinMat);
-    neck.position.y = 1.22; neck.rotation.x = 0.1; g.add(neck);
-
-    // ГОЛОВА: вытянутая, с черепными буграми, челюсть отвисла
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.21, 24, 20), skinMat);
-    head.scale.set(0.92, 1.08, 1.05); head.position.set(0, 1.44, 0.02); head.castShadow = true; g.add(head);
-    const brow = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), skinMat);
-    brow.scale.set(1.8, 0.5, 0.8); brow.position.set(0, 1.5, 0.18); g.add(brow);
-    // пятна гнили на лице и голове
-    const rotSpot = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), rotMat);
-    rotSpot.position.set(0.13, 1.46, 0.16); rotSpot.scale.set(1, 0.8, 0.4); g.add(rotSpot);
-    const rotSpot2 = rotSpot.clone(); rotSpot2.position.set(-0.1, 1.56, 0.12); rotSpot2.scale.set(0.7, 0.9, 0.4); g.add(rotSpot2);
-    // впалые глазницы + мутные светящиеся зрачки
-    const socketMat = new THREE.MeshStandardMaterial({ color: 0x2a3320, roughness: 1.0 });
-    const eyeGlowMat = new THREE.MeshStandardMaterial({ color: 0xffd257, emissive: 0xffaa00, emissiveIntensity: 1.6 });
-    for (const ex of [-0.08, 0.08]) {
-      const socket = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 10), socketMat);
-      socket.position.set(ex, 1.49, 0.17); g.add(socket);
-      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeGlowMat);
-      pupil.position.set(ex, 1.49, 0.2); g.add(pupil);
-    }
-    // отвисшая челюсть с зубами
-    const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 12), skinMat);
-    jaw.scale.set(0.9, 0.7, 1.0); jaw.position.set(0, 1.31, 0.09); g.add(jaw);
-    const mouthCavity = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.07, 0.08), new THREE.MeshStandardMaterial({ color: 0x1a0d08, roughness: 1.0 }));
-    mouthCavity.position.set(0, 1.33, 0.2); g.add(mouthCavity);
-    const toothMat = new THREE.MeshStandardMaterial({ color: 0xd8cfa8, roughness: 0.5 });
-    for (let i = 0; i < 4; i++) {
-      const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.03, 0.015), toothMat);
-      tooth.position.set(-0.05 + i * 0.033, 1.355, 0.225); g.add(tooth);
-    }
-    // клочья волос
-    const hairMat = new THREE.MeshStandardMaterial({ color: 0x241c14, roughness: 1.0 });
-    for (let i = 0; i < 6; i++) {
-      const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.09, 4), hairMat);
-      const a = i * 1.05;
-      tuft.position.set(Math.sin(a) * 0.14, 1.62 + (i % 2) * 0.02, Math.cos(a) * 0.1 - 0.02);
-      tuft.rotation.set((Math.random() - 0.5) * 0.8, 0, (Math.random() - 0.5) * 0.8);
-      g.add(tuft);
-    }
-
-    // РУКИ: шарнирные группы (плечо -> локоть -> кисть).
-    // Левая — вытянута вперёд (классическая поза), правая — опущена и ДЕРЖИТ вилы.
-    function makeArm(side) {
-      const pivot = new THREE.Group(); pivot.position.set(side * 0.33, 0.98, 0);
-      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.26, 4, 10), skinMat);
-      upper.position.y = -0.16; upper.castShadow = true; pivot.add(upper);
-      const elbow = new THREE.Group(); elbow.position.y = -0.32; pivot.add(elbow);
-      const fore = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.24, 4, 10), skinMat);
-      fore.position.y = -0.15; fore.castShadow = true; elbow.add(fore);
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), skinMat);
-      hand.scale.set(0.9, 1.1, 0.7); hand.position.y = -0.3; elbow.add(hand);
-      for (let f = 0; f < 3; f++) {
-        const finger = new THREE.Mesh(new THREE.CapsuleGeometry(0.014, 0.05, 3, 6), skinMat);
-        finger.position.set(-0.03 + f * 0.03, -0.38, 0.02); finger.rotation.x = 0.4; elbow.add(finger);
-      }
-      if (side === 1) {
-        // правая рука опущена вдоль тела (держит вилы за древко)
-        pivot.rotation.x = -0.15; pivot.rotation.z = -0.1;
-        elbow.rotation.x = -0.25;
-      } else {
-        // левая — вытянута вперёд
-        pivot.rotation.x = -1.35; pivot.rotation.z = side * 0.12;
-        elbow.rotation.x = -1.15;
-      }
+    // ноги
+    function makeLegS(side) {
+      const pivot = new THREE.Group(); pivot.position.set(side * 0.16, 0.42, 0);
+      const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.3, 4, 10), pantsMat);
+      thigh.position.y = -0.2; thigh.castShadow = true; pivot.add(thigh);
+      const boot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), bootMat);
+      boot.scale.set(1, 0.75, 1.55); boot.position.set(0, -0.46, 0.05); boot.castShadow = true; pivot.add(boot);
+      const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.125, 0.1, 12), trimMat);
+      cuff.position.y = -0.36; pivot.add(cuff);
       g.add(pivot);
       return pivot;
     }
-    makeArm(-1); const rightArm = makeArm(1);
+    makeLegS(-1); makeLegS(1);
 
-    // НОГИ: бедро -> колено -> ступня
-    function makeLeg(side) {
-      const pivot = new THREE.Group(); pivot.position.set(side * 0.15, 0.08, 0);
-      const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.3, 4, 10), pantsMat);
-      thigh.position.y = -0.2; thigh.castShadow = true; pivot.add(thigh);
-      const knee = new THREE.Group(); knee.position.y = -0.42; pivot.add(knee);
-      const shin = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.28, 4, 10), pantsMat);
-      shin.position.y = -0.18; shin.castShadow = true; knee.add(shin);
-      const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 10), shoeMat);
-      shoe.scale.set(1, 0.6, 1.6); shoe.position.set(0, -0.4, 0.04); knee.add(shoe);
-      knee.rotation.x = 0.15;
-      pivot.rotation.x = -0.08; g.add(pivot);
+    // руки: правая несёт МЕШКОМ с подарками, левая вытянута в угрозе
+    function makeArmS(side) {
+      const pivot = new THREE.Group(); pivot.position.set(side * 0.4, 1.32, 0);
+      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, 0.26, 4, 10), coatMat);
+      upper.position.y = -0.17; upper.castShadow = true; pivot.add(upper);
+      const elbow = new THREE.Group(); elbow.position.y = -0.34; pivot.add(elbow);
+      const fore = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.22, 4, 10), coatMat);
+      fore.position.y = -0.14; fore.castShadow = true; elbow.add(fore);
+      const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.09, 0.09, 10), trimMat);
+      cuff.position.y = -0.26; elbow.add(cuff);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), skinMat);
+      hand.position.y = -0.34; elbow.add(hand);
+      if (side === 1) { pivot.rotation.z = -0.35; pivot.rotation.x = -0.3; elbow.rotation.x = -0.7; }
+      else { pivot.rotation.z = 0.3; pivot.rotation.x = -0.9; elbow.rotation.x = -0.4; }
+      g.add(pivot);
       return pivot;
     }
-    makeLeg(-1); makeLeg(1);
+    const rightArm = makeArmS(1);
 
-    // ВИЛЫ: привязаны к ПРАВОЙ КИСТИ зомби (держит в руке, древко вдоль тела)
-    const pitchfork = new THREE.Group();
-    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.038, 1.7, 10), new THREE.MeshStandardMaterial({ color: 0x5a4028, roughness: 0.9 }));
-    handle.castShadow = true; pitchfork.add(handle);
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.85, roughness: 0.35 });
-    const forkBase = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.045, 0.045), metalMat);
-    forkBase.position.y = 0.85; pitchfork.add(forkBase);
-    for (let i = -1; i <= 1; i++) {
-      const prong = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.006, 0.42, 8), metalMat);
-      prong.position.set(i * 0.085, 1.07, 0); pitchfork.add(prong);
-      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.07, 8), metalMat);
-      tip.position.set(i * 0.085, 1.29, 0); pitchfork.add(tip);
+    // МЕШОК с подарками в правой руке
+    const sack = new THREE.Group();
+    const sackMat = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.95 });
+    const sackBody = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 12), sackMat);
+    sackBody.scale.set(1, 1.2, 1); sackBody.position.y = -0.15; sackBody.castShadow = true; sack.add(sackBody);
+    const sackTie = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.025, 8, 14), new THREE.MeshStandardMaterial({ color: 0xf2d040, roughness: 0.5, metalness: 0.4 }));
+    sackTie.rotation.x = Math.PI / 2; sackTie.position.y = 0.18; sack.add(sackTie);
+    sack.position.set(0.1, -0.4, 0.1);
+    rightArm.add(sack);
+
+    // ГОЛОВА: злое лицо, красный нос, нахмуренные брови
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 24, 20), skinMat);
+    head.scale.set(0.95, 1.05, 0.95); head.position.y = 1.85; head.castShadow = true; g.add(head);
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), new THREE.MeshStandardMaterial({ color: 0xd86860, roughness: 0.6 }));
+    nose.position.set(0, 1.83, 0.22); g.add(nose);
+    const eyeMatE = new THREE.MeshStandardMaterial({ color: 0xff2222, emissive: 0xcc0000, emissiveIntensity: 1.4 });
+    for (const ex of [-0.085, 0.085]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 10, 8), eyeMatE);
+      eye.position.set(ex, 1.92, 0.19); g.add(eye);
     }
-    // точка хвата = y≈0.45 по древку; ставим группу так, чтобы кисть сжимала древко,
-    // зубцы смотрят вперёд-вверх (боевая стойка)
-pitchfork.position.set(0, -0.6, 0.1);
-pitchfork.rotation.z = 0.28;   // наклон к телу
-pitchfork.rotation.x = -0.5;   // зубцы вперёд
-rightArm.add(pitchfork);
+    // злые брови (наискось вниз к носу)
+    const browMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 1.0 });
+    for (const s of [-1, 1]) {
+      const brow = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.025, 0.02), browMat);
+      brow.position.set(s * 0.085, 1.99, 0.21); brow.rotation.z = s * -0.5; g.add(brow);
+    }
+    // ухмылка с зубами
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.035, 0.02), new THREE.MeshStandardMaterial({ color: 0x5a1210, roughness: 0.7 }));
+    mouth.position.set(0, 1.72, 0.22); g.add(mouth);
+    const toothMat = new THREE.MeshStandardMaterial({ color: 0xf0e8d0, roughness: 0.4 });
+    for (let i = 0; i < 4; i++) {
+      const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.025, 0.015), toothMat);
+      tooth.position.set(-0.045 + i * 0.03, 1.735, 0.225); g.add(tooth);
+    }
+
+    // БОРОДА: пышная, из нескольких сфер
+    const beard = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 14), beardMat);
+    beard.scale.set(0.95, 1.15, 0.7); beard.position.set(0, 1.72, 0.1); g.add(beard);
+    const beardLow = new THREE.Mesh(new THREE.SphereGeometry(0.12, 14, 10), beardMat);
+    beardLow.scale.set(1.1, 1.3, 0.6); beardLow.position.set(0, 1.55, 0.16); g.add(beardLow);
+    // усы
+    for (const s of [-1, 1]) {
+      const mus = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), beardMat);
+      mus.scale.set(1.4, 0.55, 0.6); mus.position.set(s * 0.08, 1.77, 0.2); mus.rotation.z = s * 0.3; g.add(mus);
+    }
+
+    // КОЛПАК: красный с белой опушкой и помпоном, съехал набок
+    const hat = new THREE.Group();
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.42, 18), coatMat);
+    cone.position.y = 0.2; cone.castShadow = true; hat.add(cone);
+    const brim = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.05, 10, 22), trimMat);
+    brim.rotation.x = Math.PI / 2; hat.add(brim);
+    const pompom = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), trimMat);
+    pompom.position.set(0.12, 0.42, 0); hat.add(pompom);
+    hat.position.set(0, 2.02, 0); hat.rotation.z = 0.22; g.add(hat);
+
     // ВЫРАВНИВАНИЕ: как у старой модели, ступни на y ≈ -2.0 (контакт с землёй)
     g.children.slice().forEach((c) => { c.position.y -= 1.2; });
 if (spaceMode) {
@@ -948,84 +933,103 @@ g.scale.setScalar(1.15);
 scene.add(g);
 return g;
   }
+  // —— ЗЛОЙ САНТА-КЛАУС №2: Тёмный Санта-Босс с ледяным посохом ——
   function makeNun() {
     const g = new THREE.Group();
-    const habitMat = new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 1.0 });
-    const tunicMat = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.95 });
-    const skinMatN = new THREE.MeshStandardMaterial({ color: 0xeecfae, roughness: 0.55 });
+    const robeMat  = new THREE.MeshStandardMaterial({ color: 0x1a2a4a, roughness: 0.8, metalness: 0.1 });
+    const trimMat  = new THREE.MeshStandardMaterial({ color: 0xd8e8ff, roughness: 0.85 });
+    const skinMatN = new THREE.MeshStandardMaterial({ color: 0xd8b490, roughness: 0.6 });
+    const iceMat   = new THREE.MeshStandardMaterial({ color: 0x9fd8ff, emissive: 0x4a9fe8, emissiveIntensity: 0.9, roughness: 0.15, metalness: 0.2, transparent: true, opacity: 0.9 });
 
-    // Ноги/подол: юбка колоколом + тела внизу
-    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.62, 1.15, 20), habitMat);
-    skirt.position.y = 0.58; skirt.castShadow = true; g.add(skirt);
-    const shoeMatN = new THREE.MeshStandardMaterial({ color: 0x14100c, roughness: 0.7 });
-    for (const sx of [-0.13, 0.13]) {
-      const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), shoeMatN);
-      shoe.scale.set(1, 0.6, 1.5); shoe.position.set(sx, 0.045, 0.04); g.add(shoe);
-    }
-    // Талия и торс (туника поверх)
-    const waist = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 14), habitMat);
-    waist.scale.set(1, 0.75, 0.85); waist.position.y = 1.18; g.add(waist);
-    const torsoN = new THREE.Mesh(new THREE.CapsuleGeometry(0.24, 0.42, 6, 16), tunicMat);
-    torsoN.scale.set(1.15, 1, 0.8); torsoN.position.y = 1.52; torsoN.castShadow = true; g.add(torsoN);
-    // пояс-верёвка (cincture францисканцев)
-    const rope = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.028, 10, 24), new THREE.MeshStandardMaterial({ color: 0x8a6a3a, roughness: 0.95 }));
-    rope.rotation.x = Math.PI / 2; rope.position.y = 1.32; rope.scale.set(1.1, 0.9, 0.9); g.add(rope);
+    // длинная шуба-колокол
+    const robe = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.66, 1.2, 20), robeMat);
+    robe.position.y = 0.6; robe.castShadow = true; g.add(robe);
+    // опушка внизу
+    const hem = new THREE.Mesh(new THREE.TorusGeometry(0.64, 0.05, 10, 24), trimMat);
+    hem.rotation.x = Math.PI / 2; hem.position.y = 0.05; g.add(hem);
+    // торс
+    const torsoN = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.44, 6, 16), robeMat);
+    torsoN.scale.set(1.2, 1, 0.85); torsoN.position.y = 1.5; torsoN.castShadow = true; g.add(torsoN);
+    // серебряный пояс
+    const beltN = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.35, 0.1, 18), new THREE.MeshStandardMaterial({ color: 0x8898b8, metalness: 0.8, roughness: 0.3 }));
+    beltN.position.y = 1.22; g.add(beltN);
 
-    // РУКИ: сложены в молитве перед грудью
+    // руки: левая держит ледяной посох, правая творит заклинание
     function makeArmN(side) {
-      const pivot = new THREE.Group(); pivot.position.set(side * 0.28, 1.68, 0);
-      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.24, 4, 10), tunicMat);
-      upper.position.y = -0.15; upper.castShadow = true; pivot.add(upper);
-      pivot.rotation.z = side * 0.55;   // локти разведены
-      pivot.rotation.x = -0.35;
-      const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.09, 0.2, 10), habitMat);
-      sleeve.position.y = -0.32; pivot.add(sleeve);   // широкий манжет
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 10), skinMatN);
-      hand.position.set(-side * 0.12, -0.4, 0.12); pivot.add(hand); // кисти к центру
+      const pivot = new THREE.Group(); pivot.position.set(side * 0.36, 1.62, 0);
+      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.26, 4, 10), robeMat);
+      upper.position.y = -0.17; upper.castShadow = true; pivot.add(upper);
+      const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.1, 10), trimMat);
+      cuff.position.y = -0.32; pivot.add(cuff);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), skinMatN);
+      hand.position.y = -0.4; pivot.add(hand);
+      if (side === -1) { pivot.rotation.z = 0.35; pivot.rotation.x = -0.2; }
+      else { pivot.rotation.z = -0.5; pivot.rotation.x = -1.1; } // правая поднята — колдует
       g.add(pivot);
       return pivot;
     }
-    makeArmN(-1); makeArmN(1);
+    const leftArm = makeArmN(-1);
+    makeArmN(1);
 
-    // ГОЛОВА: овальная, с носом, глазами и ртом
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 24, 20), skinMatN);
-    head.scale.set(0.9, 1.1, 0.95); head.position.y = 2.0; head.castShadow = true; g.add(head);
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.07, 8), skinMatN);
-    nose.rotation.x = Math.PI / 2; nose.position.set(0, 1.99, 0.185); g.add(nose);
-    const eyeMatN = new THREE.MeshStandardMaterial({ color: 0x241a12, roughness: 0.3 });
-    for (const ex of [-0.07, 0.07]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeMatN);
-      eye.position.set(ex, 2.05, 0.165); g.add(eye);
+    // ЛЕДЯНОЙ ПОСОХ в левой руке: тёмное древко, кристалл сверху, светится
+    const staff = new THREE.Group();
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.9, 10), new THREE.MeshStandardMaterial({ color: 0x2a1a30, roughness: 0.85 }));
+    shaft.castShadow = true; staff.add(shaft);
+    const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), iceMat);
+    crystal.position.y = 1.05; crystal.castShadow = true; staff.add(crystal);
+    const crystalGlow = new THREE.PointLight(0x66b8ff, 0.9, 6);
+    crystalGlow.position.y = 1.05; staff.add(crystalGlow);
+    // ледяные шипы у навершия
+    for (let i = 0; i < 4; i++) {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.16, 6), iceMat);
+      const a = i * Math.PI / 2;
+      spike.position.set(Math.cos(a) * 0.09, 0.9, Math.sin(a) * 0.09);
+      spike.rotation.z = -Math.cos(a) * 0.7; spike.rotation.x = Math.sin(a) * 0.7;
+      staff.add(spike);
     }
-    const mouthN = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.015, 0.02), new THREE.MeshStandardMaterial({ color: 0x9a5a4a, roughness: 0.6 }));
-    mouthN.position.set(0, 1.92, 0.175); g.add(mouthN);
+    staff.position.set(-0.08, -0.55, 0.12);
+    staff.rotation.z = 0.1;
+    leftArm.add(staff);
 
-    // ХИД (плат, обрамляющий лицо): полусфера с вырезом лица + свободное полотно по бокам
-    const veilTop = new THREE.Mesh(new THREE.SphereGeometry(0.225, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2), habitMat);
-    veilTop.position.y = 2.02; veilTop.scale.set(1.05, 1.15, 1.05); veilTop.castShadow = true; g.add(veilTop);
-    const veilBack = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.3, 0.75, 16, 1, true), habitMat);
-    veilBack.position.set(0, 1.72, -0.05); veilBack.scale.set(1, 1, 0.9); veilBack.castShadow = true; g.add(veilBack);
-    // поле платa по бокам лица
-    const veilL = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12, Math.PI * 0.35, Math.PI * 0.3, 0, Math.PI), habitMat);
-    veilL.position.y = 2.0; veilL.scale.set(1, 1.1, 1); g.add(veilL);
-    const veilR = veilL.clone(); veilR.rotation.y = Math.PI; g.add(veilR);
+    // ГОЛОВА: злое лицо с ледяными глазами
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.21, 24, 20), skinMatN);
+    head.scale.set(0.92, 1.08, 0.95); head.position.y = 1.98; head.castShadow = true; g.add(head);
+    const noseN = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.1, 8), skinMatN);
+    noseN.rotation.x = Math.PI / 2; noseN.position.set(0, 1.96, 0.2); g.add(noseN);
+    // ледяные глаза-огни
+    const eyeMatN = new THREE.MeshStandardMaterial({ color: 0x66ccff, emissive: 0x3399ff, emissiveIntensity: 1.8 });
+    for (const ex of [-0.08, 0.08]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.033, 10, 8), eyeMatN);
+      eye.position.set(ex, 2.04, 0.18); g.add(eye);
+    }
+    // злые брови
+    const browMatN = new THREE.MeshStandardMaterial({ color: 0xe8ecf5, roughness: 1.0 });
+    for (const s of [-1, 1]) {
+      const brow = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.022, 0.02), browMatN);
+      brow.position.set(s * 0.08, 2.11, 0.2); brow.rotation.z = s * -0.55; g.add(brow);
+    }
+    // борода инея
+    const beardN = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 12), trimMat);
+    beardN.scale.set(0.9, 1.1, 0.65); beardN.position.set(0, 1.86, 0.1); g.add(beardN);
+    const beardLowN = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), trimMat);
+    beardLowN.scale.set(1.1, 1.25, 0.6); beardLowN.position.set(0, 1.7, 0.15); g.add(beardLowN);
 
-    // КАТОЛИЧЕСКИЙ ПИЛИГРИМНЫЙ КАПЕЛЮН: полоса ткани через лоб
-    const band = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.045, 10, 24), habitMat);
-    band.rotation.x = Math.PI / 2 - 0.15; band.position.y = 2.1; band.scale.set(1, 1, 0.85); g.add(band);
+    // КОЛПАК: тёмно-синий с ледяной опушкой
+    const hatN = new THREE.Group();
+    const coneN = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.4, 18), robeMat);
+    coneN.position.y = 0.18; coneN.castShadow = true; hatN.add(coneN);
+    const brimN = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.045, 10, 22), trimMat);
+    brimN.rotation.x = Math.PI / 2; hatN.add(brimN);
+    const iciclePom = new THREE.Mesh(new THREE.OctahedronGeometry(0.08, 0), iceMat);
+    iciclePom.position.set(0.1, 0.4, 0); hatN.add(iciclePom);
+    hatN.position.set(0, 2.14, 0); hatN.rotation.z = -0.2; g.add(hatN);
 
-    // серебряный крест на груди
-    const crossMatN = new THREE.MeshStandardMaterial({ color: 0xd8d8e0, metalness: 0.9, roughness: 0.25 });
-    const cV = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.3, 0.03), crossMatN);
-    cV.position.set(0, 1.62, 0.24); g.add(cV);
-    const cH = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.05, 0.03), crossMatN);
-    cH.position.set(0, 1.68, 0.24); g.add(cH);
-    // чётки на поясе
-    const beadMat = new THREE.MeshStandardMaterial({ color: 0x4a1a1a, roughness: 0.4 });
-    for (let i = 0; i < 8; i++) {
-      const bead = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 8), beadMat);
-      const a = i / 8 * Math.PI;
-      bead.position.set(Math.cos(a) * 0.3, 1.32 - Math.sin(a) * 0.18, 0.26); g.add(bead);
+    // ледяные осколки, кружащие вокруг (аура босса)
+    for (let i = 0; i < 5; i++) {
+      const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.045, 0), iceMat);
+      const a = i / 5 * Math.PI * 2;
+      shard.position.set(Math.cos(a) * 0.55, 1.3 + Math.sin(a * 2) * 0.3, Math.sin(a) * 0.55);
+      g.add(shard);
     }
 if (spaceMode) {
   const jet = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.7,0.2), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
@@ -1430,7 +1434,7 @@ return g;
         type = isNun ? "nun" : "zombie";
         r = isNun ? 22 : 28;
         mesh = isNun ? makeNun() : makeZombie();
-        label = makeTextSprite(isNun ? "Монашка" : "Зомби");
+        label = makeTextSprite(isNun ? "Тёмный Санта" : "Злой Санта");
         speed = Math.max(2.2, (isNun ? 2.8 : 2.2) + (sl - 1) * 0.12);
       }
     } else {
@@ -1438,12 +1442,12 @@ return g;
       type = isNun ? "nun" : "zombie";
       r = isNun ? 22 : 28;
       mesh = isNun ? makeNun() : makeZombie();
-      label = makeTextSprite(isNun ? "Монашка" : "Зомби");
+      label = makeTextSprite(isNun ? "Тёмный Санта" : "Злой Санта");
       // Одинаковая скорость на всех уровнях: повышенная база + рост с уровнем
       speed = Math.max(1.8, (isNun ? 2.6 : 1.8) + (level - 1) * 0.12);
     }
     scene.add(label);
-    // зомби и монашка крупнее — раньше терялись на фоне метеорита/слизи
+    // Злые Санты крупнее — раньше терялись на фоне метеорита/слизи
     if (type === "zombie") mesh.scale.setScalar(1.5);
     if (type === "nun") mesh.scale.setScalar(1.35);
     enemies.push({
@@ -3072,8 +3076,8 @@ for (const h of houses) {
         g.add(body);
         return g;
       } },
-    { key: "zombie", title: "Зомби", color: "#7bc950", make: () => makeZombie() },
-    { key: "nun", title: "Монашка", color: "#c77dff", make: () => makeNun() },
+    { key: "zombie", title: "Злой Санта", color: "#ff6b6b", make: () => makeZombie() },
+    { key: "nun", title: "Тёмный Санта", color: "#74c0fc", make: () => makeNun() },
     { key: "meteor", title: "Метеорит", color: "#ffa94d", make: () => makeMeteorite() },
     { key: "slime", title: "Слизь", color: "#51cf66", make: () => makeSlime() },
     { key: "pedestrian", title: "Прохожий", color: "#ff8787", make: () => makePedestrian(0xdd4444) },
@@ -3082,8 +3086,8 @@ for (const h of houses) {
   ];
   const BESTIARY_LORE = {
     vape: "Последний живой вейп в городке Свит-Холлоу. Когда-то он был обычным клубничным подом с полки магазина, но однажды ночью призрак основателя завода вдохнул в него жизнь. Теперь он пара-дышащий герой, который стреляет ароматным паром и защищает свой магазин от нежити.",
-    zombie: "Бывшие покупатели магазина, которые накурились просрочки и превратились в ходячих сладкоежек. Выходят с кладбища за городом и тянутся грызть витрины со сладостями. Медленные, но их много. Появляются с 1 уровня, ночью на старом шоссе.",
-    nun: "Настоятельница заброшенного монастыря на холме. Под её привычкой — древний культ Вейп-Бога, и она несёт не спасение, а сбор пара для своих тёмных обрядов. Быстрее зомби и наглее. Появляется с 1 уровня, идёт по центру дороги.",
+    zombie: "Санта-Клаусы, которым не заплатили за overtime в канун Нового года. Теперь они злые: воруют подарки из витрин магазина и несут их в мешках обратно в свою пещеру на Северном полюсе. Медленные, но их много. Появляются с 1 уровня, ночью на заснеженном шоссе.",
+    nun: "Тёмный Санта — самый могучий из злых Санта-Клаусов. Его ледяной посох замораживает пар, а глаза горят синим огнём. Быстрее обычных Санта и наглее: идёт по центру дороги и колдует прямо на ходу. Появляется с 1 уровня.",
     meteor: "Обломок астероида, который упал вместе с кораблём инопланетян. Горячий, злой и пахнет горелым картриджем. В космосе (с 5 уровня) метеориты летят прямо на тебя — их приносит магнитная буря.",
     slime: "Живая слизь с планеты Вейп-Прайм. Съедает всё, что пахнет фруктами. Появляется на планете (с 20 уровня) из древних раскопок рядом со Стоунхенджем.",
     pedestrian: "Обычные жители города Неон-Сити (с 50 уровня). Они ни в чём не виноваты! Если задеть их паром — теряешь очки, а они кричат всякое. Машины ездят сами по себе — у них автопилот от Sweethollow Motors.",
@@ -3197,7 +3201,7 @@ for (const h of houses) {
     // табы-персонажи
     const tabs = document.createElement("div");
     tabs.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0;";
-    const icons = { vape: "🥎", zombie: "🧟", nun: "⛪", meteor: "☄️", slime: "🟢", pedestrian: "🏙️", ship: "🚀", chest: "🧰" };
+    const icons = { vape: "🥎", zombie: "🎅", nun: "🧙", meteor: "☄️", slime: "🟢", pedestrian: "🏙️", ship: "🚀", chest: "🧰" };
     BESTIARY_ENTRIES.forEach((e, i) => {
       const b = document.createElement("button");
       b.className = "bestiary-tab";
@@ -3223,7 +3227,7 @@ for (const h of houses) {
     h1.textContent = "Sweet Zombie Hunt";
     overlayInner.appendChild(h1);
     const sub = document.createElement("p");
-    sub.textContent = "Halloween Vape Edition — 3D";
+    sub.textContent = "New Year Vape Edition — 3D";
     overlayInner.appendChild(sub);
     // —— РЮКЗАК (3 слота, предметы НАВСЕГДА) ——
     let _menuPerks = [];

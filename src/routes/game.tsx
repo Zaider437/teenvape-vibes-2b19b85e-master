@@ -3,8 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/game")({
   head: () => ({
     meta: [
-      { title: "Sweet Zombie Hunt: Halloween Vape Edition" },
-      { name: "description", content: "Хеллоуинская игра LoveVape." },
+      { title: "Sweet Santa Hunt: New Year Vape Edition" },
+      { name: "description", content: "Новогодняя игра LoveVape." },
     ],
   }),
   component: () => (
