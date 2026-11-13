@@ -152,7 +152,6 @@ const productSchema = z.object({
   is_active: z.boolean(),
   sort_order: z.number().int(),
   stock_quantity: z.number().int().nonnegative(),
-  cost_price: z.number().nonnegative().optional().nullable(),
 });
 
 type ProductField =

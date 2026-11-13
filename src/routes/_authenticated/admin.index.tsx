@@ -73,7 +73,7 @@ type ProductRow = {
   is_active: boolean;
   sort_order: number;
   stock_quantity: number;
-  cost_price?: number | null;
+
   subcategory?: string | null;
   discount_price?: number | null;
 };
@@ -96,7 +96,6 @@ type Draft = {
   is_active: boolean;
   sort_order: string;
   stock_quantity: string;
-  cost_price: string;
   subcategory?: string;
 };
 
@@ -117,7 +116,6 @@ const EMPTY: Draft = {
   is_active: true,
   sort_order: "0",
   stock_quantity: "0",
-  cost_price: "",
 };
 
 export const Route = createFileRoute("/_authenticated/admin/")({
@@ -398,7 +396,7 @@ function ProductsAdmin() {
       is_active: row.is_active,
       sort_order: String(row.sort_order),
       stock_quantity: String(row.stock_quantity ?? 0),
-      cost_price: row.cost_price != null ? String(row.cost_price) : "",
+
       subcategory: row.subcategory ?? "",
     });
   }
@@ -443,7 +441,6 @@ function ProductsAdmin() {
       is_active: draft.is_active,
       sort_order: Number(draft.sort_order) || 0,
       stock_quantity: Number(draft.stock_quantity) || 0,
-      cost_price: draft.cost_price.trim() === "" ? null : Number(draft.cost_price),
       subcategory: draft.subcategory || null,
     };
 
@@ -481,7 +478,6 @@ function ProductsAdmin() {
           sort_order: Number(draft.sort_order) || 0,
           subcategory: draft.subcategory,
           stock_quantity: Number(draft.stock_quantity) || 0,
-      cost_price: draft.cost_price.trim() === "" ? null : Number(draft.cost_price),
         },
       });
       await setDiscount({
@@ -1890,15 +1886,7 @@ function DraftEditor({
           id="price"
           name="price"
         />
-        <F
-          label="Себестоимость (BYN)"
-          v={draft.cost_price}
-          on={(v) => set("cost_price", v)}
-          type="number"
-          id="cost_price"
-          name="cost_price"
-          placeholder="закупочная цена"
-        />
+
         <F
           label="Скидка — новая цена (BYN)"
           v={draft.discount_price}
