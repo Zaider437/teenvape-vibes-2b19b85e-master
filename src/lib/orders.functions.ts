@@ -434,7 +434,7 @@ async function sendTelegramNotification(params: {
     `🛒 <b>Состав заявки:</b>`,
     itemsHtml,
     ``,
-    `💰 <b>Итого: ${params.total.toFixed(2)} BYN</b>`,
+    `💰 <b>Итого: ${params.total.toFixed(2)} BYN (${params.items.reduce((sum, i) => sum + i.qty, 0)} шт.)</b>`,
   ];
 
   // Отмена доступна только через кнопку Telegram ниже; ссылку в тексте заказа не показываем.
@@ -525,7 +525,7 @@ async function sendTelegramCancellationNotification(params: {
     `🛒 <b>Состав отменённой заявки:</b>`,
     itemsHtml || "• Состав не указан",
     ``,
-    `💰 <b>Сумма отмены: ${Number(params.total || 0).toFixed(2)} BYN</b>`,
+    `💰 <b>Сумма отмены: ${Number(params.total || 0).toFixed(2)} BYN (${(params.items || []).reduce((sum, i) => sum + i.qty, 0)} шт.)</b>`,
     `♻️ <i>Товар автоматически возвращён в админку и снова доступен.</i>`,
   ];
 
