@@ -11,7 +11,7 @@
 
   // Three.js setup
   const scene = new THREE.Scene();
-   scene.fog = new THREE.Fog(0x050510, 30, 400);
+  scene.fog = new THREE.Fog(0x0a1226, 30, 400);
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 500);
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -79,7 +79,7 @@
   // Sky dome
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(150, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0x0a0a2a, side: THREE.BackSide }),
+    new THREE.MeshBasicMaterial({ color: 0x0a1430, side: THREE.BackSide }),
   );
   scene.add(sky);
 
@@ -139,7 +139,7 @@
   })();
   const ground = new THREE.Mesh(
     groundGeo,
-    new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.95, metalness: 0.05 }),
+    new THREE.MeshStandardMaterial({ color: 0xdde8f5, roughness: 0.98, metalness: 0.0 }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -(H / 2) * SCALE - 0.6;
@@ -162,7 +162,7 @@ for (let i = 0; i < 6; i++) {
   scene.add(cap);
 }
 // forest wall: many low-poly trees in distance
-const forestMat = new THREE.MeshStandardMaterial({ color: 0x0d2a0d, roughness: 0.9 });
+const forestMat = new THREE.MeshStandardMaterial({ color: 0x14401f, roughness: 0.9 });
 const trunkMatF = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.95 });
 for (let i = 0; i < 260; i++) {
   const fx = (Math.random() - 0.5) * 260;
@@ -200,10 +200,10 @@ for (let i = 0; i < 30; i++) {
   scene.add(rock);
 }
 
-// Environment: road + Halloween houses
+// Environment: road + Winter houses
   const road = new THREE.Mesh(
     new THREE.PlaneGeometry(20, 300),
-    new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.1 }),
+    new THREE.MeshStandardMaterial({ color: 0xcfd8e8, roughness: 0.85, metalness: 0.05 }),
   );
   road.rotation.x = -Math.PI / 2;
   road.position.set(0, ground.position.y + 0.02, -20);
@@ -367,7 +367,7 @@ for (let i = 0; i < 6; i++) {
     g.add(trunk);
     const leaves = new THREE.Mesh(
       new THREE.ConeGeometry(2.2, 4, 8),
-      new THREE.MeshStandardMaterial({ color: 0x1a3a1a, roughness: 0.8 }),
+      new THREE.MeshStandardMaterial({ color: 0x0f2030, roughness: 0.8 }),
     );
     leaves.position.y = 4.5;
     leaves.castShadow = true;
@@ -949,6 +949,7 @@ scene.add(g);
 return g;
   }
   function makeNun() {
+    const g = new THREE.Group();
     const habitMat = new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 1.0 });
     const tunicMat = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.95 });
     const skinMatN = new THREE.MeshStandardMaterial({ color: 0xeecfae, roughness: 0.55 });
@@ -1065,85 +1066,159 @@ return g;
     pumpkins.push(makePumpkin(W - 50, H - 34));
   }
   initPumpkins();
-  // —— Детали фона уровней 1–4: гробницы, кресты, черепа, туман у земли ——
-  (function enrichHalloween() {
+
+  // —— СНЕГОПАД: поле снежинок по всему экрану ——
+  const snowflakes = [];
+  (function initSnowfall() {
+    const worldW = W * SCALE + 12;
+    const worldH = (H * SCALE) / 2 + 2;
+    for (let i = 0; i < 220; i++) {
+      const s = rand(0.06, 0.16);
+      const f = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: snowflakeTexture,
+        transparent: true,
+        depthWrite: false,
+        opacity: rand(0.55, 0.95),
+      }));
+      f.scale.set(s, s, 1);
+      f.position.set(
+        (Math.random() - 0.5) * worldW,
+        (Math.random() - 0.5) * worldH * 2,
+        rand(-3, 2),
+      );
+      f.userData = {
+        baseX: f.position.x,
+        fallSpeed: rand(0.006, 0.022),
+        sway: rand(0.15, 0.5),
+        swaySpeed: rand(1200, 3500),
+        phase: rand(0, Math.PI * 2),
+        spin: rand(-0.02, 0.02),
+      };
+      scene.add(f);
+      snowflakes.push(f);
+    }
+  })();
+  (function enrichWinter() {
     const gY = ground.position.y;
-    const graveMat = new THREE.MeshStandardMaterial({ color: 0x6a6a72, roughness: 0.92 });
-    const crossMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9 });
-    const skullMat = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.85 });
-    const deadMat = new THREE.MeshStandardMaterial({ color: 0x2a2418, roughness: 0.95 });
-    // Надгробия с крестами
-    for (let i = 0; i < 10; i++) {
-      const gx = (Math.random() > 0.5 ? 1 : -1) * (9 + Math.random() * 14);
-      const gz = -70 + (i / 10) * 140 + (Math.random() - 0.5) * 8;
+
+    // СНЕГОВИКИ вдоль дороги
+    function makeSnowman(x, z, scale) {
       const grp = new THREE.Group();
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.5, 0.25), graveMat);
-      slab.position.y = 0.75; slab.castShadow = true; grp.add(slab);
-      const cv = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.8, 0.1), crossMat);
-      cv.position.set(0, 1.05, 0.14); grp.add(cv);
-      const ch = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.13, 0.1), crossMat);
-      ch.position.set(0, 1.2, 0.14); grp.add(ch);
-      grp.position.set(gx, gY, gz);
-      grp.rotation.y = (Math.random() - 0.5) * 0.5;
+      const snowMat = new THREE.MeshStandardMaterial({ color: 0xf5f9ff, roughness: 0.85 });
+      const bottom = new THREE.Mesh(new THREE.SphereGeometry(0.55, 18, 14), snowMat);
+      bottom.position.y = 0.5; bottom.castShadow = true; grp.add(bottom);
+      const mid = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 12), snowMat);
+      mid.position.y = 1.22; mid.castShadow = true; grp.add(mid);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), snowMat);
+      head.position.y = 1.8; head.castShadow = true; grp.add(head);
+      // морковка
+      const carrot = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.22, 8), new THREE.MeshStandardMaterial({ color: 0xff7a18, roughness: 0.6 }));
+      carrot.rotation.x = Math.PI / 2; carrot.position.set(0, 1.8, 0.32); grp.add(carrot);
+      // глазки-угольки
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 });
+      for (const ex of [-0.09, 0.09]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), eyeMat);
+        eye.position.set(ex, 1.88, 0.24); grp.add(eye);
+      }
+      // ведро на голове
+      const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.28, 12, 1, true), new THREE.MeshStandardMaterial({ color: 0x8a3a3a, roughness: 0.6, metalness: 0.3, side: THREE.DoubleSide }));
+      bucket.position.y = 2.1; bucket.rotation.z = 0.25; grp.add(bucket);
+      // шарф
+      const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.055, 8, 18), new THREE.MeshStandardMaterial({ color: 0xcc2233, roughness: 0.8 }));
+      scarf.rotation.x = Math.PI / 2; scarf.position.y = 1.6; grp.add(scarf);
+      // ветки-руки
+      const twigMat = new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.95 });
+      for (const s of [-1, 1]) {
+        const twig = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.035, 0.7, 5), twigMat);
+        twig.rotation.z = s * (Math.PI / 2 - 0.25); twig.position.set(s * 0.55, 1.3, 0); grp.add(twig);
+      }
+      grp.position.set(x, gY, z);
+      grp.rotation.y = Math.random() * Math.PI * 2;
       scene.add(grp);
     }
-    // Черепа на земле
-    for (let i = 0; i < 12; i++) {
-      const sx = (Math.random() - 0.5) * 50;
-      if (Math.abs(sx) < 7) continue;
-      const sz = (Math.random() - 0.5) * 160;
-      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), skullMat);
-      skull.scale.set(1, 0.8, 1.1);
-      skull.position.set(sx, gY + 0.14, sz);
-      skull.rotation.y = Math.random() * Math.PI;
-      const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.09, 0.14), skullMat);
-      jaw.position.set(0, -0.12, 0.12); skull.add(jaw);
-      scene.add(skull);
-    }
-    // Мёртвые деревья (голые ветви)
-    for (let i = 0; i < 8; i++) {
-      const dx = (Math.random() > 0.5 ? 1 : -1) * (13 + Math.random() * 16);
-      const dz = -80 + Math.random() * 160;
+    makeSnowman(-11, -30, 1);
+    makeSnowman(11, -55, 1);
+    makeSnowman(-10.5, -85, 1);
+    makeSnowman(10.5, -110, 1);
+    makeSnowman(-11.5, -135, 1);
+
+    // ЁЛКИ в снегу вдоль дороги (вместо мёртвых деревьев)
+    const xmasTrunkMat = new THREE.MeshStandardMaterial({ color: 0x3a2414, roughness: 0.95 });
+    const xmasNeedleMat = new THREE.MeshStandardMaterial({ color: 0x14522a, roughness: 0.85 });
+    const xmasSnowMat = new THREE.MeshStandardMaterial({ color: 0xeef4ff, roughness: 0.9 });
+    for (let i = 0; i < 10; i++) {
+      const dx = (Math.random() > 0.5 ? 1 : -1) * (13 + Math.random() * 14);
+      const dz = -80 + (i / 10) * 160 + (Math.random() - 0.5) * 10;
       const dt = new THREE.Group();
-      const trunkH = 4 + Math.random() * 2.5;
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.3, trunkH, 7), deadMat);
-      trunk.position.y = trunkH / 2; trunk.castShadow = true; dt.add(trunk);
-      for (let b = 0; b < 4; b++) {
-        const br = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, 1.3, 5), deadMat);
-        br.position.set(0, trunkH * (0.5 + b * 0.13), 0);
-        br.rotation.z = (b % 2 ? 1 : -1) * (0.7 + Math.random() * 0.4);
-        br.rotation.y = Math.random() * Math.PI;
-        br.translateY(0.5);
-        dt.add(br);
+      const th = 1.2;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, th, 7), xmasTrunkMat);
+      trunk.position.y = th / 2; trunk.castShadow = true; dt.add(trunk);
+      for (let c = 0; c < 3; c++) {
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(1.5 - c * 0.35, 1.6, 8), xmasNeedleMat);
+        cone.position.y = th + 0.6 + c * 0.9; cone.castShadow = true; dt.add(cone);
+        const snowCap = new THREE.Mesh(new THREE.ConeGeometry((1.5 - c * 0.35) * 0.75, 0.4, 8), xmasSnowMat);
+        snowCap.position.y = th + 1.1 + c * 0.9; dt.add(snowCap);
+      }
+      // гирлянда-огоньки
+      const bulbMat = new THREE.MeshStandardMaterial({ color: 0xffcc44, emissive: 0xffaa22, emissiveIntensity: 1.4 });
+      const bulbMat2 = new THREE.MeshStandardMaterial({ color: 0x44aaff, emissive: 0x2288ff, emissiveIntensity: 1.4 });
+      for (let b = 0; b < 6; b++) {
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), b % 2 ? bulbMat : bulbMat2);
+        const a = b / 6 * Math.PI * 2;
+        bulb.position.set(Math.cos(a) * 1.0, th + 1.0 + (b % 3) * 0.55, Math.sin(a) * 1.0);
+        dt.add(bulb);
       }
       dt.position.set(dx, gY, dz);
       scene.add(dt);
     }
-    // Каменные булыжники (крупные валуны и мелкие камни)
-    const boulderMat = new THREE.MeshStandardMaterial({ color: 0x5c5c66, roughness: 0.96, metalness: 0.03 });
+
+    // Снежные комья и льдинки (вместо черепов)
+    const snowPileMat = new THREE.MeshStandardMaterial({ color: 0xe8f0fa, roughness: 0.92 });
+    const iceMat = new THREE.MeshStandardMaterial({ color: 0xaad8ee, roughness: 0.15, metalness: 0.15, transparent: true, opacity: 0.85 });
+    for (let i = 0; i < 14; i++) {
+      const sx = (Math.random() - 0.5) * 50;
+      if (Math.abs(sx) < 7) continue;
+      const sz = (Math.random() - 0.5) * 160;
+      const pile = new THREE.Mesh(new THREE.SphereGeometry(0.3 + Math.random() * 0.35, 10, 8), snowPileMat);
+      pile.scale.set(1, 0.6, 1);
+      pile.position.set(sx, gY + 0.12, sz);
+      scene.add(pile);
+    }
+    for (let i = 0; i < 8; i++) {
+      const sx = (Math.random() - 0.5) * 50;
+      if (Math.abs(sx) < 7) continue;
+      const sz = (Math.random() - 0.5) * 160;
+      const shard = new THREE.Mesh(new THREE.TetrahedronGeometry(0.25 + Math.random() * 0.3, 0), iceMat);
+      shard.position.set(sx, gY + 0.15, sz);
+      shard.rotation.set(Math.random(), Math.random(), Math.random());
+      scene.add(shard);
+    }
+
+    // Сугробы-валуны у дороги (вместо каменных булыжников)
+    const driftMat = new THREE.MeshStandardMaterial({ color: 0xe4edf8, roughness: 0.96 });
     for (let i = 0; i < 14; i++) {
       const bx = (Math.random() > 0.5 ? 1 : -1) * (10 + Math.random() * 18);
       const bz = -80 + Math.random() * 160;
       const bs = 0.7 + Math.random() * 1.3;
-      const boulder = new THREE.Mesh(new THREE.DodecahedronGeometry(bs, 0), boulderMat);
-      boulder.scale.set(1, 0.65 + Math.random() * 0.3, 1.1);
-      boulder.rotation.set(Math.random() * 0.4, Math.random() * Math.PI, Math.random() * 0.4);
-      boulder.position.set(bx, gY + bs * 0.35, bz);
-      boulder.castShadow = true;
-      boulder.receiveShadow = true;
-      scene.add(boulder);
+      const drift = new THREE.Mesh(new THREE.DodecahedronGeometry(bs, 0), driftMat);
+      drift.scale.set(1.2, 0.5 + Math.random() * 0.25, 1.1);
+      drift.rotation.set(Math.random() * 0.3, Math.random() * Math.PI, Math.random() * 0.3);
+      drift.position.set(bx, gY + bs * 0.22, bz);
+      drift.castShadow = true;
+      scene.add(drift);
     }
-    // Полосы тумана у земли (движущиеся: медленно дрейфуют и колышутся)
+
+    // Полосы морозной дымки у земли (движущиеся)
     const groundFogStrips = [];
-    const fogMat = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.09, depthWrite: false });
+    const fogMat = new THREE.MeshBasicMaterial({ color: 0xcfe4ff, transparent: true, opacity: 0.08, depthWrite: false });
     for (let i = 0; i < 10; i++) {
       const strip = new THREE.Mesh(new THREE.PlaneGeometry(30 + Math.random() * 20, 3), fogMat.clone());
       strip.position.set((Math.random() - 0.5) * 40, gY + 0.5 + i * 0.18, -20 - i * 12);
       strip.userData = {
-        vx: (Math.random() * 0.5 + 0.2) * (Math.random() > 0.5 ? 1 : -1), // скорость дрейфа по X
+        vx: (Math.random() * 0.5 + 0.2) * (Math.random() > 0.5 ? 1 : -1),
         baseX: strip.position.x,
         phase: Math.random() * Math.PI * 2,
-        baseOpacity: 0.06 + Math.random() * 0.06,
+        baseOpacity: 0.05 + Math.random() * 0.05,
       };
       scene.add(strip);
       groundFogStrips.push(strip);
@@ -1936,6 +2011,22 @@ return g;
       b.g.rotation.y = Math.sin(now / 1200 + b.phase) * 0.25;
       // лёгкое покачивание тела против взмаха (инерция)
       b.g.rotation.x = flap * 0.12;
+    }
+
+    // —— СНЕГОПАД: падающие снежинки с дрейфом и вращением ——
+    {
+      const nowS = performance.now();
+      const camH = (H * SCALE) / 2 + 2;
+      for (const f of snowflakes) {
+        const u = f.userData;
+        f.position.y -= u.fallSpeed;
+        f.position.x = Math.sin(nowS / u.swaySpeed + u.phase) * u.sway + u.baseX;
+        f.rotation.y += u.spin;
+        if (f.position.y < -camH) {
+          f.position.y = camH + Math.random() * 3;
+          u.baseX = (Math.random() - 0.5) * (W * SCALE + 10);
+        }
+      }
     }
 
 // player mesh
