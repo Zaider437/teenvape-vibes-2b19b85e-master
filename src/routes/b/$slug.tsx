@@ -620,7 +620,7 @@ function CheckoutSheet({
             <h4 className="font-display text-3xl mt-3 text-glow-pink text-primary">Готово!</h4>
             <p className="mt-2 text-sm text-muted-foreground">
               Номер заказа <span className="font-mono text-foreground">#{done.id.slice(0, 8)}</span>
-              . Мы свяжемся с вами по Telegram в ближайшее время.
+              . Скоро мы напишем вам в Telegram. Если ответа не будет в течение часа, свяжитесь с нами — контакты указаны в шапке сайта.
             </p>
             <button
               onClick={onClose}
