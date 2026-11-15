@@ -174,8 +174,7 @@ function ProductsAdmin() {
   const [brand, setBrand] = useState<string>("all");
   const [flavor, setFlavor] = useState<string>("all");
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 20;
+
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editingStockId, setEditingStockId] = useState<string | null>(null);
   const [stockValue, setStockValue] = useState<string>("");
@@ -361,13 +360,7 @@ function ProductsAdmin() {
       })
       .sort((a, b) => (a.brand || "").localeCompare(b.brand || "") || a.name.localeCompare(b.name));
   }, [inCategory, hasSub, brand, flavor, selectedSubcategory, query]);
-  useEffect(() => {
-    setPage(1);
-  }, [filter, brand, flavor, selectedSubcategory, query]);
-  const paginated = useMemo(
-    () => visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [visible, page],
-  );
+  const paginated = visible;
   function selectCategory(id: string) {
     setFilter(id);
     setBrand("all");
@@ -1103,27 +1096,7 @@ function ProductsAdmin() {
         </div>
       )}
 
-      {visible.length > PAGE_SIZE && (
-        <div className="flex items-center justify-between gap-2 pt-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="px-3 py-1.5 rounded-lg bg-card border border-border text-sm disabled:opacity-40"
-          >
-            Назад
-          </button>
-          <span className="text-sm text-muted-foreground">
-            Страница {page} из {Math.ceil(visible.length / PAGE_SIZE)}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(Math.ceil(visible.length / PAGE_SIZE), p + 1))}
-            disabled={page >= Math.ceil(visible.length / PAGE_SIZE)}
-            className="px-3 py-1.5 rounded-lg bg-card border border-border text-sm disabled:opacity-40"
-          >
-            Вперёд
-          </button>
-        </div>
-      )}
+
 
       {draft && (
         <DraftEditor
