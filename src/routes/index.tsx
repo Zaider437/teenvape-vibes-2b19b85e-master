@@ -730,9 +730,6 @@ function Hero({ total }: { total: number }) {
         <h2 className="font-display text-2xl sm:text-3xl text-foreground">
           Каталог<span className="text-primary">.</span>
         </h2>
-        <span className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">
-          {total} товаров
-        </span>
       </div>
     </section>
   );
