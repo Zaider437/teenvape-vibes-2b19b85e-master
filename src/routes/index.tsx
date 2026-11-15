@@ -383,13 +383,10 @@ export function Shop({
         </div>
       )}
       <NewsCarousel />
-      <div id="catalog" className="mt-4 sm:mt-6 flex items-baseline justify-between">
+      <div id="catalog" className="mt-4 sm:mt-6">
         <h2 className="font-display text-2xl sm:text-3xl text-foreground">
           Каталог<span className="text-primary">.</span>
         </h2>
-        <span className="text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">
-          {availableProducts.length} товаров
-        </span>
       </div>
 
       {/* search */}
