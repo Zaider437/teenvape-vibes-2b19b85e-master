@@ -1071,6 +1071,35 @@ return g;
   }
   initPumpkins();
 
+  // snowflake texture for frozen enemies (объявлен ДО initSnowfall, т.к. там он используется)
+  const snowflakeTexture = (() => {
+    const c = document.createElement("canvas");
+    c.width = 64; c.height = 64;
+    const cx = c.getContext("2d");
+    cx.strokeStyle = "#ffffff";
+    cx.lineWidth = 4;
+    cx.lineCap = "round";
+    cx.shadowColor = "#99ddff";
+    cx.shadowBlur = 6;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      cx.beginPath();
+      cx.moveTo(32, 32);
+      cx.lineTo(32 + Math.cos(a) * 26, 32 + Math.sin(a) * 26);
+      cx.stroke();
+      const bx = 32 + Math.cos(a) * 15;
+      const by = 32 + Math.sin(a) * 15;
+      for (let s = -1; s <= 1; s += 2) {
+        const ba = a + s * 0.55;
+        cx.beginPath();
+        cx.moveTo(bx, by);
+        cx.lineTo(bx + Math.cos(ba) * 9, by + Math.sin(ba) * 9);
+        cx.stroke();
+      }
+    }
+    return new THREE.CanvasTexture(c);
+  })();
+
   // —— СНЕГОПАД: поле снежинок по всему экрану ——
   const snowflakes = [];
   (function initSnowfall() {
@@ -1239,35 +1268,6 @@ return g;
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
   }
-
-  // snowflake texture for frozen enemies
-  const snowflakeTexture = (() => {
-    const c = document.createElement("canvas");
-    c.width = 64; c.height = 64;
-    const cx = c.getContext("2d");
-    cx.strokeStyle = "#ffffff";
-    cx.lineWidth = 4;
-    cx.lineCap = "round";
-    cx.shadowColor = "#99ddff";
-    cx.shadowBlur = 6;
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      cx.beginPath();
-      cx.moveTo(32, 32);
-      cx.lineTo(32 + Math.cos(a) * 26, 32 + Math.sin(a) * 26);
-      cx.stroke();
-      const bx = 32 + Math.cos(a) * 15;
-      const by = 32 + Math.sin(a) * 15;
-      for (let s = -1; s <= 1; s += 2) {
-        const ba = a + s * 0.55;
-        cx.beginPath();
-        cx.moveTo(bx, by);
-        cx.lineTo(bx + Math.cos(ba) * 9, by + Math.sin(ba) * 9);
-        cx.stroke();
-      }
-    }
-    return new THREE.CanvasTexture(c);
-  })();
 
   function makeSnowflakeSprite() {
     const mat = new THREE.SpriteMaterial({ map: snowflakeTexture, transparent: true, depthTest: false, opacity: 0.95 });

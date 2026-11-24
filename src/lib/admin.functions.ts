@@ -1452,10 +1452,10 @@ export type EventSettings = {
 export const getEventSettings = createServerFn({ method: "GET" }).handler(async () => {
   const defaults: EventSettings = {
     enabled: false,
-    name: "Halloween",
-    start_at: "2026-10-31T00:00:00",
-    end_at: "2026-11-02T00:00:00",
-    theme: "halloween",
+    name: "Новый год",
+    start_at: "2026-12-25T00:00:00",
+    end_at: "2027-01-08T00:00:00",
+    theme: "newyear",
   };
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

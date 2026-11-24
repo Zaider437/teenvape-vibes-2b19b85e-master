@@ -64,6 +64,8 @@ interface LeafInstance {
 interface FallingEffectsProps {
   onSnowChange?: (active: boolean) => void;
   disabled?: boolean;
+  // Принудительно включить снег (для страницы новогоднего ивента)
+  forceSnow?: boolean;
 }
 
 function simpleNoise(x: number, y: number, seed: number): number {
@@ -99,7 +101,7 @@ function fbmNoise(x: number, y: number, seed: number, octaves: number): number {
   return value / maxVal;
 }
 
-export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) {
+export function FallingEffects({ onSnowChange, disabled, forceSnow }: FallingEffectsProps) {
   const getAnim = useServerFn(getAnimationSettings);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [activeEffects, setActiveEffects] = useState<{ snow: boolean; leaves: boolean }>({
@@ -193,8 +195,8 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
     const update = () => {
       const evActive = disabled || computeEventActive();
       const next = {
-        snow: baseEffects.snow && !evActive,
-        leaves: baseEffects.leaves && !evActive,
+        snow: baseEffects.snow || !!forceSnow,
+        leaves: (baseEffects.leaves && !evActive) || false,
       };
       setActiveEffects((prev) =>
         prev.snow === next.snow && prev.leaves === next.leaves ? prev : next,
@@ -203,7 +205,7 @@ export function FallingEffects({ onSnowChange, disabled }: FallingEffectsProps) 
     update();
     const id = setInterval(update, 15000);
     return () => clearInterval(id);
-  }, [baseEffects, eventSettings, disabled]);
+  }, [baseEffects, eventSettings, disabled, forceSnow]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

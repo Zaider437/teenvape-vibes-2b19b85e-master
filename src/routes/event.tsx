@@ -8,10 +8,10 @@ import { Shop } from "./index";
 export const Route = createFileRoute("/event")({
   head: () => ({
     meta: [
-      { title: "LoveVape — ивент" },
+      { title: "LoveVape — Новый год" },
       {
         name: "description",
-        content: "Праздничный ивент LoveVape.",
+        content: "Новогодний ивент LoveVape.",
       },
     ],
   }),
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/event")({
     const [snowActive, setSnowActive] = useState<boolean | undefined>(undefined);
     return (
       <CartProvider>
-        <FallingEffects onSnowChange={setSnowActive} disabled />
+        <FallingEffects onSnowChange={setSnowActive} forceSnow />
         <Shop snowActive={snowActive} eventPreview />
         <Toaster position="top-center" theme="dark" richColors />
       </CartProvider>

@@ -299,85 +299,42 @@ export function Shop({
       <Header onOpenCart={() => setCartOpen(true)} snowActive={snowActive} />
       {eventThemeActive && (
         <div className="fixed inset-0 pointer-events-none z-[45] overflow-hidden">
-          <div className="absolute inset-0 event-ambient" />
-          <div className="absolute top-10 left-6 text-2xl sm:text-3xl pumpkin-float">🎃</div>
-          <div
-            className="absolute bottom-24 left-0 text-xl sm:text-2xl pumpkin-float-x pumpkin-float-x-reverse"
-            style={{ animationDelay: "0s" }}
-          >
-            🎃
-          </div>
-          <div className="absolute top-20 right-10 text-2xl sm:text-3xl skeleton-float">💀</div>
-          <div
-            className="absolute bottom-16 left-0 text-xl sm:text-2xl skeleton-drift skeleton-drift-reverse"
-            style={{ animationDelay: "3s" }}
-          >
-            💀
-          </div>
-          <div className="hidden sm:block absolute bottom-8 left-4 text-2xl skeleton-float">💀</div>
-          <div className="hidden sm:block absolute bottom-8 right-4 text-2xl sm:text-3xl pumpkin-float">
-            🎃
-          </div>
-          <div
-            className="hidden sm:block absolute bottom-8 left-0 text-2xl sm:text-3xl pumpkin-float-x"
-            style={{ animationDelay: "4s" }}
-          >
-            🎃
-          </div>
-          <div className="absolute top-1/4 left-0 text-xl sm:text-2xl bat-fly">🦇</div>
-          <div className="hidden sm:block absolute top-2/3 left-0 text-xl sm:text-2xl bat-fly bat-fly-reverse">
-            🦇
-          </div>
-          <div className="hidden sm:block absolute top-1/2 left-1/4 text-lg sm:text-xl bat-fly">
-            🦇
-          </div>
-          <div className="hidden sm:block absolute top-1/3 right-1/4 text-lg sm:text-xl bat-fly bat-fly-reverse">
-            🦇
-          </div>
-          <div className="hidden sm:block absolute bottom-1/3 left-1/3 text-base sm:text-lg bat-fly">
-            🦇
-          </div>
-          <div className="cobweb top-0 left-0 -translate-x-1/4 -translate-y-1/4 rotate-12">🕸️</div>
-          <div className="cobweb top-0 right-0 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1]">
-            🕸️
-          </div>
-          <div className="hidden sm:block cobweb bottom-0 left-0 -translate-x-1/4 translate-y-1/4 -rotate-12 scale-y-[-1]">
-            🕸️
-          </div>
-          <div className="hidden sm:block cobweb top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45">
-            🕸️
-          </div>
-          <div className="hidden sm:block cobweb bottom-0 right-0 translate-x-1/4 translate-y-1/4 rotate-12 scale-x-[-1] scale-y-[-1]">
-            🕸️
-          </div>
-          <div className="hidden sm:block cobweb top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 rotate-90">
-            🕸️
-          </div>
+          <div className="absolute inset-0 event-ambient event-ambient-winter" />
+          {/* Гирлянда на шапке сайта */}
+          <EventGarland top={0} />
+          {/* Снеговики — большие у краёв */}
+          <div className="absolute top-14 left-3 text-3xl sm:text-4xl snowman-float">⛄</div>
+          <div className="hidden sm:block absolute top-16 right-4 text-3xl sm:text-4xl snowman-float snowman-tilt">⛄</div>
+          {/* Мелкие снеговики, плывущие через экран */}
+          <div className="absolute bottom-24 left-0 text-xl sm:text-2xl snowman-drift" style={{ animationDelay: "0s" }}>⛄</div>
+          <div className="hidden sm:block absolute bottom-10 left-0 text-2xl sm:text-3xl snowman-drift snowman-drift-reverse" style={{ animationDelay: "5s" }}>⛄</div>
+          <div className="absolute bottom-1/3 left-0 text-lg sm:text-xl snowman-drift snowman-drift-reverse" style={{ animationDelay: "2s" }}>⛄</div>
+          {/* Летающие подарки */}
+          <div className="absolute top-1/4 right-0 text-xl sm:text-2xl gift-drift">🎁</div>
+          <div className="hidden sm:block absolute top-1/2 right-0 text-lg sm:text-xl gift-drift gift-drift-reverse" style={{ animationDelay: "3s" }}>🎁</div>
+          {/* Снежинки-декор у углов */}
+          <div className="hidden sm:block absolute top-32 left-1/3 text-xl snowflake-spin">❄️</div>
+          <div className="hidden sm:block absolute top-40 right-1/4 text-lg snowflake-spin" style={{ animationDelay: "1.5s" }}>❄️</div>
+          <div className="absolute top-24 left-10 text-lg snowflake-spin" style={{ animationDelay: "3s" }}>❄️</div>
+          <div className="absolute top-1/3 right-10 text-xl snowflake-spin" style={{ animationDelay: "2s" }}>❄️</div>
         </div>
       )}
       {eventTimerVisible && <EventCountdown target={eventStart} />}
       {eventThemeActive && (
         <div className="max-w-5xl mx-auto px-4 mt-4">
-          <div className="relative rounded-xl border border-purple-500/40 bg-gradient-to-r from-orange-500/10 via-purple-500/10 to-orange-500/10 px-4 py-3 text-center overflow-hidden">
-            <span className="absolute top-0 left-0 text-3xl opacity-30 -translate-x-1/4 -translate-y-1/4 rotate-12 pointer-events-none select-none">
-              🕸️
-            </span>
-            <span className="absolute top-0 right-0 text-3xl opacity-30 translate-x-1/4 -translate-y-1/4 -rotate-12 scale-x-[-1] pointer-events-none select-none">
-              🕸️
-            </span>
-            <span className="absolute bottom-0 left-1/2 text-2xl opacity-25 -translate-x-1/2 translate-y-1/4 rotate-45 pointer-events-none select-none">
-              🕸️
-            </span>
-            <div className="font-display text-2xl sm:text-3xl text-orange-300 drop-shadow-[0_0_12px_rgba(255,140,0,0.6)]">
-              🎃 Happy Halloween 🎃
+          <div className="relative rounded-xl border border-sky-500/40 bg-gradient-to-r from-sky-500/10 via-emerald-500/10 to-sky-500/10 px-4 py-3 text-center overflow-hidden">
+            <span className="absolute top-0 left-0 text-2xl opacity-30 pointer-events-none select-none">🎄</span>
+            <span className="absolute top-0 right-0 text-2xl opacity-30 pointer-events-none select-none">🎄</span>
+            <div className="font-display text-2xl sm:text-3xl text-sky-200 drop-shadow-[0_0_12px_rgba(120,200,255,0.7)]">
+              ⛄ С Новым годом! ⛄
             </div>
           </div>
           <div className="mt-3 flex justify-center">
             <Link
               to="/game"
-              className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2 font-bold text-black shadow-lg shadow-orange-500/30 transition hover:bg-orange-400"
+              className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2 font-bold text-black shadow-lg shadow-sky-500/30 transition hover:bg-sky-400"
             >
-              🎮 Играть в игру
+              🎮 Играть в новогоднюю игру
             </Link>
           </div>
         </div>
@@ -1543,6 +1500,33 @@ function Footer() {
     </footer>
   );
 }
+// Новогодняя гирлянда: лампочки-кружочки под шапкой сайта
+export function EventGarland({ top = 0 }: { top?: number }) {
+  const bulbs = [
+    "#ff3b3b", "#ffd60a", "#32d74b", "#0a84ff", "#ff9f0a",
+    "#ff375f", "#bf5af2", "#32d74b", "#ffd60a", "#0a84ff",
+    "#ff9f0a", "#ff3b3b", "#bf5af2", "#32d74b", "#0a84ff",
+  ];
+  return (
+    <div className="event-garland" style={{ top }} aria-hidden="true">
+      <div className="event-garland-wire" />
+      {bulbs.map((color, i) => (
+        <span
+          key={i}
+          className="event-garland-bulb"
+          style={{
+            left: `${(i / (bulbs.length - 1)) * 100}%`,
+            top: `${Math.sin((i / (bulbs.length - 1)) * Math.PI) * 14 + 6}px`,
+            background: color,
+            boxShadow: `0 0 8px 2px ${color}`,
+            animationDelay: `${(i % 5) * 0.35}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function EventCountdown({ target }: { target: number }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -1556,11 +1540,11 @@ export function EventCountdown({ target }: { target: number }) {
   const secs = Math.floor((diff % 60000) / 1000);
   return (
     <div className="max-w-5xl mx-auto px-4 mt-4">
-      <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-center">
-        <div className="text-sm uppercase tracking-widest text-orange-400 font-bold">
-          До начала ивента
+      <div className="rounded-xl border border-sky-500/40 bg-sky-500/10 px-4 py-3 text-center">
+        <div className="text-sm uppercase tracking-widest text-sky-300 font-bold">
+          До начала новогоднего ивента
         </div>
-        <div className="font-display text-2xl text-orange-300 mt-1">
+        <div className="font-display text-2xl text-sky-200 mt-1">
           {days}д {hours}ч {mins}м {secs}с
         </div>
       </div>

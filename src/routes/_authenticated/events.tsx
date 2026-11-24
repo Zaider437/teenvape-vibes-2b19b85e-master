@@ -28,10 +28,10 @@ export function EventsPage() {
   const getEvt = useServerFn(getEventSettings);
   const updateEvt = useServerFn(adminUpdateEventSettings);
   const [enabled, setEnabled] = useState(false);
-  const [name, setName] = useState("Halloween");
-  const [startAt, setStartAt] = useState("2026-10-31T00:00");
-  const [endAt, setEndAt] = useState("2026-11-02T00:00");
-  const [theme, setTheme] = useState("halloween");
+  const [name, setName] = useState("Новый год");
+  const [startAt, setStartAt] = useState("2026-12-25T00:00");
+  const [endAt, setEndAt] = useState("2027-01-08T00:00");
+  const [theme, setTheme] = useState("newyear");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -39,10 +39,10 @@ export function EventsPage() {
     getEvt()
       .then((s: EventSettings) => {
         setEnabled(!!s.enabled);
-        setName(s.name || "Halloween");
+        setName(s.name || "Новый год");
         setStartAt((s.start_at || "").slice(0, 16));
         setEndAt((s.end_at || "").slice(0, 16));
-        setTheme(s.theme || "halloween");
+        setTheme(s.theme || "newyear");
       })
       .catch(() => toast.error("Не удалось загрузить настройки ивента"))
       .finally(() => setLoading(false));
@@ -62,10 +62,10 @@ export function EventsPage() {
       });
       const fresh = await getEvt();
       setEnabled(!!fresh.enabled);
-      setName(fresh.name || "Halloween");
+      setName(fresh.name || "Новый год");
       setStartAt((fresh.start_at || "").slice(0, 16));
       setEndAt((fresh.end_at || "").slice(0, 16));
-      setTheme(fresh.theme || "halloween");
+      setTheme(fresh.theme || "newyear");
       toast.success("Сохранено");
     } catch (e) {
       console.error(e);
