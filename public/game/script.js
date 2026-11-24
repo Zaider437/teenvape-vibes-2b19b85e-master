@@ -160,6 +160,9 @@ for (let i = 0; i < 6; i++) {
   const cap = new THREE.Mesh(new THREE.ConeGeometry(mw * 0.35, mh * 0.25, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }));
   cap.position.set(mtn.position.x, mtn.position.y + mh * 0.42, mtn.position.z);
   scene.add(cap);
+  // помечаем как фоновый декор: скрывается на космосе/планете/в городе, иначе закрывает замок и монументы
+  mtn.userData.backgroundDecor = true;
+  cap.userData.backgroundDecor = true;
 }
 // forest wall: many low-poly trees in distance
 const forestMat = new THREE.MeshStandardMaterial({ color: 0x14401f, roughness: 0.9 });
@@ -174,6 +177,8 @@ for (let i = 0; i < 260; i++) {
   const crown = new THREE.Mesh(new THREE.ConeGeometry(1.6 + Math.random() * 1.4, h * 1.3, 7), forestMat);
   crown.position.set(fx, ground.position.y + h + h * 0.5, fz);
   scene.add(crown);
+  trunk.userData.backgroundDecor = true;
+  crown.userData.backgroundDecor = true;
 }
 // distant bushes & stones in the far background
 for (let i = 0; i < 40; i++) {
@@ -187,6 +192,7 @@ for (let i = 0; i < 40; i++) {
   bush.position.set(bx, ground.position.y + 0.4, bz);
   bush.castShadow = true;
   scene.add(bush);
+  bush.userData.backgroundDecor = true;
 }
 for (let i = 0; i < 30; i++) {
   const rx = (Math.random() - 0.5) * 240;
@@ -198,6 +204,7 @@ for (let i = 0; i < 30; i++) {
   rock.position.set(rx, ground.position.y + 0.2, rz);
   rock.castShadow = true;
   scene.add(rock);
+  rock.userData.backgroundDecor = true;
 }
 
 // Environment: road + Winter houses
@@ -734,15 +741,15 @@ for (let i = 0; i < 6; i++) {
       const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
       const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), eyeMat);
       const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), pupilMat);
-      eyeL.position.set(-0.35, 0.7, 1.2);
-      pupilL.position.set(0, 0, 0.12);
+      eyeL.position.set(-0.35, 0.7, 1.45);
+      pupilL.position.set(0, 0, 0.14);
       eyeL.add(pupilL);
       const eyeR = eyeL.clone();
       eyeR.position.x = 0.35;
       g.add(eyeL); g.add(eyeR);
       g.userData.eyes = [eyeL, eyeR];
       const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.12), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-      mouth.position.set(0, 0.45, 1.3);
+      mouth.position.set(0, 0.45, 1.55);
       g.add(mouth);
       g.userData.mouth = mouth;
       attachSpeech(g);
@@ -756,13 +763,14 @@ for (let i = 0; i < 6; i++) {
     const fbMouth = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.35, 16), new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9 }));
     fbMouth.position.y = 1.85; g.add(fbMouth);
     g.userData.fallback = true;
+    g.userData.fallbackParts = [fbBody, fbTank, fbMouth]; // чтобы удалить ВСЕ части фолбэка, а не только одну
     // load GLTF vape
     if (typeof THREE.GLTFLoader !== "undefined") {
       const loader = new THREE.GLTFLoader();
       loader.load("geek_pulse.glb", (gltf) => {
-        // remove placeholder
+        // remove ALL fallback parts (фикс пропадающей модели вейпа при пересоздании)
         if (g.userData.fallback) {
-          g.remove(fbBody); g.remove(fbTank); g.remove(fbMouth);
+          (g.userData.fallbackParts || []).forEach((p) => { try { g.remove(p); } catch (e) {} });
           g.userData.fallback = false;
         }
         const model = gltf.scene;
@@ -783,8 +791,8 @@ for (let i = 0; i < 6; i++) {
         const pupilMat = new THREE.MeshBasicMaterial({color:0x000000});
         const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), eyeMat);
         const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), pupilMat);
-        eyeL.position.set(-0.35, 0.7, 1.2);
-        pupilL.position.set(0, 0, 0.12);
+        eyeL.position.set(-0.35, 0.7, 1.45);
+        pupilL.position.set(0, 0, 0.14);
         eyeL.add(pupilL);
         const eyeR = eyeL.clone();
         eyeR.position.x = 0.35;
@@ -792,7 +800,7 @@ for (let i = 0; i < 6; i++) {
         g.add(eyeR);
         g.userData.eyes = [eyeL, eyeR];
         const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.12), new THREE.MeshStandardMaterial({color:0x111111}));
-        mouth.position.set(0, 0.45, 1.3);
+        mouth.position.set(0, 0.45, 1.55);
         g.add(mouth);
         g.userData.mouth = mouth;
         // кэшируем базовую модель для последующих пересозданий
@@ -1253,6 +1261,7 @@ return g;
         phase: Math.random() * Math.PI * 2,
         baseOpacity: 0.05 + Math.random() * 0.05,
       };
+      strip.userData.backgroundDecor = true; // скрывается в космосе/на планете
       scene.add(strip);
       groundFogStrips.push(strip);
     }
@@ -1389,6 +1398,7 @@ return g;
      cityCinematicDone = false;
      groundDecor.forEach((o) => { o.visible = true; });
      scene.children.forEach((o) => { if (o.userData && o.userData.decor) o.visible = true; });
+     scene.children.forEach((o) => { if (o.userData && o.userData.backgroundDecor) o.visible = true; });
      // восстанавливаем освещение и атмосферу ночного Хэллоуина
      ambient.intensity = 0.35;
      ambient.color.set(0x667799);
@@ -1523,10 +1533,19 @@ return g;
         );
         _fallbackCan.castShadow = true;
         mesh.add(_fallbackCan);
-        if (typeof THREE.GLTFLoader !== "undefined") {
+        if (buffCanTemplate) {
+          // модель уже загружена — показываем сразу (фикс пропадающего усиленного пара)
+          const _bm = buffCanTemplate.clone(true);
+          _bm.scale.set(0.3, 0.3, 0.3);
+          _bm.traverse((o) => { if (o.isMesh && o.material && o.material.emissiveIntensity !== undefined) o.material.emissiveIntensity = 0.9; });
+          mesh.remove(_fallbackCan);
+          mesh.add(_bm);
+        } else if (typeof THREE.GLTFLoader !== "undefined") {
           const _bloader = new THREE.GLTFLoader();
           // если GLB не загрузится (нет файла/ошибка) — fallback-банка ОСТАЁТСЯ видимой
           _bloader.load("buff_can.glb", (gltf) => {
+            // кэшируем для следующих спавнов
+            if (!buffCanTemplate) { try { buffCanTemplate = gltf.scene; } catch (e) {} }
             const _bm = gltf.scene;
             _bm.scale.set(0.3, 0.3, 0.3);
             _bm.traverse((o) => { if (o.isMesh && o.material) { if (o.material.emissiveIntensity !== undefined) o.material.emissiveIntensity = 0.9; } });
@@ -1618,6 +1637,14 @@ return g;
     beep(560, 0.05, "triangle", 0.05);
     ensureAudio();
     if (ammo === 0) startReload();
+  }
+
+  let buffCanTemplate = null;
+  // предзагрузка бонанки улучшения — иначе на первом уровне модель ещё не готова и пар «пропадает»
+  if (typeof THREE.GLTFLoader !== "undefined") {
+    new THREE.GLTFLoader().load("buff_can.glb", (gltf) => {
+      try { buffCanTemplate = gltf.scene; } catch (e) {}
+    }, undefined, () => { /* ошибка — останется fallback-банку */ });
   }
 
   function addParticles(x, y, colorHex, n = 14) {
@@ -2036,6 +2063,24 @@ return g;
 // player mesh
 player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
 player.mesh.scale.setScalar(spaceMode ? 0.6 : 1);
+// визуальный ореол усиленного пара (чтобы игрок видел активный бафф, а не только цифру в HUD)
+{
+  let aura = player.mesh.userData.buffAura;
+  if (buffUntil > performance.now()) {
+    if (!aura || !aura.parent) {
+      aura = new THREE.Mesh(
+        new THREE.SphereGeometry(2.4, 18, 14),
+        new THREE.MeshBasicMaterial({ color: 0x66ffcc, transparent: true, opacity: 0.14, side: THREE.BackSide, depthWrite: false }),
+      );
+      player.mesh.add(aura);
+      player.mesh.userData.buffAura = aura;
+    }
+    aura.visible = true;
+    const pulse = 1 + Math.sin(performance.now() / 180) * 0.08;
+    aura.scale.setScalar(pulse);
+    aura.material.opacity = 0.12 + Math.sin(performance.now() / 250) * 0.05;
+  } else if (aura) aura.visible = false;
+}
   const _sp = player.mesh.userData.speech;
   if (player.mesh.userData.mouth && (!_sp || !_sp.active)) player.mesh.userData.mouth.scale.set(1, 0.2, 1);
   if (_sp) {
@@ -2194,7 +2239,7 @@ for (const h of houses) {
     overlayInner.appendChild(p);
     const allOptions = [
       { key: "lives", title: "❤️ 4 жизни навсегда", desc: "Базовое здоровье увеличено до 4" },
-      { key: "bullets", title: "🔫 4 пули вместо 3", desc: "Выстрел рассыпается на 4 пули" },
+      { key: "bullets", title: "🔫 +2 пули к залпу", desc: "Выстрел рассыпается на 5 пуль вместо 3" },
       { key: "score", title: "💰 20 очков за монстра", desc: "НО: монстры отнимают сразу 2 жизни!" },
     ];
     // в сундуке только предметы, которых ещё НЕТ в рюкзаке — прошлые исчезают навсегда
@@ -2255,6 +2300,9 @@ for (const h of houses) {
   function enterCityMode() {
     cityMode = true;
     groundDecor.forEach((o) => { o.visible = false; });
+    scene.children.forEach((o) => { if (o.userData && o.userData.backgroundDecor) o.visible = false; });
+    // прячем декор планеты и космоса — иначе кукуруза/деревья торчат сквозь асфальт
+    scene.children.forEach((o) => { if (o.userData && (o.userData.planetDecor || o.userData.spaceDecor)) o.visible = false; });
     const asphaltTex = (() => {
       const c = document.createElement("canvas");
       c.width = 256; c.height = 256;
@@ -2671,6 +2719,8 @@ for (const h of houses) {
   function enterSpaceMode() {
     spaceMode = true;
     groundDecor.forEach((o) => { o.visible = false; });
+    // прячем фоновый декор (горы, лес, туман) — иначе закрывает космический пейзаж
+    scene.children.forEach((o) => { if (o.userData && o.userData.backgroundDecor) o.visible = false; });
     if (spaceship) {
       // переиспользуем ТОТ ЖЕ корабль, на котором мы уже летали — дубля не будет
       if (player && player.mesh && player.mesh !== spaceship) scene.remove(player.mesh);
@@ -2785,6 +2835,10 @@ for (const h of houses) {
   function enterPlanetMode() {
     planetMode = true;
     groundDecor.forEach((o) => { o.visible = false; });
+    // прячем зимний фоновый декор — иначе он загораживает замок и монументы
+    scene.children.forEach((o) => { if (o.userData && o.userData.backgroundDecor) o.visible = false; });
+    // и декор города/космоса, если были там раньше
+    scene.children.forEach((o) => { if (o.userData && (o.userData.cityDecor || o.userData.spaceDecor)) o.visible = false; });
     if (player && player.mesh) scene.remove(player.mesh);
     player.mesh = makePlayer();
     player.mesh.visible = true;
@@ -2828,8 +2882,8 @@ for (const h of houses) {
     scene.add(road);
     // Дневное небо с облаками
     scene.fog.color.set(0xbcd8f0);
-    scene.fog.near = 90;   // туман начинается дальше — замок на горизонте остаётся виден
-    scene.fog.far = 400;
+    scene.fog.near = 140;  // туман начинается ещё дальше — монументы и замок читаются чётко
+    scene.fog.far = 450;
     sky.material.color.set(0x87b8e8);
     ambient.intensity = 0.75;
     ambient.color.set(0xffffff);
@@ -2911,8 +2965,8 @@ for (const h of houses) {
     upgradeLine.textContent = "Планета: слизь, камни и замок! 🌽🏰";
 
     // КАМЕННЫЕ МОНУМЕНТЫ ВДАЛЕКЕ: стоячие камни-менгиры, дольмен и обломанные арки (за полями)
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x6e6a62, roughness: 0.96, metalness: 0.02, flatShading: true });
-    const stoneMossMat = new THREE.MeshStandardMaterial({ color: 0x5f7a45, roughness: 0.98 });
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x565349, roughness: 0.96, metalness: 0.02, flatShading: true });
+    const stoneMossMat = new THREE.MeshStandardMaterial({ color: 0x4f6838, roughness: 0.98 });
     function addMenhir(x, z, h, w, tilt, rotY) {
       // неровный стоячий камень: деформированный вытянутый додекаэдр, не «ящик»
       const geo = new THREE.DodecahedronGeometry(w * 0.55, 1);
@@ -2944,7 +2998,7 @@ for (const h of houses) {
       return s;
     }
     // круг менгиров (как Стоунхендж) вдалеке по центру
-    const stoneCenterZ = -95;
+    const stoneCenterZ = -78;
     const stoneCount = 9;
     const stoneRadius = 11;
     for (let i = 0; i < stoneCount; i++) {
@@ -2973,24 +3027,24 @@ for (const h of houses) {
     // одиночные менгиры-часовые вдоль дороги и у полей
     addMenhir(-12, -30, 3.4, 1.0, 0.06, 0.4);
     addMenhir(13, -38, 3.8, 1.1, -0.05, -0.3);
-    addMenhir(-15, -62, 4.4, 1.3, 0.04, 1.1);
-    addMenhir(14, -70, 5.0, 1.4, -0.07, -0.9);
+    addMenhir(-15, -52, 4.4, 1.3, 0.04, 1.1);
+    addMenhir(14, -58, 5.0, 1.4, -0.07, -0.9);
     // обломанная арка СБИКУ ОТ ДОРОГИ (не перекрывает путь игроку)
-    const archL = addMenhir(-9.5, -80, 4.6, 1.2, 0.03, 0.15);
-    const archR = addMenhir(-4.5, -80, 4.6, 1.2, -0.03, -0.15);
+    const archL = addMenhir(-9.5, -68, 4.6, 1.2, 0.03, 0.15);
+    const archR = addMenhir(-4.5, -68, 4.6, 1.2, -0.03, -0.15);
     const fallenLintel = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.9, 1.2), stoneMat);
-    fallenLintel.position.set(-7, ground.position.y + 0.45, -80.6);
+    fallenLintel.position.set(-7, ground.position.y + 0.45, -68.6);
     fallenLintel.rotation.z = 0.05;
     fallenLintel.castShadow = true;
     fallenLintel.userData.planetDecor = true;
     scene.add(fallenLintel);
 
     // КОРОЛЕВСКИЙ ЗАМОК НА ГОРИЗОНТЕ (виден издалека, по центру за кругом камней)
-    const castleWallMat = new THREE.MeshStandardMaterial({ color: 0x7a7a85, roughness: 0.85, emissive: 0x2a2a35, emissiveIntensity: 0.5 });
-    const castleRoofMat = new THREE.MeshStandardMaterial({ color: 0x6a3050, roughness: 0.6, emissive: 0x301528, emissiveIntensity: 0.5 });
+    const castleWallMat = new THREE.MeshStandardMaterial({ color: 0x555a68, roughness: 0.88, metalness: 0.05, emissive: 0x15181f, emissiveIntensity: 0.4 });
+    const castleRoofMat = new THREE.MeshStandardMaterial({ color: 0x6a3050, roughness: 0.6, emissive: 0x3d1c33, emissiveIntensity: 0.7 });
     const castleWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2f18, roughness: 0.9 });
-    const cz = -110; // достаточно близко, чтобы замок читался сквозь дымку
-    const castleScale = 2.6; // крупный, чтобы читался издалека
+    const cz = -88; // достаточно близко, чтобы замок читался сквозь дымку
+    const castleScale = 3.2; // крупный, чтобы читался издалека
     function addCastlePart(geo, mat, x, y, z, rotY) {
       const m = new THREE.Mesh(geo, mat);
       m.position.set(x * castleScale, ground.position.y + y * castleScale, z);
@@ -3049,6 +3103,13 @@ for (const h of houses) {
     cinematicStarted = true;
     upgradeLine.textContent = kind === "planet" ? "Уровень 20: новый мир! 🪐" : kind === "city" ? "Уровень 50: въезжаем в город! 🏙️" : "Уровень 5: запуск! 🚀";
   }
+  // отладочный хук для QA-скриптов (запускается только через window.__qa)
+  window.__qa = {
+    enterPlanet: () => { try { enterPlanetMode(); } catch (e) { console.error(e); } },
+    enterSpace: () => { try { enterSpaceMode(); } catch (e) { console.error(e); } },
+    enterCity: () => { try { enterCityMode(); } catch (e) { console.error(e); } },
+  };
+
   function startGame() {
     if (!tgUser) return;
     ensureAudio();
@@ -3244,8 +3305,8 @@ for (const h of houses) {
     bpWrap.appendChild(bpLabel);
     const bpSlots = document.createElement("div");
     bpSlots.style.cssText = "display:flex;gap:6px;";
-    const perkIcons = { lives: "❤️", bullets: "🔫", score: "💰" };
-    const perkNames = { lives: "4 жизни навсегда", bullets: "4 пули вместо 3", score: "20 очков (2 урона)" };
+  const perkIcons = { lives: "❤️", bullets: "🔫", score: "💰" };
+    const perkNames = { lives: "4 жизни навсегда", bullets: "+2 пули к залпу", score: "20 очков (2 урона)" };
     for (let i = 0; i < 3; i++) {
       const slot = document.createElement("div");
       const perk = _menuPerks[i];
