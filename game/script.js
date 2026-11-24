@@ -207,6 +207,42 @@ for (let i = 0; i < 30; i++) {
   rock.userData.backgroundDecor = true;
 }
 
+// РАЗБИТЫЕ САНИ САНТЫ на фоне (лер: сани разбились — отсюда злые Санты)
+(function makeCrashedSleigh() {
+  const g = new THREE.Group();
+  const sledMat = new THREE.MeshStandardMaterial({ color: 0x6a1a1a, roughness: 0.75, metalness: 0.2 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xb8a030, metalness: 0.8, roughness: 0.4 });
+  const snowMat = new THREE.MeshStandardMaterial({ color: 0xeef4ff, roughness: 0.95 });
+  // корпус — лежит на боку, наклонён
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 1.1), sledMat);
+  hull.rotation.set(0.4, 0.5, 1.2);
+  hull.position.y = 0.4; hull.castShadow = true; g.add(hull);
+  // отломанные полозья рядом
+  for (const rz of [-0.8, 0.9]) {
+    const runner = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.05, 8, 20, Math.PI * 0.7), goldMat);
+    runner.rotation.set(Math.PI / 2, 0, 0.4);
+    runner.position.set(rz, 0.12, 0.6); g.add(runner);
+  }
+  // разбросанные подарки
+  const giftMats = [0x2a7a2a, 0x22448a, 0x8a2244];
+  for (let i = 0; i < 5; i++) {
+    const gift = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.25, 0.28), new THREE.MeshStandardMaterial({ color: giftMats[i % 3], roughness: 0.6 }));
+    gift.position.set((Math.random() - 0.5) * 3.5, 0.15, (Math.random() - 0.5) * 2.5);
+    gift.rotation.set(Math.random() * 2, Math.random() * 2, Math.random() * 2);
+    gift.castShadow = true; g.add(gift);
+  }
+  // рог одного оленя торчит
+  const antler = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.5, 5), new THREE.MeshStandardMaterial({ color: 0x5a3a18, roughness: 0.9 }));
+  antler.position.set(1.4, 0.35, -0.4); antler.rotation.z = -0.7; g.add(antler);
+  // наметённый снег сверху
+  const snowCap = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), snowMat);
+  snowCap.scale.set(2.4, 0.3, 1.1); snowCap.position.y = 0.75; g.add(snowCap);
+  g.position.set(-18, ground.position.y, -34);
+  g.rotation.y = 0.35;
+  scene.add(g);
+  g.userData.decor = true;
+})();
+
 // Environment: road + Winter houses
   const road = new THREE.Mesh(
     new THREE.PlaneGeometry(20, 300),
@@ -337,7 +373,7 @@ for (let i = 0; i < 30; i++) {
     g.add(makeWindow(-2.5, 3.5));
     const pump = new THREE.Mesh(
       new THREE.SphereGeometry(0.6, 12, 12),
-      new THREE.MeshStandardMaterial({ color: 0xff7a18, emissive: 0xff3d00, emissiveIntensity: 0.4 }),
+      new THREE.MeshStandardMaterial({ color: 0xe8f0fa, emissive: 0x66aaff, emissiveIntensity: 0.25, roughness: 0.6 }),
     );
     pump.scale.set(1, 0.85, 1);
     pump.position.set(3.5, 0.5, 4);
@@ -505,6 +541,7 @@ for (let i = 0; i < 6; i++) {
     }
 
     // Pumpkins
+   // Pumpkins убраны — новогодняя тема (раньше были тыквы у дома)
    const pumpkins = [];
    function makePumpkin(x, y) {
     const g = new THREE.Group();
@@ -527,75 +564,94 @@ for (let i = 0; i < 6; i++) {
     return g;
   }
 
-  // Bats (реалистичные: объёмное тело, перепончатые крылья с суставами, уши)
+  // Сани Санты с оленями (вместо летучих мышей — новогодняя тема)
   const bats = [];
   function makeBat() {
     const g = new THREE.Group();
-    const furMat = new THREE.MeshStandardMaterial({ color: 0x14100e, roughness: 0.9 });
-    const membraneMat = new THREE.MeshStandardMaterial({ color: 0x1e1412, roughness: 0.75, side: THREE.DoubleSide, transparent: true, opacity: 0.94 });
-    // тело: пухлое, обтекаемое
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), furMat);
-    body.scale.set(1, 0.85, 1.5);
-    g.add(body);
-    // голова
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), furMat);
-    head.position.set(0, 0.06, 0.18);
-    g.add(head);
-    // уши
-    for (const ex of [-0.05, 0.05]) {
-      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.12, 5), furMat);
-      ear.position.set(ex, 0.15, 0.18);
-      ear.rotation.z = ex > 0 ? -0.2 : 0.2;
-      g.add(ear);
+    const sledMat = new THREE.MeshStandardMaterial({ color: 0x8a2424, roughness: 0.55, metalness: 0.25 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.3, emissive: 0x664400, emissiveIntensity: 0.3 });
+    const deerMat = new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.85 });
+    const deerDarkMat = new THREE.MeshStandardMaterial({ color: 0x5a3a18, roughness: 0.85 });
+    const giftMat = new THREE.MeshStandardMaterial({ color: 0x2a7a2a, roughness: 0.6 });
+    const giftRibbonMat = new THREE.MeshStandardMaterial({ color: 0xdd2222, roughness: 0.5 });
+
+    // корпус саней: изогнутый ковш
+    const sledBody = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.45, 0.7), sledMat);
+    sledBody.position.y = 0.25; g.add(sledBody);
+    // задняя спинка выше
+    const back = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.6, 0.7), sledMat);
+    back.position.set(-0.62, 0.6, 0); g.add(back);
+    // золотые полозья
+    for (const rz of [-0.3, 0.3]) {
+      const runner = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.035, 8, 20, Math.PI), goldMat);
+      runner.rotation.set(0, Math.PI / 2, 0); runner.position.set(0, 0.05, rz); g.add(runner);
     }
-    // лапки, поджатые под тело
-    const feetMat = new THREE.MeshStandardMaterial({ color: 0x2a1c14, roughness: 0.85 });
-    for (const fx of [-0.06, 0.06]) {
-      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.09, 5), feetMat);
-      foot.position.set(fx, -0.14, 0.05);
-      foot.rotation.x = 0.9;
-      g.add(foot);
+    // мешок с подарками
+    const sack = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), new THREE.MeshStandardMaterial({ color: 0x9a7a4a, roughness: 0.95 }));
+    sack.scale.set(1, 0.8, 0.9); sack.position.set(-0.2, 0.65, 0); g.add(sack);
+    // пара подарков
+    const gift = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.2), giftMat);
+    gift.position.set(0.3, 0.6, 0); g.add(gift);
+    const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.05, 0.06), giftRibbonMat);
+    ribbon.position.copy(gift.position); g.add(ribbon);
+
+    // олени (3 шт) впереди на упряжке
+    for (let i = 0; i < 3; i++) {
+      const deer = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.35, 4, 10), deerMat);
+      body.rotation.z = Math.PI / 2; body.position.y = 0.28; deer.add(body);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), deerMat);
+      head.position.set(0.32, 0.4, 0); deer.add(head);
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), new THREE.MeshStandardMaterial({ color: 0xdd2222, emissive: 0xff1111, emissiveIntensity: 1.4 }));
+      nose.position.set(0.42, 0.38, 0); deer.add(nose);
+      // рога
+      for (const ax of [-0.05, 0.05]) {
+        const antler = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.2, 5), deerDarkMat);
+        antler.position.set(0.3, 0.55, ax); antler.rotation.z = -0.3; deer.add(antler);
+      }
+      // ноги (упрощённо, поджаты в полёте)
+      for (const lx of [-0.12, 0.12]) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.22, 5), deerDarkMat);
+        leg.position.set(lx, 0.08, 0); deer.add(leg);
+      }
+      deer.position.set(0.95 + i * 0.62, 0.12 + Math.sin(i) * 0.06, (i % 2 ? 0.18 : -0.18));
+      deer.userData.legPhase = i * 1.8;
+      g.add(deer);
+      (g.userData.deers = g.userData.deers || []).push(deer);
     }
-    // крылья: две фаланги (плечо + кончик) на каждой стороне, вращаются от «сустава»
-    // pivot-группы позволяют махать крылом с естественным изгибом
-    // Крылья: перепонка с реальным контуром (изогнутая мембрана, как у летучей мыши)
-    function batWingShape(mirror) {
-      const s = new THREE.Shape();
-      const m = mirror ? -1 : 1;
-      s.moveTo(0, 0.1);            // у тела сверху
-      s.quadraticCurveTo(m * 0.3, 0.28, m * 0.55, 0.1);   // верхний край (плечевая кость)
-      s.quadraticCurveTo(m * 0.75, 0.02, m * 0.9, -0.06); // палец наружу
-      s.quadraticCurveTo(m * 0.7, -0.16, m * 0.45, -0.18); // нижняя перепонка (изгиб)
-      s.quadraticCurveTo(m * 0.25, -0.22, 0, -0.14);      // к телу
-      s.closePath();
-      return s;
+    // вожжи
+    const reinMat = new THREE.MeshStandardMaterial({ color: 0x4a2f18, roughness: 0.95 });
+    for (let i = 0; i < 3; i++) {
+      const rein = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.9 + i * 0.6, 4), reinMat);
+      rein.rotation.z = Math.PI / 2;
+      rein.position.set(0.6 + i * 0.3, 0.4, 0);
+      g.add(rein);
     }
-    function makeMembrane(mirror) {
-      const geo = new THREE.ShapeGeometry(batWingShape(mirror));
-      const mesh = new THREE.Mesh(geo, membraneMat);
-      // ShapeGeometry лежит в плоскости XY — поворачиваем, чтобы крыло было горизонтально
-      mesh.rotation.x = -Math.PI / 2;
-      return mesh;
-    }
-    const wingPivotL = new THREE.Group();
-    wingPivotL.position.set(-0.14, 0.02, 0);
-    wingPivotL.add(makeMembrane(true));
-    g.add(wingPivotL);
-    const wingPivotR = new THREE.Group();
-    wingPivotR.position.set(0.14, 0.02, 0);
-    wingPivotR.add(makeMembrane(false));
-    g.add(wingPivotR);
+    // Санта внутри
+    const santa = new THREE.Group();
+    const coatMat = new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.85 });
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), coatMat);
+    torso.scale.set(1, 0.95, 0.85); torso.position.y = 0.5; santa.add(torso);
+    const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshStandardMaterial({ color: 0xf0c8a0, roughness: 0.6 }));
+    sHead.position.y = 0.85; santa.add(sHead);
+    const beard = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 1 }));
+    beard.scale.set(1, 0.7, 0.7); beard.position.set(0, 0.76, 0.1); santa.add(beard);
+    const hatCone = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 10), coatMat);
+    hatCone.position.y = 1.05; santa.add(hatCone);
+    santa.position.set(-0.15, 0.05, 0);
+    g.add(santa);
+
     scene.add(g);
     return {
-      g, wing: wingPivotL, wing2: wingPivotR,
+      g,
       x: Math.random() * W,
       y: Math.random() * H * 0.35,
-      vx: (Math.random() - 0.5) * 1.2,
+      vx: (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.7),
       phase: Math.random() * Math.PI * 2,
-      flapSpeed: 0.09 + Math.random() * 0.05,
+      flapSpeed: 0.4,
     };
   }
-  for (let i = 0; i < 9; i++) bats.push(makeBat());
+  for (let i = 0; i < 4; i++) bats.push(makeBat());
   const alienShips = [];
   function makeAlienShip() {
     const g = new THREE.Group();
@@ -1072,10 +1128,9 @@ return g;
   }
 
   function initPumpkins() {
+    // Тыквы у домов убраны — это новогодняя тема (было Хэллоуин)
     pumpkins.forEach((p) => scene.remove(p));
     pumpkins.length = 0;
-    pumpkins.push(makePumpkin(50, H - 34));
-    pumpkins.push(makePumpkin(W - 50, H - 34));
   }
   initPumpkins();
 
@@ -1737,29 +1792,66 @@ return g;
            player.mesh.position.y = screenToWorldY(player.y) + Math.sin(t * 8) * 0.15;
          }
        } else {
-         // УРОВЕНЬ 5: корабль стоит вдалеке НА ЗЕМЛЕ (земля на ~-9), вейп подлетает к нему
-         if (spaceship) {
+         // УРОВЕНЬ 5: кат-сцена «взлёта» — вейп идёт по дороге к кораблю, садится, корабль ВЗЛЕТАЕТ ВВЕРХ
+         if (cinematicKind === "space") {
            const groundY = -(H / 2) * SCALE - 0.6;
-           const hover = Math.sin(t * 2) * 0.4; // слегка парит над землёй
-           spaceship.position.set(0, groundY + 1.5 + hover, -18);
-           spaceship.rotation.z = Math.sin(t * 1.5) * 0.05; // лёгкое покачивание
+           if (spaceship) {
+             if (t < 2.6) {
+               // фаза 1: корабль стоит на земле, ждёт, слегка парит
+               const hover = Math.sin(t * 2) * 0.4;
+               spaceship.position.set(0, groundY + 1.5 + hover, -18);
+               spaceship.rotation.z = Math.sin(t * 1.5) * 0.05;
+             } else if (t < 6.5) {
+               // фаза 2: ВЗЛЁТ — набирает высоту и уходит в небо
+               const rise = Math.min(1, (t - 2.6) / 3.9);
+               const ease = rise * rise;
+               spaceship.position.set(0, groundY + 1.5 + ease * 55, -18 - ease * 8);
+               spaceship.rotation.x = ease * 0.35; // задирает нос
+               if (spaceship.userData.engines) {
+                 spaceship.userData.engines.forEach((eng) => { eng.scale.set(1 + ease * 1.2, 1 + ease * 2.0, 1 + ease * 1.2); });
+               }
+             } else {
+               spaceship.visible = false;
+             }
+           }
+           if (player && player.mesh) {
+             if (t < 2.6) {
+               // фаза 1: вейп ИДЁТ ПО ДОРОГЕ к кораблю (шагает, покачиваясь)
+               const walk = Math.min(1, t / 2.4);
+               const easeW = walk * walk;
+               const sx = screenToWorldX(player.x);
+               const sy = screenToWorldY(player.y);
+               player.mesh.visible = true;
+               player.mesh.position.set(sx * (1 - easeW), sy * (1 - easeW) - easeW * 2.5, -easeW * 17);
+               player.mesh.rotation.y = Math.sin(t * 6) * 0.18; // шага
+               player.mesh.position.y += Math.abs(Math.sin(t * 6)) * -0.12; // подпрыгивание шага
+               player.mesh.scale.setScalar(1 - easeW * 0.15);
+             } else if (t < 3.2) {
+               // фаза 2: садится в корабль (масштаб к нулю)
+               player.mesh.visible = true;
+               player.mesh.position.set(0, screenToWorldY(player.y) - 2.5, -17.2);
+               const shrink = Math.min(1, (t - 2.6) / 0.6);
+               player.mesh.scale.setScalar(0.85 * (1 - shrink));
+               if (shrink >= 1) player.mesh.visible = false;
+             } else {
+               player.mesh.visible = false;
+             }
+           }
+         } else if (cinematicKind === "planet") {
+           // УРОВЕНЬ 20: корабль стоит вдалеке НА ЗЕМЛЕ, вейп смотрит вслед
+           if (spaceship) {
+             const groundY = -(H / 2) * SCALE - 0.6;
+             const hover = Math.sin(t * 2) * 0.4;
+             spaceship.position.set(0, groundY + 1.5 + hover, -18);
+             spaceship.rotation.z = Math.sin(t * 1.5) * 0.05;
+           }
          }
-          if (cinematicKind === "space" && player && player.mesh) {
-            const bp = Math.min(1, Math.max(0, (t - 1) / 2.5));
-            player.mesh.position.x = screenToWorldX(player.x) * (1 - bp);
-            player.mesh.position.y = screenToWorldY(player.y) * (1 - bp);
-            if (bp >= 0.85) {
-              player.mesh.visible = false;
-            } else {
-              player.mesh.visible = true;
-              player.mesh.scale.setScalar(1 - bp * 0.9);
-            }
-          }
        }
        const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
        camera.position.z = baseCameraZ * zoomFactor;
        camera.lookAt(0, 0, 0);
-        if (t >= 4.2) {
+       const cinematicDur = cinematicKind === "space" ? 7.2 : 4.2; // взлёт — длиннее
+       if (t >= cinematicDur) {
           // СНАЧАЛА чистим декор старого мира и ВСЕ корабли, ПОТОМ входим в новый
           scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
           scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
@@ -2025,23 +2117,26 @@ return g;
       }
     }
 
-    // bats — реалистичный полёт: взмах с изгибом крыла, крен в поворотах, вертикальное парение
+    // Сани Санты — плавный полёт: покачивание, крен в повороте, олени «перебирают» ногами
     for (const b of bats) {
       b.x += b.vx;
-      if (b.x < -20) b.x = W + 20;
-      if (b.x > W + 20) b.x = -20;
+      if (b.x < -40) b.x = W + 40;
+      if (b.x > W + 40) b.x = -40;
       const now = performance.now();
-      const wy = b.y + Math.sin(now / 800 + b.phase) * 8;
+      const wy = b.y + Math.sin(now / 900 + b.phase) * 8;
       b.g.position.set(screenToWorldX(b.x), screenToWorldY(wy), 0.5);
-      // взмах: основной сустав машет, кончик крыла отстаёт по фазе (естественная волна по мембране)
-      const flap = Math.sin(now / (b.flapSpeed * 1000) + b.phase);
-      b.wing.rotation.z = flap * 0.85;
-      b.wing2.rotation.z = -flap * 0.85;
-      // тело кренится в сторону полёта и слегка рыскает
-      b.g.rotation.z = -b.vx * 0.25 + flap * 0.06;
-      b.g.rotation.y = Math.sin(now / 1200 + b.phase) * 0.25;
-      // лёгкое покачивание тела против взмаха (инерция)
-      b.g.rotation.x = flap * 0.12;
+      // крен в сторону полёта + лёгкое рыскание
+      b.g.rotation.z = (b.vx > 0 ? -0.08 : 0.08) + Math.sin(now / 700 + b.phase) * 0.04;
+      b.g.rotation.y = b.vx > 0 ? 0 : Math.PI;
+      b.g.rotation.x = Math.sin(now / 1100 + b.phase) * 0.06;
+      // олени семенят ногами
+      if (b.g.userData.deers) {
+        for (const d of b.g.userData.deers) {
+          const lp = d.userData.legPhase || 0;
+          d.rotation.x = Math.sin(now / 160 + lp) * 0.18;
+          d.position.y = 0.12 + Math.sin(now / 200 + lp) * 0.03;
+        }
+      }
     }
 
     // —— СНЕГОПАД: падающие снежинки с дрейфом и вращением ——
@@ -3084,6 +3179,12 @@ for (const h of houses) {
     if (kind === "planet" && planetCinematicDone) return;
     if (kind === "city" && cityCinematicDone) return;
     if (cinematic) return;
+    // —— ЗАТЕМНЕНИЕ ЭКРАНА (переход) ——
+    startFadeTransition(() => {
+      startCinematicInner(kind);
+    });
+  }
+  function startCinematicInner(kind) {
     cinematicKind = kind;
     cinematic = { start: performance.now() };
     for (const e of enemies) { scene.remove(e.mesh); if (e.label) scene.remove(e.label); }
@@ -3102,12 +3203,60 @@ for (const h of houses) {
     bonusTimer = 5000;
     cinematicStarted = true;
     upgradeLine.textContent = kind === "planet" ? "Уровень 20: новый мир! 🪐" : kind === "city" ? "Уровень 50: въезжаем в город! 🏙️" : "Уровень 5: запуск! 🚀";
+    // лорная подводка текстом
+    showLoreCaption(kind === "planet"
+      ? "Корабль уносит тебя к планете Вейп-Прайм — источнику всего пара..."
+      : kind === "city"
+        ? "Слизь прорвалась в Неон-Сити. Жители в панике — нужна твоя помощь!"
+        : "Ты идёшь по заснеженной дороге к кораблю инопланетян. Пора посмотреть на мир свыше!", 6500);
+  }
+
+  // ================= ЗАТЕМНЕНИЕ ЭКРАНА (переход между сценами) =================
+  let fadeEl = null;
+  function startFadeTransition(midway, done, totalMs) {
+    totalMs = totalMs || 900;
+    if (!fadeEl) {
+      fadeEl = document.createElement("div");
+      fadeEl.id = "fadeOverlay";
+      fadeEl.style.cssText = "position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:900;transition:opacity 0.45s ease;";
+      document.body.appendChild(fadeEl);
+    }
+    // принудительный reflow, чтобы transition сработал
+    void fadeEl.offsetWidth;
+    fadeEl.style.opacity = "1";
+    setTimeout(() => {
+      if (typeof midway === "function") { try { midway(); } catch (e) { console.error(e); } }
+      // — держим чуть дольше, потом плавно открываем
+      setTimeout(() => {
+        fadeEl.style.opacity = "0";
+        if (typeof done === "function") setTimeout(done, 480);
+      }, 260);
+    }, totalMs);
+  }
+
+  // ================= ЛОР-ТЕКСТ ПОД КАТ-СЦЕНУ (нижняя треть экрана) =================
+  let loreEl = null;
+  let loreTimer = null;
+  function showLoreCaption(text, ms) {
+    ms = ms || 5200;
+    if (!loreEl) {
+      loreEl = document.createElement("div");
+      loreEl.id = "loreCaption";
+      loreEl.style.cssText = "position:fixed;left:50%;bottom:12%;transform:translateX(-50%);max-width:76%;text-align:center;color:#fff;font-size:17px;line-height:1.5;text-shadow:0 2px 8px #000,0 0 22px rgba(125,211,252,0.45);opacity:0;transition:opacity 0.6s ease;pointer-events:none;z-index:880;";
+      document.body.appendChild(loreEl);
+    }
+    loreEl.textContent = text;
+    void loreEl.offsetWidth;
+    loreEl.style.opacity = "1";
+    if (loreTimer) clearTimeout(loreTimer);
+    loreTimer = setTimeout(() => { loreEl.style.opacity = "0"; }, ms);
   }
   // отладочный хук для QA-скриптов (запускается только через window.__qa)
   window.__qa = {
     enterPlanet: () => { try { enterPlanetMode(); } catch (e) { console.error(e); } },
     enterSpace: () => { try { enterSpaceMode(); } catch (e) { console.error(e); } },
     enterCity: () => { try { enterCityMode(); } catch (e) { console.error(e); } },
+    startSpaceCinematic: () => { try { startCinematicInner("space"); } catch (e) { console.error(e); } },
   };
 
   function startGame() {
@@ -3123,6 +3272,8 @@ for (const h of houses) {
     resetGame();
     state = "playing";
     overlay.classList.add("hidden");
+    // вводная лор-подводка при каждом старте забега (короткая, не мешает игре)
+    showLoreCaption("Ночь перед Новым годом. Санты разбили свои сани у Свит-Холлоу и теперь требуют компенсацию паром. Защищай магазин!", 6500);
   }
 
   // ================= БЕСТИАРИЙ / ЛОР (иконка ℹ️ в меню) — 3D-версия =================
