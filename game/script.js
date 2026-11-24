@@ -638,6 +638,13 @@ for (let i = 0; i < 6; i++) {
     santa.rotation.y = 0;
     g.add(santa);
 
+    // Кружок на верху саней (обычный круг)
+    const circleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.5 });
+    const circleRing = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.025, 8, 24), circleMat);
+    circleRing.rotation.x = Math.PI / 2;
+    circleRing.position.set(0, 0.95, 0);
+    g.add(circleRing);
+
     scene.add(g);
     return {
       g,
@@ -1844,9 +1851,27 @@ return g;
            }
          }
        }
-       const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
-       camera.position.z = baseCameraZ * zoomFactor;
-       camera.lookAt(0, 0, 0);
+        const zoomFactor = t < 2 ? (1 - 0.4 * (t / 2)) : 0.6;
+        if (cinematicKind === "space") {
+          // С боку с плеча персонажа (over-the-shoulder): камера за игроком/кораблём, смотрит вперёд
+          if (spaceship) {
+            const sx = spaceship.position.x;
+            const sy = spaceship.position.y;
+            const sz = spaceship.position.z;
+            camera.position.set(sx - 4, sy + 3, sz + 6);
+            camera.lookAt(sx, sy, sz);
+          } else {
+            camera.position.z = baseCameraZ * zoomFactor;
+            camera.lookAt(0, 0, 0);
+          }
+        } else if (cinematicKind === "planet") {
+          // От 1 лица (first-person): камера на уровне глаз, смотрит вдаль к кораблю
+          camera.position.set(-3, 1.4, -5);
+          camera.lookAt(0, 0, -25);
+        } else {
+          camera.position.z = baseCameraZ * zoomFactor;
+          camera.lookAt(0, 0, 0);
+        }
        const cinematicDur = cinematicKind === "space" ? 7.2 : 4.2; // взлёт — длиннее
        if (t >= cinematicDur) {
           // СНАЧАЛА чистим декор старого мира и ВСЕ корабли, ПОТОМ входим в новый
