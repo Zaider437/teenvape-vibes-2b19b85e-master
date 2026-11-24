@@ -2177,8 +2177,10 @@ return g;
     }
 
 // player mesh
-player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
-player.mesh.scale.setScalar(spaceMode ? 0.6 : 1);
+    if (!introCinematic) {
+      player.mesh.position.set(screenToWorldX(player.x), screenToWorldY(player.y), 0);
+      player.mesh.scale.setScalar(spaceMode ? 0.6 : 1);
+    }
 // визуальный ореол усиленного пара (чтобы игрок видел активный бафф, а не только цифру в HUD)
 {
   let aura = player.mesh.userData.buffAura;
@@ -3318,27 +3320,28 @@ for (const h of houses) {
     showLoreCaption("Выходишь из вейп-шопа «Sweet Santa Hunt».\nПолки уставлены вейпами разных цветов,\nно ваш вейп — единственный живой.\nСанты разбили сани у Свит-Холлоу.\nЗащищай магазин!");
 
     const vapeColors = [0x2255aa, 0xaa2222, 0x22aa55, 0xaa22aa, 0xaa6622, 0xff66aa, 0x22aaaa, 0xaaaa22];
+    const groundY = -(H / 2) * SCALE - 0.6; // уровень земли магазина
 
     // —— Пол и стены магазина ——
     const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 14), new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.8 }));
-    floor.position.set(0, sy - 0.1, -5);
+    floor.position.set(0, groundY, -5);
     floor.receiveShadow = true; scene.add(floor); introShop.push(floor);
 
     const backWall = new THREE.Mesh(new THREE.BoxGeometry(12, 3, 0.3), new THREE.MeshStandardMaterial({ color: 0x2a1a15, roughness: 0.9 }));
-    backWall.position.set(0, sy + 1.4, -11.5); backWall.receiveShadow = true; scene.add(backWall); introShop.push(backWall);
+    backWall.position.set(0, groundY + 1.5, -11.5); backWall.receiveShadow = true; scene.add(backWall); introShop.push(backWall);
 
     const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 14), new THREE.MeshStandardMaterial({ color: 0x2a1a15, roughness: 0.9 }));
-    leftWall.position.set(-6, sy + 1.4, -5); leftWall.receiveShadow = true; scene.add(leftWall); introShop.push(leftWall);
+    leftWall.position.set(-6, groundY + 1.5, -5); leftWall.receiveShadow = true; scene.add(leftWall); introShop.push(leftWall);
 
     const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 14), new THREE.MeshStandardMaterial({ color: 0x2a1a15, roughness: 0.9 }));
-    rightWall.position.set(6, sy + 1.4, -5); rightWall.receiveShadow = true; scene.add(rightWall); introShop.push(rightWall);
+    rightWall.position.set(6, groundY + 1.5, -5); rightWall.receiveShadow = true; scene.add(rightWall); introShop.push(rightWall);
 
     // —— Стойка-касса спереди ——
     const counter = new THREE.Group();
     const counterTop = new THREE.Mesh(new THREE.BoxGeometry(6, 0.5, 1.2), new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.7 }));
-    counterTop.position.set(0, sy + 0.5, -3); counterTop.castShadow = true; counterTop.receiveShadow = true; counter.add(counterTop);
+    counterTop.position.set(0, groundY + 0.6, -3); counterTop.castShadow = true; counterTop.receiveShadow = true; counter.add(counterTop);
     const counterBody = new THREE.Mesh(new THREE.BoxGeometry(6, 1.2, 1.0), new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.8 }));
-    counterBody.position.set(0, sy - 0.1, -3); counterBody.castShadow = true; counterBody.receiveShadow = true; counter.add(counterBody);
+    counterBody.position.set(0, groundY + 0.6, -3); counterBody.castShadow = true; counterBody.receiveShadow = true; counter.add(counterBody);
     counter.position.set(0, 0, -3);
     scene.add(counter); introShop.push(counter);
 
@@ -3346,11 +3349,11 @@ for (const h of houses) {
     for (let i = 0; i < 4; i++) {
       const shelf = new THREE.Group();
       const board = new THREE.Mesh(new THREE.BoxGeometry(5, 0.12, 0.45), new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.8 }));
-      board.position.set(0, sy + 0.5 + i * 0.9, -10.5); board.castShadow = true; board.receiveShadow = true; shelf.add(board);
+      board.position.set(0, groundY + 0.8 + i * 0.9, -10.5); board.castShadow = true; board.receiveShadow = true; shelf.add(board);
       const col = vapeColors[i % vapeColors.length];
       for (let j = 0; j < 3; j++) {
         const vape = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 0.22), new THREE.MeshStandardMaterial({ color: col, metalness: 0.6, roughness: 0.3, emissive: col, emissiveIntensity: 0.3 }));
-        vape.position.set((j - 1) * 1.4, sy + 0.5 + i * 0.9 + 0.7, -10.1); vape.castShadow = true; shelf.add(vape);
+        vape.position.set((j - 1) * 1.4, groundY + 0.8 + i * 0.9 + 0.7, -10.1); vape.castShadow = true; shelf.add(vape);
       }
       scene.add(shelf); introShop.push(shelf);
     }
@@ -3358,17 +3361,17 @@ for (const h of houses) {
     // —— Витрина у стойки с цветными вейпами ——
     const vitrine = new THREE.Group();
     const glass = new THREE.Mesh(new THREE.BoxGeometry(5, 1.4, 0.35), new THREE.MeshStandardMaterial({ color: 0xeeeeee, transparent: true, opacity: 0.35, metalness: 0.9, roughness: 0.1 }));
-    glass.position.set(0, sy + 0.9, -2.6); glass.castShadow = true; glass.receiveShadow = true; vitrine.add(glass);
+    glass.position.set(0, groundY + 1.0, -2.6); glass.castShadow = true; glass.receiveShadow = true; vitrine.add(glass);
     for (let j = 0; j < 5; j++) {
       const col = vapeColors[j % vapeColors.length];
       const vape = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.1, 0.22), new THREE.MeshStandardMaterial({ color: col, metalness: 0.6, roughness: 0.3, emissive: col, emissiveIntensity: 0.5 }));
-      vape.position.set((j - 2) * 1.15, sy + 0.9 + 0.65, -2.35); vape.castShadow = true; vitrine.add(vape);
+      vape.position.set((j - 2) * 1.15, groundY + 1.0 + 0.65, -2.35); vape.castShadow = true; vitrine.add(vape);
     }
     vitrine.position.set(0, 0, -3);
     scene.add(vitrine); introShop.push(vitrine);
 
-    // —— Вейп игрока начинает у стойки внутри магазина ——
-    player.mesh.position.set(0, sy, -2.5);
+    // —— Вейп игрока начинает у стойки внутри магазина (на полу) ——
+    player.mesh.position.set(0, groundY + 0.6, -2.5);
     player.mesh.rotation.set(0, Math.PI, 0); // лицом к витрине
     player.mesh.scale.setScalar(1);
   }
@@ -3396,10 +3399,9 @@ for (const h of houses) {
     const ease = p * p * (3 - 2 * p); // smoothstep
     // вейп «выходит» из магазина (изнутри витрины) наружу к дороге
     const sx = screenToWorldX(introCinematic.x);
-    const sy = screenToWorldY(introCinematic.y);
     player.mesh.position.set(
       sx,
-      sy, // на земле, как в обычной игре
+      groundY + 0.6, // на полу магазина
       -2.5 + ease * 12 // изнутри магазина (-2.5) наружу к дороге (+12)
     );
     player.mesh.rotation.y = Math.PI - ease * Math.PI; // поворачиваем от витрины к дороге
@@ -3408,11 +3410,11 @@ for (const h of houses) {
     // —— Камера: сначала внутри магазина смотрит на витрину, потом следует за вейпом наружу ——
     if (ease < 0.4) {
       // Фаза 1: камера внутри магазина, смотрит на полки и витрину
-      camera.position.set(0, sy + 1.2, -5.5);
-      camera.lookAt(0, sy + 0.8, -10);
+      camera.position.set(0, groundY + 1.7, -5.5);
+      camera.lookAt(0, groundY + 1.0, -10);
     } else {
       // Фаза 2: камера следует за вейпом от первого лица, выходя наружу
-      const camY = sy + 1.5;
+      const camY = groundY + 2.1;
       const camZ = -2.5 + ease * 12 + 1.5;
       camera.position.set(sx, camY, camZ);
       camera.lookAt(sx, camY, camZ + 6);
