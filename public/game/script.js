@@ -3334,20 +3334,19 @@ for (const h of houses) {
     }
     const p = Math.min(1, t / (DUR * 0.75)); // выход из магазина за 75% времени
     const ease = p * p * (3 - 2 * p); // smoothstep
-    // вейп «выходит» из глубины сцены (от крыльца магазина) к игровой позиции — остаётся на земле
+    // вейп «выходит» из глубины сцены (от крыльца магазина) к игровой позиции — стоит на земле
     const sx = screenToWorldX(introCinematic.x);
     const sy = screenToWorldY(introCinematic.y);
-    const groundY = -(H / 2) * SCALE - 0.6;
     player.mesh.position.set(
       sx,
-      groundY,        // на земле, не висит в воздухе
+      sy,        // на земле, как в обычной игре
       -(1 - ease) * 10 // только из глубины к переду по Z
     );
     player.mesh.rotation.y = Math.sin(t * 5) * 0.25; // семенит при выходе
     const s = 0.7 + ease * 0.3;
     player.mesh.scale.setScalar(s);
     // —— ВИД ОТ ПЕРВОГО ЛИЦА: камера на уровне глаз, смотрит вперёд по дороге ——
-    const camY = groundY + 1.5; // уровень глаз над землёй
+    const camY = sy + 1.5; // уровень глаз над землёй
     const camZ = -(1 - ease) * 10 + 0.6;      // чуть перед игроком
     camera.position.set(sx, camY, camZ);
     camera.lookAt(sx, camY, camZ + 6);        // смотрит вперёд (+Z)
