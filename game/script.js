@@ -3262,7 +3262,7 @@ for (const h of houses) {
     if (loreEl) return loreEl;
     loreEl = document.createElement("div");
     loreEl.id = "loreCaption";
-    loreEl.style.cssText = "position:fixed;left:50%;bottom:9%;transform:translateX(-50%);max-width:800px;text-align:center;color:#fff;font-size:18px;line-height:1.7;font-weight:600;letter-spacing:0.2px;text-shadow:0 2px 10px #000,0 0 26px rgba(125,211,252,0.5);opacity:0;transition:opacity 0.5s ease;pointer-events:none;z-index:880;padding:14px 20px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(125,211,252,0.35);border-bottom:1px solid rgba(125,211,252,0.35);border-radius:8px;white-space:pre-line;";
+    loreEl.style.cssText = "position:fixed;left:50%;bottom:9%;transform:translateX(-50%);max-width:900px;text-align:center;color:#fff;font-size:16px;line-height:1.7;font-weight:600;letter-spacing:0.2px;text-shadow:0 2px 10px #000,0 0 26px rgba(125,211,252,0.5);opacity:0;transition:opacity 0.5s ease;pointer-events:none;z-index:880;padding:14px 20px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(125,211,252,0.35);border-bottom:1px solid rgba(125,211,252,0.35);border-radius:8px;white-space:pre-line;";
     document.body.appendChild(loreEl);
     return loreEl;
   }
