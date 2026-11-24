@@ -3269,7 +3269,7 @@ for (const h of houses) {
     if (loreEl) return loreEl;
     loreEl = document.createElement("div");
     loreEl.id = "loreCaption";
-    loreEl.style.cssText = "position:fixed;left:50%;bottom:9%;transform:translateX(-50%);max-width:74%;text-align:center;color:#fff;font-size:18px;line-height:1.5;font-weight:600;letter-spacing:0.2px;text-shadow:0 2px 10px #000,0 0 26px rgba(125,211,252,0.5);opacity:0;transition:opacity 0.5s ease;pointer-events:none;z-index:880;padding:10px 22px;background:rgba(0,0,0,0.35);border-top:1px solid rgba(125,211,252,0.35);border-bottom:1px solid rgba(125,211,252,0.35);border-radius:6px;";
+    loreEl.style.cssText = "position:fixed;left:50%;bottom:9%;transform:translateX(-50%);max-width:74%;text-align:left;color:#fff;font-size:18px;line-height:1.7;font-weight:600;letter-spacing:0.2px;text-shadow:0 2px 10px #000,0 0 26px rgba(125,211,252,0.5);opacity:0;transition:opacity 0.5s ease;pointer-events:none;z-index:880;padding:14px 26px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(125,211,252,0.35);border-bottom:1px solid rgba(125,211,252,0.35);border-radius:8px;white-space:pre-line;";
     document.body.appendChild(loreEl);
     return loreEl;
   }
@@ -3321,12 +3321,12 @@ for (const h of houses) {
     if (!player || !player.mesh) return;
     introCinematic = { start: performance.now(), x: player.x, y: player.y };
     // текст — часть кат-сцены: живёт и исчезает вместе с ней
-    showLoreCaption("Ночь перед Новым годом. Санты разбили свои сани у Свит-Холлоу и теперь требуют компенсацию паром. Защищай магазин!");
+    showLoreCaption("Ночь перед Новым годом.\nСанты разбили свои сани у Свит-Холлоу\nи теперь требуют компенсацию паром.\nЗащищай магазин!");
   }
   function updateIntroCutscene() {
     if (!introCinematic || !player || !player.mesh) return;
     const t = (performance.now() - introCinematic.start) / 1000;
-    const DUR = 2.6;
+    const DUR = 8;
     if (t >= DUR) {
       // конец — вернуть игрока в нормальное состояние
       player.mesh.scale.setScalar(1);
