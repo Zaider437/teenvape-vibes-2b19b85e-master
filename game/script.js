@@ -638,13 +638,6 @@ for (let i = 0; i < 6; i++) {
     santa.rotation.y = 0;
     g.add(santa);
 
-    // Кружок на верху саней (обычный круг)
-    const circleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.5 });
-    const circleRing = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.025, 8, 24), circleMat);
-    circleRing.rotation.x = Math.PI / 2;
-    circleRing.position.set(0, 0.95, 0);
-    g.add(circleRing);
-
     scene.add(g);
     return {
       g,
