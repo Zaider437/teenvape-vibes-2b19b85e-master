@@ -633,8 +633,8 @@ for (let i = 0; i < 6; i++) {
     }
     // Санта внутри — настоящая модель злого Санты (как враги), в миниатюре
     const santa = makeZombie();
-    santa.scale.setScalar(0.38);
-    santa.position.set(-0.15, -0.15, 0);
+    santa.scale.setScalar(0.28);
+    santa.position.set(-0.15, 0.4, 0);
     santa.rotation.y = 0;
     g.add(santa);
 
@@ -3332,6 +3332,9 @@ for (const h of houses) {
       player.mesh.scale.setScalar(1);
       player.mesh.rotation.set(0, 0, 0);
       player.mesh.position.z = 0;
+      // вернуть камеру в нормальное игровое положение
+      camera.position.set(0, Math.sin((25 * Math.PI) / 180) * baseCameraZ, Math.cos((25 * Math.PI) / 180) * baseCameraZ);
+      camera.lookAt(0, 0, 0);
       introCinematic = null;
       hideLoreCaption(); // текст исчезает вместе с вступительной сценой
       return;
@@ -3349,6 +3352,11 @@ for (const h of houses) {
     player.mesh.rotation.y = Math.sin(t * 5) * 0.25; // семенит при выходе
     const s = 0.7 + ease * 0.3;
     player.mesh.scale.setScalar(s);
+    // —— ВИД ОТ ПЕРВОГО ЛИЦА: камера на уровне глаз, смотрит вперёд по дороге ——
+    const camY = sy - (1 - ease) * 4.5 + 1.5; // уровень глаз игрока
+    const camZ = -(1 - ease) * 10 + 0.6;      // чуть перед игроком
+    camera.position.set(sx, camY, camZ);
+    camera.lookAt(sx, camY, camZ + 6);        // смотрит вперёд (+Z)
   }
 
   // ================= БЕСТИАРИЙ / ЛОР (иконка ℹ️ в меню) — 3D-версия =================
