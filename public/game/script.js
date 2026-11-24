@@ -564,6 +564,10 @@ for (let i = 0; i < 6; i++) {
     return g;
   }
 
+  // —— Ранние объявления игровых флагов (нужны makeZombie/makeNun, вызываемым из makeSleigh ниже) ——
+  let spaceMode = false;
+  let planetMode = false;
+
   // Сани Санты с оленями (вместо летучих мышей — новогодняя тема)
   const bats = [];
   function makeBat() {
@@ -627,18 +631,11 @@ for (let i = 0; i < 6; i++) {
       rein.position.set(0.6 + i * 0.3, 0.4, 0);
       g.add(rein);
     }
-    // Санта внутри
-    const santa = new THREE.Group();
-    const coatMat = new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.85 });
-    const torso = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), coatMat);
-    torso.scale.set(1, 0.95, 0.85); torso.position.y = 0.5; santa.add(torso);
-    const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshStandardMaterial({ color: 0xf0c8a0, roughness: 0.6 }));
-    sHead.position.y = 0.85; santa.add(sHead);
-    const beard = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 1 }));
-    beard.scale.set(1, 0.7, 0.7); beard.position.set(0, 0.76, 0.1); santa.add(beard);
-    const hatCone = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 10), coatMat);
-    hatCone.position.y = 1.05; santa.add(hatCone);
-    santa.position.set(-0.15, 0.05, 0);
+    // Санта внутри — настоящая модель злого Санты (как враги), в миниатюре
+    const santa = makeZombie();
+    santa.scale.setScalar(0.38);
+    santa.position.set(-0.15, -0.15, 0);
+    santa.rotation.y = 0;
     g.add(santa);
 
     scene.add(g);
@@ -745,8 +742,6 @@ for (let i = 0; i < 6; i++) {
   // planetGroundLift удалён: земля планеты теперь на уровне базовой земли
   const killPhrases = ["Выкуси!", "Теперь будешь знать, каково это — когда тебя сосут!", "Вы скурили мою семью!", "У мамы теперь пососи!", "Это был не картридж... а его голова!"];
   let lastPhrase = "";
-  let spaceMode = false;
-  let planetMode = false;
   let cinematicKind = null;
   let spaceCinematicDone = false;
   let planetCinematicDone = false;
@@ -986,7 +981,7 @@ for (let i = 0; i < 6; i++) {
 
     // ВЫРАВНИВАНИЕ: как у старой модели, ступни на y ≈ -2.0 (контакт с землёй)
     g.children.slice().forEach((c) => { c.position.y -= 1.2; });
-if (spaceMode) {
+if (typeof spaceMode !== "undefined" && spaceMode) {
   const jet = new THREE.Mesh(new THREE.BoxGeometry(0.45,0.8,0.25), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
   jet.position.set(0,-0.3,-0.65); g.add(jet);
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.12,0.35,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
@@ -1095,7 +1090,7 @@ return g;
       shard.position.set(Math.cos(a) * 0.55, 1.3 + Math.sin(a * 2) * 0.3, Math.sin(a) * 0.55);
       g.add(shard);
     }
-if (spaceMode) {
+if (typeof spaceMode !== "undefined" && spaceMode) {
   const jet = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.7,0.2), new THREE.MeshStandardMaterial({color:0x888888, metalness:0.8, roughness:0.3}));
   jet.position.set(0,-0.2,-0.6); g.add(jet);
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.1,0.3,8), new THREE.MeshBasicMaterial({color:0x66ccff}));
@@ -1643,6 +1638,7 @@ return g;
   function fire() {
     if (state !== "playing") return;
     if (cinematic) return; // во время кино не стреляем (и не удаляем корабль из кадра!)
+    if (introCinematic) return; // и во время вступительной кат-сцены
     if (reloading) return;
     if (ammo <= 0) {
       startReload();
@@ -1773,6 +1769,7 @@ return g;
 
   function update(dt) {
     if (state !== "playing") return;
+    updateIntroCutscene();
      if (cinematic) {
        const t = (performance.now() - cinematic.start) / 1000;
        if (cinematicKind === "planet") {
@@ -1876,9 +1873,14 @@ return g;
       beep(440, 0.1, "triangle", 0.06);
     }
 
+    if (introCinematic) {
+      // во время вступительной кат-сцены игрок не двигается сам — но spawnTimer идёт, враги не спавнятся пока
+      spawnTimer = Math.max(spawnTimer, 800);
+    }
+
     if (keys.left) player.x -= player.speed;
     if (keys.right) player.x += player.speed;
-    if (mouseX !== null) player.x += (mouseX - player.x) * 0.22;
+    if (mouseX !== null && !introCinematic) player.x += (mouseX - player.x) * 0.22;
     player.x = clamp(player.x, player.w / 2 + 10, W - player.w / 2 - 10);
 
     for (let i = shots.length - 1; i >= 0; i--) {
@@ -3272,8 +3274,42 @@ for (const h of houses) {
     resetGame();
     state = "playing";
     overlay.classList.add("hidden");
-    // вводная лор-подводка при каждом старте забега (короткая, не мешает игре)
-    showLoreCaption("Ночь перед Новым годом. Санты разбили свои сани у Свит-Холлоу и теперь требуют компенсацию паром. Защищай магазин!", 6500);
+    // —— ВСТУПИТЕЛЬНАЯ КАТ-СЦЕНА: вейп выходит из магазина и занимает позицию ——
+    startIntroCutscene();
+  }
+
+  // ================= ВСТУПИТЕЛЬНАЯ КАТ-СЦЕНА (старт забега) =================
+  let introCinematic = null; // { start }
+  function startIntroCutscene() {
+    if (!player || !player.mesh) return;
+    introCinematic = { start: performance.now(), x: player.x, y: player.y };
+    showLoreCaption("Ночь перед Новым годом. Санты разбили свои сани у Свит-Холлоу и теперь требуют компенсацию паром. Защищай магазин!", 6000);
+  }
+  function updateIntroCutscene() {
+    if (!introCinematic || !player || !player.mesh) return;
+    const t = (performance.now() - introCinematic.start) / 1000;
+    const DUR = 2.6;
+    if (t >= DUR) {
+      // конец — вернуть игрока в нормальное состояние
+      player.mesh.scale.setScalar(1);
+      player.mesh.rotation.set(0, 0, 0);
+      player.mesh.position.z = 0;
+      introCinematic = null;
+      return;
+    }
+    const p = Math.min(1, t / (DUR * 0.75)); // выход из магазина за 75% времени
+    const ease = p * p * (3 - 2 * p); // smoothstep
+    // вейп «выходит» из глубины сцены (от крыльца магазина) к игровой позиции
+    const sx = screenToWorldX(introCinematic.x);
+    const sy = screenToWorldY(introCinematic.y);
+    player.mesh.position.set(
+      sx,
+      sy - (1 - ease) * 4.5,   // из-за кулис (ниже игровой линии)
+      -(1 - ease) * 10          // из глубины к переду
+    );
+    player.mesh.rotation.y = Math.sin(t * 5) * 0.25; // семенит при выходе
+    const s = 0.7 + ease * 0.3;
+    player.mesh.scale.setScalar(s);
   }
 
   // ================= БЕСТИАРИЙ / ЛОР (иконка ℹ️ в меню) — 3D-версия =================
