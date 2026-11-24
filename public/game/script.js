@@ -1861,6 +1861,7 @@ return g;
           cinematicKind = null;
           cinematic = null;
           cinematicStarted = false;
+          hideLoreCaption(); // текст исчезает вместе с кат-сценой
           camera.position.z = baseCameraZ;
           camera.lookAt(0, 0, 0);
         }
@@ -3205,12 +3206,12 @@ for (const h of houses) {
     bonusTimer = 5000;
     cinematicStarted = true;
     upgradeLine.textContent = kind === "planet" ? "Уровень 20: новый мир! 🪐" : kind === "city" ? "Уровень 50: въезжаем в город! 🏙️" : "Уровень 5: запуск! 🚀";
-    // лорная подводка текстом
+    // лорная подводка: текст живёт РОВНО столько, сколько идёт кат-сцена
     showLoreCaption(kind === "planet"
       ? "Корабль уносит тебя к планете Вейп-Прайм — источнику всего пара..."
       : kind === "city"
         ? "Слизь прорвалась в Неон-Сити. Жители в панике — нужна твоя помощь!"
-        : "Ты идёшь по заснеженной дороге к кораблю инопланетян. Пора посмотреть на мир свыше!", 6500);
+        : "Ты идёшь по заснеженной дороге к кораблю инопланетян. Пора посмотреть на мир свыше!"); // без ms — скрытие в конце кат-сцены
   }
 
   // ================= ЗАТЕМНЕНИЕ ЭКРАНА (переход между сценами) =================
@@ -3236,23 +3237,34 @@ for (const h of houses) {
     }, totalMs);
   }
 
-  // ================= ЛОР-ТЕКСТ ПОД КАТ-СЦЕНУ (нижняя треть экрана) =================
+  // ================= ЛОР-ТЕКСТ ВНУТРИ КАТ-СЦЕНЫ =================
+  // Текст живёт вместе со сценой: появляется с ней и исчезает при её конце.
   let loreEl = null;
-  let loreTimer = null;
-  function showLoreCaption(text, ms) {
-    ms = ms || 5200;
-    if (!loreEl) {
-      loreEl = document.createElement("div");
-      loreEl.id = "loreCaption";
-      loreEl.style.cssText = "position:fixed;left:50%;bottom:12%;transform:translateX(-50%);max-width:76%;text-align:center;color:#fff;font-size:17px;line-height:1.5;text-shadow:0 2px 8px #000,0 0 22px rgba(125,211,252,0.45);opacity:0;transition:opacity 0.6s ease;pointer-events:none;z-index:880;";
-      document.body.appendChild(loreEl);
-    }
-    loreEl.textContent = text;
-    void loreEl.offsetWidth;
-    loreEl.style.opacity = "1";
-    if (loreTimer) clearTimeout(loreTimer);
-    loreTimer = setTimeout(() => { loreEl.style.opacity = "0"; }, ms);
+  function ensureLoreEl() {
+    if (loreEl) return loreEl;
+    loreEl = document.createElement("div");
+    loreEl.id = "loreCaption";
+    loreEl.style.cssText = "position:fixed;left:50%;bottom:9%;transform:translateX(-50%);max-width:74%;text-align:center;color:#fff;font-size:18px;line-height:1.5;font-weight:600;letter-spacing:0.2px;text-shadow:0 2px 10px #000,0 0 26px rgba(125,211,252,0.5);opacity:0;transition:opacity 0.5s ease;pointer-events:none;z-index:880;padding:10px 22px;background:rgba(0,0,0,0.35);border-top:1px solid rgba(125,211,252,0.35);border-bottom:1px solid rgba(125,211,252,0.35);border-radius:6px;";
+    document.body.appendChild(loreEl);
+    return loreEl;
   }
+  function showLoreCaption(text, ms) {
+    const el = ensureLoreEl();
+    el.textContent = text;
+    void el.offsetWidth;
+    el.style.opacity = "1";
+    // если задан ms — авто-скрытие (для игровых моментов); для кат-сцен скрывает hideLoreCaption()
+    if (ms) {
+      if (loreHideTO) clearTimeout(loreHideTO);
+      loreHideTO = setTimeout(() => { el.style.opacity = "0"; }, ms);
+    }
+  }
+  function hideLoreCaption() {
+    if (!loreEl) return;
+    if (loreHideTO) { clearTimeout(loreHideTO); loreHideTO = null; }
+    loreEl.style.opacity = "0";
+  }
+  let loreHideTO = null;
   // отладочный хук для QA-скриптов (запускается только через window.__qa)
   window.__qa = {
     enterPlanet: () => { try { enterPlanetMode(); } catch (e) { console.error(e); } },
@@ -3283,7 +3295,8 @@ for (const h of houses) {
   function startIntroCutscene() {
     if (!player || !player.mesh) return;
     introCinematic = { start: performance.now(), x: player.x, y: player.y };
-    showLoreCaption("Ночь перед Новым годом. Санты разбили свои сани у Свит-Холлоу и теперь требуют компенсацию паром. Защищай магазин!", 6000);
+    // текст — часть кат-сцены: живёт и исчезает вместе с ней
+    showLoreCaption("Ночь перед Новым годом. Санты разбили свои сани у Свит-Холлоу и теперь требуют компенсацию паром. Защищай магазин!");
   }
   function updateIntroCutscene() {
     if (!introCinematic || !player || !player.mesh) return;
@@ -3295,6 +3308,7 @@ for (const h of houses) {
       player.mesh.rotation.set(0, 0, 0);
       player.mesh.position.z = 0;
       introCinematic = null;
+      hideLoreCaption(); // текст исчезает вместе с вступительной сценой
       return;
     }
     const p = Math.min(1, t / (DUR * 0.75)); // выход из магазина за 75% времени
