@@ -1771,6 +1771,11 @@ return g;
     if (state !== "playing") return;
     updateIntroCutscene();
      if (cinematic) {
+       // —— Видео-кат-сцена: рендерим видео, 3D-сцену не трогаем ——
+       if (cutsceneVideoMode) {
+         // ждём конец видео — все действия делает cutsceneVideoDone
+         return;
+       }
        const t = (performance.now() - cinematic.start) / 1000;
        if (cinematicKind === "planet") {
          // УРОВЕНЬ 20: корабль просто УЛЕТАЕТ ВДАЛЬ по -Z
@@ -1867,22 +1872,9 @@ return g;
         }
        const cinematicDur = cinematicKind === "space" ? 7.2 : 4.2; // взлёт — длиннее
        if (t >= cinematicDur) {
-          // СНАЧАЛА чистим декор старого мира и ВСЕ корабли, ПОТОМ входим в новый
-          scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
-          scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
-          scene.children.slice().forEach((o) => { if (o.userData && o.userData.isShip) scene.remove(o); }); // фикс: убираем старый корабль
-          spaceship = null; // старый корабль больше не «висит в фоне»
           const wasKind = cinematicKind;
-          if (wasKind === "planet") { planetCinematicDone = true; enterPlanetMode(); }
-           else if (wasKind === "city") { cityCinematicDone = true; enterCityMode(); }
-           else { spaceCinematicDone = true; enterSpaceMode(); }
-          cinematicKind = null;
-          cinematic = null;
-          cinematicStarted = false;
-          hideLoreCaption(); // текст исчезает вместе с кат-сценой
-          camera.position.z = baseCameraZ;
-          camera.lookAt(0, 0, 0);
-        }
+          finishCinematic(wasKind);
+       }
        return;
      }
 
@@ -2443,34 +2435,50 @@ for (const h of houses) {
     cityGround.userData.cityDecor = true;
     scene.add(cityGround);
     cityDecor.push(cityGround);
-    scene.fog.color.set(0x0a0a18);
+    scene.fog.color.set(0x3a1055);
     scene.fog.near = 50;
     scene.fog.far = 350;
-    sky.material.color.set(0x141428);
-    ambient.intensity = 0.45;
-    ambient.color.set(0x8899bb);
-    hemi.intensity = 0.3;
-    dir.color.set(0xffeecc);
-    dir.intensity = 0.8;
-    const buildingMats = [0x2a2a3a, 0x3a2a2a, 0x2a3a2a, 0x3a3a2a];
+    sky.material.color.set(0x5a1670); // фиолетово-малиновое неоновое небо как в кат-сцене
+    ambient.intensity = 0.55;
+    ambient.color.set(0xaa66cc);
+    hemi.intensity = 0.35;
+    dir.color.set(0xff9aee);
+    dir.intensity = 0.55;
+    // —— НЕОН-СИТИ в стиле кат-сцены: тёмные башни + неоновые контуры + цветные окна ——
+    const neonEdgeColors = [0x33e5ff, 0xff44cc, 0xffe94d, 0x33e5ff, 0xff44cc];
+    const windowColors = [0x33e5ff, 0xff44cc, 0xffe94d];
+    let neonIdx = 0;
     for (let side = -1; side <= 1; side += 2) {
       for (let i = 0; i < 10; i++) {
         const bw = 6 + Math.random() * 4;
-        const bh = 10 + Math.random() * 18;
+        const bh = 14 + Math.random() * 30; // выше — как небоскрёбы на фоне кат-сцены
         const bx = side * (14 + Math.random() * 14);
         const bz = -20 - i * 24;
-        const b = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bw), new THREE.MeshStandardMaterial({ color: buildingMats[i % buildingMats.length], roughness: 0.85 }));
+        const b = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bw), new THREE.MeshStandardMaterial({ color: 0x160d26, roughness: 0.9 }));
         b.position.set(bx, ground.position.y + bh / 2, bz);
         b.castShadow = true;
         b.userData.cityDecor = true;
         scene.add(b);
         cityDecor.push(b);
-        const winMat = new THREE.MeshStandardMaterial({ color: 0xffcc66, emissive: 0xffaa33, emissiveIntensity: 0.8 });
-        for (let wy = 1; wy < bh - 1; wy += 2.2) {
-          for (let wx = -bw / 2 + 1; wx < bw / 2 - 0.5; wx += 1.6) {
-            if (Math.random() < 0.55) {
-              const win = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.0), winMat);
-              win.position.set(bx + wx * side, ground.position.y + wy, bz + side * (bw / 2 + 0.05));
+        // неоновый контур по краям здания (как обводка на фоне кат-сцены)
+        const neonCol = neonEdgeColors[neonIdx++ % neonEdgeColors.length];
+        const neonMat = new THREE.MeshBasicMaterial({ color: neonCol });
+        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(b.geometry), new THREE.LineBasicMaterial({ color: neonCol }));
+        edges.position.copy(b.position); edges.scale.setScalar(1.001);
+        edges.userData.cityDecor = true;
+        scene.add(edges); cityDecor.push(edges);
+        // светящаяся полоса-крыша
+        const roofGlow = new THREE.Mesh(new THREE.BoxGeometry(bw + 0.15, 0.12, bw + 0.15), neonMat);
+        roofGlow.position.set(bx, ground.position.y + bh + 0.06, bz);
+        roofGlow.userData.cityDecor = true;
+        scene.add(roofGlow); cityDecor.push(roofGlow);
+        // окна в 3 неоновых цветах (голубые/розовые/жёлтые)
+        for (let wy = 1.5; wy < bh - 1.5; wy += 2.4) {
+          for (let wx = -bw / 2 + 1; wx < bw / 2 - 0.5; wx += 1.7) {
+            if (Math.random() < 0.6) {
+              const wc = windowColors[(Math.random() * windowColors.length) | 0];
+              const win = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 1.0), new THREE.MeshBasicMaterial({ color: wc }));
+              win.position.set(bx + wx * side, ground.position.y + wy, bz + side * (bw / 2 + 0.06));
               win.userData.cityDecor = true;
               scene.add(win);
               cityDecor.push(win);
@@ -2479,6 +2487,16 @@ for (const h of houses) {
         }
       }
     }
+    // —— Зелёное зарево слизи в небе (как над городом в кат-сцене) ——
+    const slimeGlow = new THREE.Mesh(new THREE.SphereGeometry(60, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2.6), new THREE.MeshBasicMaterial({ color: 0x44ff66, transparent: true, opacity: 0.14, side: THREE.BackSide, depthWrite: false }));
+    slimeGlow.position.set(0, ground.position.y + 10, -60);
+    slimeGlow.userData.cityDecor = true;
+    scene.add(slimeGlow); cityDecor.push(slimeGlow);
+    // фиолетовый купол-холмы (магма/холмы на фоне кат-сцены)
+    const hills = new THREE.Mesh(new THREE.SphereGeometry(120, 24, 12, 0, Math.PI * 2, Math.PI * 0.62, Math.PI * 0.38), new THREE.MeshBasicMaterial({ color: 0x8a1aa8, side: THREE.BackSide }));
+    hills.position.set(0, ground.position.y - 40, 0);
+    hills.userData.cityDecor = true;
+    scene.add(hills); cityDecor.push(hills);
     const cityRoad = new THREE.Mesh(new THREE.PlaneGeometry(18, 300), new THREE.MeshStandardMaterial({ color: 0x222226, roughness: 0.85 }));
     cityRoad.rotation.x = -Math.PI / 2;
     cityRoad.position.y = ground.position.y + 0.02;
@@ -3197,6 +3215,24 @@ for (const h of houses) {
     const keepRoof = addCastlePart(new THREE.ConeGeometry(4.4, 3.2, 4), castleRoofMat, 0, 10.4, cz + 4, Math.PI / 4);
     keepRoof.castShadow = false;
   }
+  // Финализация переходной кат-сцены: чистим декор старого мира и входим в новый (видео или 3D)
+  function finishCinematic(kind) {
+    // чистим декор старого мира и ВСЕ корабли, ПОТОМ входим в новый
+    scene.children.slice().forEach((o) => { if (o.userData && o.userData.planetDecor) scene.remove(o); });
+    scene.children.slice().forEach((o) => { if (o.userData && o.userData.spaceDecor) scene.remove(o); });
+    scene.children.slice().forEach((o) => { if (o.userData && o.userData.isShip) scene.remove(o); }); // фикс: убираем старый корабль
+    spaceship = null; // старый корабль больше не «висит в фоне»
+    if (kind === "planet") { planetCinematicDone = true; enterPlanetMode(); }
+     else if (kind === "city") { cityCinematicDone = true; enterCityMode(); }
+     else { spaceCinematicDone = true; enterSpaceMode(); }
+    cinematicKind = null;
+    cinematic = null;
+    cinematicStarted = false;
+    hideLoreCaption(); // текст исчезает вместе с кат-сценой
+    camera.position.z = baseCameraZ;
+    camera.lookAt(0, 0, 0);
+  }
+
   function startCinematic(kind) {
     if (kind === "space" && spaceCinematicDone) return;
     if (kind === "planet" && planetCinematicDone) return;
@@ -3216,6 +3252,17 @@ for (const h of houses) {
     bonuses = [];
     for (const s of shots) { scene.remove(s.mesh); }
     shots = [];
+    spawnTimer = 1200;
+    bonusTimer = 5000;
+    cinematicStarted = true;
+    upgradeLine.textContent = kind === "planet" ? "Уровень 20: новый мир! 🪐" : kind === "city" ? "Уровень 50: въезжаем в город! 🏙️" : "Уровень 5: запуск! 🚀";
+    // —— Видео-кат-сцена вместо 3D-постановки; если видео нет — откат на старую 3D-сцену ——
+    const videoOk = playCutsceneVideo(kind, () => {
+      // конец видео — финализируем переход в новый мир
+      finishCinematic(kind);
+    });
+    if (videoOk) return; // видео играет чисто, без текста поверх
+    // фолбэк — 3D-постановка (корабль и т.д.)
     spaceship = makeSpaceship();
     spaceship.position.set(0, kind === "planet" ? -4 : (-(H / 2) * SCALE - 0.6) + 1.5, kind === "planet" ? 0 : -18);
     spaceship.scale.setScalar(kind === "planet" ? 0.7 : 0.6);
@@ -3226,7 +3273,7 @@ for (const h of houses) {
     bonusTimer = 5000;
     cinematicStarted = true;
     upgradeLine.textContent = kind === "planet" ? "Уровень 20: новый мир! 🪐" : kind === "city" ? "Уровень 50: въезжаем в город! 🏙️" : "Уровень 5: запуск! 🚀";
-    // лорная подводка: текст живёт РОВНО столько, сколько идёт кат-сцена
+    // лорная подводка (только в 3D-фолбэке): текст живёт РОВНО столько, сколько идёт кат-сцена
     showLoreCaption(kind === "planet"
       ? "Корабль уносит тебя к планете Вейп-Прайм — источнику всего пара..."
       : kind === "city"
@@ -3314,10 +3361,71 @@ for (const h of houses) {
   let introCinematic = null; // { start }
   let introShop = []; // объекты витрин магазина для уборки после кат-сцены
   const INTRO_GROUND_Y = -(H / 2) * SCALE - 0.6; // уровень земли магазина (общий для setup и update)
+  // ================= КАТ-СЦЕНЫ = ВИДЕО (MP4 из /game/cutscenes) =================
+  // Кат-сцены рендерятся как видео: вступление, взлёт, полёт к планете, Неон-Сити.
+  // Если видео не загрузилось/нет поддержки — автоматом откатывается на старую 3D-сцену.
+  const CUTSCENE_VIDEOS = {
+    intro: "cutscenes/cutscene_0_intro.mp4",
+    space: "cutscenes/cutscene_5_launch.mp4",
+    planet: "cutscenes/cutscene_20_flight.mp4",
+    city: "cutscenes/cutscene_50_neon_city.mp4",
+  };
+  let cutsceneVideoEl = null;
+  let cutsceneVideoMode = null; // "intro" | "space" | "planet" | "city" | null
+  let cutsceneVideoDone = null; // callback после конца видео
+
+  function ensureCutsceneVideoEl() {
+    if (cutsceneVideoEl) return cutsceneVideoEl;
+    cutsceneVideoEl = document.createElement("video");
+    cutsceneVideoEl.id = "cutsceneVideo";
+    cutsceneVideoEl.style.cssText = "position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:870;background:#000;display:none;";
+    cutsceneVideoEl.playsInline = true;
+    cutsceneVideoEl.muted = false; // звук видео как в кат-сценах
+    document.body.appendChild(cutsceneVideoEl);
+    return cutsceneVideoEl;
+  }
+
+  // показать видео-кат-сцену; onEnd вызывается по окончании видео (или сразу, если видео не загрузилось)
+  function playCutsceneVideo(kind, onEnd) {
+    const src = CUTSCENE_VIDEOS[kind];
+    if (!src) return false; // нет видео — использовать 3D-сцену
+    try {
+      const el = ensureCutsceneVideoEl();
+      cutsceneVideoMode = kind;
+      cutsceneVideoDone = onEnd || null;
+      el.src = src;
+      el.style.display = "block";
+      el.onended = () => endCutsceneVideo();
+      el.onerror = () => endCutsceneVideo(true); // видео не смогло — откат на 3D
+      const p = el.play();
+      if (p && p.catch) p.catch(() => { /* autoplay отклонён — показываем кадр, звук не критичен */ });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function endCutsceneVideo(silent) {
+    if (cutsceneVideoEl) {
+      try { cutsceneVideoEl.pause(); } catch (e) {}
+      cutsceneVideoEl.style.display = "none";
+      try { cutsceneVideoEl.src = ""; } catch (e) {}
+    }
+    const mode = cutsceneVideoMode;
+    const done = cutsceneVideoDone;
+    cutsceneVideoMode = null;
+    cutsceneVideoDone = null;
+    if (done && !silent) done();
+  }
+
   function startIntroCutscene() {
     if (!player || !player.mesh) return;
+    // —— Попытка показать видео-кат-сцену вместо 3D-сцены ——
+    const videoOk = playCutsceneVideo("intro", () => {
+      finishIntroCutscene(); // по окончании видео мгновенно возвращаем игрока на дорогу
+    });
+    if (videoOk) return; // видео играет чисто, без текста поверх
+    // фолбэк — старая 3D-сцена
     introCinematic = { start: performance.now(), x: player.x, y: player.y };
-    // текст — часть кат-сцены: живёт и исчезает вместе с ней
+    // лорная подводка (только в 3D-фолбэке): текст живёт и исчезает вместе с 3D-сценой
     showLoreCaption("Выходишь из вейп-шопа «Sweet Santa Hunt».\nПолки уставлены вейпами разных цветов,\nно ваш вейп — единственный живой.\nСанты разбили сани у Свит-Холлоу.\nЗащищай магазин!");
 
     const vapeColors = [0x2255aa, 0xaa2222, 0x22aa55, 0xaa22aa, 0xaa6622, 0xff66aa, 0x22aaaa, 0xaaaa22];
@@ -3379,22 +3487,12 @@ for (const h of houses) {
 
   function updateIntroCutscene() {
     if (!introCinematic || !player || !player.mesh) return;
+    if (cutsceneVideoMode === "intro") return; // видео идёт — 3D-фолбэк не трогаем
     const t = (performance.now() - introCinematic.start) / 1000;
     const DUR = 8;
     const groundY = INTRO_GROUND_Y;
     if (t >= DUR) {
-      // конец — вернуть игрока в нормальное состояние
-      player.mesh.scale.setScalar(1);
-      player.mesh.rotation.set(0, 0, 0);
-      player.mesh.position.z = 0;
-      // убрать декор магазина
-      introShop.forEach((o) => { try { scene.remove(o); } catch (e) {} });
-      introShop = [];
-      // вернуть камеру в нормальное игровое положение
-      camera.position.set(0, Math.sin((25 * Math.PI) / 180) * baseCameraZ, Math.cos((25 * Math.PI) / 180) * baseCameraZ);
-      camera.lookAt(0, 0, 0);
-      introCinematic = null;
-      hideLoreCaption(); // текст исчезает вместе с вступительной сценой
+      finishIntroCutscene();
       return;
     }
     const p = Math.min(1, t / (DUR * 0.75)); // выход из магазина за 75% времени
@@ -3430,6 +3528,23 @@ for (const h of houses) {
       const lookX = sx + q * 2.5; // чуть в сторону дороги
       camera.lookAt(lookX, camY - q * 0.6, lookZ);
     }
+  }
+
+  // Финал вступительной кат-сцены: вернуть игрока на дорогу и убрать магазин (видео или 3D)
+  function finishIntroCutscene() {
+    if (introShop.length) {
+      introShop.forEach((o) => { try { scene.remove(o); } catch (e) {} });
+      introShop = [];
+    }
+    if (player && player.mesh) {
+      player.mesh.scale.setScalar(1);
+      player.mesh.rotation.set(0, 0, 0);
+      player.mesh.position.z = 0;
+    }
+    camera.position.set(0, Math.sin((25 * Math.PI) / 180) * baseCameraZ, Math.cos((25 * Math.PI) / 180) * baseCameraZ);
+    camera.lookAt(0, 0, 0);
+    introCinematic = null;
+    hideLoreCaption();
   }
 
   // ================= БЕСТИАРИЙ / ЛОР (иконка ℹ️ в меню) — 3D-версия =================
@@ -3886,6 +4001,13 @@ for (const h of houses) {
     const dt = now - lastTime;
     lastTime = now;
     if (state === "playing" || state === "chest") {
+       // Во время видео-кат-сцены бой на паузе — враги/бонусы не спавнятся, урон не капает
+       if (cutsceneVideoMode) {
+         try { updateLivesUI(); } catch (e) {}
+         renderer.render(scene, camera);
+         requestAnimationFrame(loop);
+         return;
+       }
        try { if (state === "playing") update(dt); } catch (e) { upgradeLine.textContent = "ERR: " + e.message; console.error(e); }
        try { updateLivesUI(); } catch (e) {}
     }
