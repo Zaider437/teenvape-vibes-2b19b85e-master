@@ -3313,6 +3313,7 @@ for (const h of houses) {
   // ================= ВСТУПИТЕЛЬНАЯ КАТ-СЦЕНА (старт забега) =================
   let introCinematic = null; // { start }
   let introShop = []; // объекты витрин магазина для уборки после кат-сцены
+  const INTRO_GROUND_Y = -(H / 2) * SCALE - 0.6; // уровень земли магазина (общий для setup и update)
   function startIntroCutscene() {
     if (!player || !player.mesh) return;
     introCinematic = { start: performance.now(), x: player.x, y: player.y };
@@ -3320,7 +3321,7 @@ for (const h of houses) {
     showLoreCaption("Выходишь из вейп-шопа «Sweet Santa Hunt».\nПолки уставлены вейпами разных цветов,\nно ваш вейп — единственный живой.\nСанты разбили сани у Свит-Холлоу.\nЗащищай магазин!");
 
     const vapeColors = [0x2255aa, 0xaa2222, 0x22aa55, 0xaa22aa, 0xaa6622, 0xff66aa, 0x22aaaa, 0xaaaa22];
-    const groundY = -(H / 2) * SCALE - 0.6; // уровень земли магазина
+    const groundY = INTRO_GROUND_Y; // уровень земли магазина
 
     // —— Пол и стены магазина ——
     const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 14), new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.8 }));
@@ -3380,6 +3381,7 @@ for (const h of houses) {
     if (!introCinematic || !player || !player.mesh) return;
     const t = (performance.now() - introCinematic.start) / 1000;
     const DUR = 8;
+    const groundY = INTRO_GROUND_Y;
     if (t >= DUR) {
       // конец — вернуть игрока в нормальное состояние
       player.mesh.scale.setScalar(1);
@@ -3399,25 +3401,34 @@ for (const h of houses) {
     const ease = p * p * (3 - 2 * p); // smoothstep
     // вейп «выходит» из магазина (изнутри витрины) наружу к дороге
     const sx = screenToWorldX(introCinematic.x);
+    const exitZ = -2.5 + ease * 12; // изнутри магазина (-2.5) наружу к дороге (+12)
+    const s = 0.7 + ease * 0.3;
+    // покачивание «шагом» — вейп идёт, а не скользит
+    const walkBob = Math.abs(Math.sin(t * 7)) * 0.18;
+    const walkTilt = Math.sin(t * 7) * 0.12;
+    // перед выходом за двери — припрыгивание через порог
+    const doorT = Math.min(1, t / 2.2); // двери на z≈+2 (витрина у стойки)
+    const hop = (exitZ > 2 && doorT >= 1) ? Math.abs(Math.sin(t * 10)) * 0.4 : 0;
     player.mesh.position.set(
-      sx,
-      groundY + 0.6, // на полу магазина
-      -2.5 + ease * 12 // изнутри магазина (-2.5) наружу к дороге (+12)
+      sx + walkTilt,
+      groundY + 0.6 + walkBob + hop, // на полу магазина + шаг + прыжок через порог
+      exitZ
     );
     player.mesh.rotation.y = Math.PI - ease * Math.PI; // поворачиваем от витрины к дороге
-    const s = 0.7 + ease * 0.3;
+    player.mesh.rotation.z = Math.sin(t * 7) * 0.06; // лёгкое раскачивание корпуса при шаге
     player.mesh.scale.setScalar(s);
-    // —— Камера: сначала внутри магазина смотрит на витрину, потом следует за вейпом наружу ——
+    // —— Камера: ВСЯ сцена от 1-го лица (глаза вейпа) ——
+    const camY = groundY + 2.0;
+    const camZ = exitZ + 1.4; // камера чуть позади вейпа (затылок)
+    camera.position.set(sx, camY, camZ);
+    // фаза 1 (<40%): смотрим на полки/витрину, потом голова поворачивается к дороге
     if (ease < 0.4) {
-      // Фаза 1: камера внутри магазина, смотрит на полки и витрину
-      camera.position.set(0, groundY + 1.7, -5.5);
-      camera.lookAt(0, groundY + 1.0, -10);
+      camera.lookAt(0, groundY + 1.0, -10); // полки и витрина
     } else {
-      // Фаза 2: камера следует за вейпом от первого лица, выходя наружу
-      const camY = groundY + 2.1;
-      const camZ = -2.5 + ease * 12 + 1.5;
-      camera.position.set(sx, camY, camZ);
-      camera.lookAt(sx, camY, camZ + 6);
+      const q = (ease - 0.4) / 0.6; // 0..1 плавный поворот головы
+      const lookZ = exitZ + (6 + q * 10); // взгляд уходит вперёд по дороге
+      const lookX = sx + q * 2.5; // чуть в сторону дороги
+      camera.lookAt(lookX, camY - q * 0.6, lookZ);
     }
   }
 
